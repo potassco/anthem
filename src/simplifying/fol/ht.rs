@@ -3,7 +3,10 @@ use crate::{
         apply::Apply as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Quantification, Theory},
+    syntax_tree::fol::{
+        AtomicFormula, BinaryConnective, Comparison, Formula, Guard, Quantification, Relation,
+        Theory,
+    },
 };
 
 pub fn simplify(theory: Theory) -> Theory {
@@ -14,6 +17,7 @@ pub fn simplify(theory: Theory) -> Theory {
 
 fn simplify_formula(formula: Formula) -> Formula {
     formula.apply_all(&mut vec![
+        Box::new(evaluate_comparisons_between_equal_terms),
         Box::new(remove_identities),
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
@@ -21,6 +25,56 @@ fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_empty_quantifications),
         Box::new(join_nested_quantifiers),
     ])
+}
+
+fn evaluate_comparisons_between_equal_terms(formula: Formula) -> Formula {
+    // Evaluate comparisons between structurally equal terms
+    // e.g. T  = T => #true
+    // e.g. T != T => #false
+    // e.g. T1 = T2 = T3 => T1 = T2 and T2 = T3 (side effect)
+
+    match formula {
+        Formula::AtomicFormula(AtomicFormula::Comparison(Comparison { term, guards })) => {
+            let mut formulas = vec![];
+
+            let mut lhs = term;
+            for Guard {
+                relation,
+                term: rhs,
+            } in guards
+            {
+                formulas.push(Formula::AtomicFormula(if lhs == rhs {
+                    match relation {
+                        // T  = T => #true
+                        // T >= T => #true
+                        // T <= T => #true
+                        Relation::Equal | Relation::GreaterEqual | Relation::LessEqual => {
+                            AtomicFormula::Truth
+                        }
+                        // T != T => #false
+                        // T >  T => #false
+                        // T <  T => #false
+                        Relation::NotEqual | Relation::Greater | Relation::Less => {
+                            AtomicFormula::Falsity
+                        }
+                    }
+                } else {
+                    AtomicFormula::Comparison(Comparison {
+                        term: lhs,
+                        guards: vec![Guard {
+                            relation,
+                            term: rhs.clone(),
+                        }],
+                    })
+                }));
+
+                lhs = rhs;
+            }
+
+            Formula::conjoin(formulas)
+        }
+        x => x,
+    }
 }
 
 fn remove_identities(formula: Formula) -> Formula {
@@ -192,7 +246,8 @@ pub(crate) fn join_nested_quantifiers(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{
-            join_nested_quantifiers, remove_annihilations, remove_idempotences, remove_identities,
+            evaluate_comparisons_between_equal_terms, join_nested_quantifiers,
+            remove_annihilations, remove_idempotences, remove_identities,
             remove_orphaned_variables, simplify_formula,
         },
         crate::{
@@ -207,9 +262,41 @@ mod tests {
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
             ("forall X a", "a"),
+            ("X = X and a", "a"),
+            ("forall X (X = X)", "#true"),
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_evaluate_comparisons_between_equal_terms() {
+        for (src, target) in [
+            ("X = X", "#true"),
+            ("X = Y", "X = Y"),
+            ("X != X", "#false"),
+            ("X != Y", "X != Y"),
+            ("X > X", "#false"),
+            ("X > Y", "X > Y"),
+            ("X < X", "#false"),
+            ("X < Y", "X < Y"),
+            ("X >= X", "#true"),
+            ("X >= Y", "X >= Y"),
+            ("X <= X", "#true"),
+            ("X <= Y", "X <= Y"),
+            ("X$i + 1 = X$i + 1", "#true"),
+            ("X$i + 1 + 1 = X$i + 2", "X$i + 1 + 1 = X$i + 2"),
+            ("X = X = Y", "#true and X = Y"),
+            ("X != X = Y", "#false and X = Y"),
+            ("X = Y = Z", "X = Y and Y = Z"),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut evaluate_comparisons_between_equal_terms),
                 target.parse().unwrap()
             )
         }
