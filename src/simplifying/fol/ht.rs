@@ -3,7 +3,7 @@ use crate::{
         apply::Apply as _,
         unbox::{fol::UnboxedFormula, Unbox as _},
     },
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Theory},
+    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Quantification, Theory},
 };
 
 pub fn simplify(theory: Theory) -> Theory {
@@ -17,6 +17,7 @@ fn simplify_formula(formula: Formula) -> Formula {
         Box::new(remove_identities),
         Box::new(remove_annihilations),
         Box::new(remove_idempotences),
+        Box::new(remove_orphaned_variables),
         Box::new(remove_empty_quantifications),
         Box::new(join_nested_quantifiers),
     ])
@@ -113,6 +114,39 @@ fn remove_idempotences(formula: Formula) -> Formula {
     }
 }
 
+fn remove_orphaned_variables(formula: Formula) -> Formula {
+    // Remove orphaned variables in quantification
+    // e.g. q X Y F(X) => q X F(X)
+
+    match formula {
+        // forall X Y F(X) => forall X F(X)
+        // exists X Y F(X) => exists X F(X)
+        Formula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier,
+                    variables,
+                },
+            formula,
+        } => {
+            let free_variables = formula.free_variables();
+            let variables = variables
+                .into_iter()
+                .filter(|v| free_variables.contains(v))
+                .collect();
+
+            Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    quantifier,
+                    variables,
+                },
+                formula,
+            }
+        }
+        x => x,
+    }
+}
+
 fn remove_empty_quantifications(formula: Formula) -> Formula {
     // Remove empty quantifiers
     // e.g. q F => F
@@ -159,7 +193,7 @@ mod tests {
     use {
         super::{
             join_nested_quantifiers, remove_annihilations, remove_idempotences, remove_identities,
-            simplify_formula,
+            remove_orphaned_variables, simplify_formula,
         },
         crate::{
             convenience::apply::Apply as _, simplifying::fol::ht::remove_empty_quantifications,
@@ -172,6 +206,7 @@ mod tests {
         for (src, target) in [
             ("#true and #true and a", "a"),
             ("#true and (#true and a)", "a"),
+            ("forall X a", "a"),
         ] {
             assert_eq!(
                 simplify_formula(src.parse().unwrap()),
@@ -221,6 +256,22 @@ mod tests {
                 src.parse::<Formula>()
                     .unwrap()
                     .apply(&mut remove_idempotences),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_remove_orphaned_variables() {
+        for (src, target) in [
+            ("forall X Y Z (X = X)", "forall X (X = X)"),
+            ("exists X Y (X = Y)", "exists X Y (X = Y)"),
+            ("exists X Y Z (X = Y)", "exists X Y (X = Y)"),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut remove_orphaned_variables),
                 target.parse().unwrap()
             )
         }
