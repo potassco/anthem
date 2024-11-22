@@ -58,11 +58,11 @@ pub fn ordered_completion(theory: fol::Theory) -> Option<fol::Theory> {
     Some(fol::Theory { formulas })
 }
 
-fn create_order_atom(p: fol::Atom, q: fol::Atom) -> fol::Atom {
-    fol::Atom {
+fn create_order_formula(p: fol::Atom, q: fol::Atom) -> fol::Formula {
+    fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
         predicate_symbol: format!("less_{}_{}", p.predicate_symbol, q.predicate_symbol),
         terms: p.terms.into_iter().chain(q.terms).collect(),
-    }
+    }))
 }
 
 fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Formula {
@@ -71,12 +71,10 @@ fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Form
     // where p(xs) is head_atom
     match formula {
         fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(ref q)) => {
-            let order_atom = create_order_atom(q.clone(), head_atom);
-
             fol::Formula::BinaryFormula {
                 connective: fol::BinaryConnective::Conjunction,
+                rhs: create_order_formula(q.clone(), head_atom).into(),
                 lhs: formula.into(),
-                rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(order_atom)).into(),
             }
         }
         fol::Formula::AtomicFormula(_) => formula,
