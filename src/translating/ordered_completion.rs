@@ -1,13 +1,68 @@
 use crate::{
-    syntax_tree::fol::{
-        Atom, AtomicFormula, BinaryConnective, Formula, GeneralTerm, Predicate, Quantifier, Theory,
-        UnaryConnective,
-    },
+    syntax_tree::fol,
     translating::completion::{components, has_head_mismatches},
 };
 
-pub fn ordered_completion(theory: Theory) -> Option<Theory> {
-    todo!();
+pub fn ordered_completion(theory: fol::Theory) -> Option<fol::Theory> {
+    let (definitions, constraints) = components(theory)?;
+
+    if has_head_mismatches(&definitions) {
+        return None;
+    }
+
+    // rule translations for each p, i.e.
+    // forall X (p(X) <- disjoin(rule bodies of p(X)) )
+    // this is just the normal completion but instead of equivalences using <-
+    let rule_translations = definitions.clone().into_iter().map(|(p, bodies)| {
+        let v = p.variables();
+        fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::ReverseImplication,
+            lhs: fol::Formula::AtomicFormula(p).into(),
+            rhs: fol::Formula::disjoin(bodies.into_iter().map(|f_i| {
+                let u_i = f_i.free_variables().difference(&v).cloned().collect();
+                f_i.quantify(fol::Quantifier::Exists, u_i)
+            }))
+            .into(),
+        }
+        .quantify(fol::Quantifier::Forall, v.into_iter().collect())
+    });
+
+    // definition parts for each p, i.e.
+    // forall X (disjoin(rule bodies of p(X) with order constraint) -> p(X))
+    // this is the -> part of normal completion modified to include the order constraints
+    let definitions_with_order = definitions.into_iter().map(|(p, bodies)| {
+        let v = p.variables();
+        match p {
+            fol::AtomicFormula::Atom(ref head_atom) => fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                rhs: fol::Formula::disjoin(bodies.into_iter().map(|f_i| {
+                    let u_i = f_i.free_variables().difference(&v).cloned().collect();
+                    let f_i_with_order = conjoin_order_atoms(f_i, head_atom.clone());
+                    f_i_with_order.quantify(fol::Quantifier::Exists, u_i)
+                }))
+                .into(),
+                lhs: fol::Formula::AtomicFormula(p).into(),
+            }
+            .quantify(fol::Quantifier::Forall, v.into_iter().collect()),
+            _ => unreachable!("definitions should only contain atoms as first component"),
+        }
+    });
+
+    let mut formulas: Vec<_> = constraints
+        .into_iter()
+        .map(fol::Formula::universal_closure)
+        .collect();
+    formulas.extend(rule_translations);
+    formulas.extend(definitions_with_order);
+
+    Some(fol::Theory { formulas })
+}
+
+fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Formula {
+    // replaces all positive atoms q(zs) in formula (i.e. all q(zs) not in the scope of any negation) by
+    // q(zs) and less_p_q(xs, zs)
+    // where p(xs) is head_atom
+    todo!()
 }
 
 #[cfg(test)]
