@@ -101,9 +101,86 @@ fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Form
     }
 }
 
+pub fn ordered_completion_axioms(theory: fol::Theory) -> fol::Theory {
+    fn get_general_variables(l: usize, u: usize) -> Vec<fol::GeneralTerm> {
+        // l and u are lower and upper bound for index of general variables
+        // i.e. return general variables Xl, ..., Xu
+        (l..=u)
+            .map(|i| fol::GeneralTerm::Variable(format!("X{i}")))
+            .collect()
+    }
+
+    fn irreflexivity_axiom(p: fol::Predicate) -> fol::Formula {
+        // turn predicate p into atom p(xs)
+        let p_atom = fol::Atom {
+            predicate_symbol: p.symbol,
+            terms: get_general_variables(1, p.arity),
+        };
+
+        // not less_p_p(xs, xs)
+        let formula = fol::Formula::UnaryFormula {
+            connective: fol::UnaryConnective::Negation,
+            formula: create_order_formula(p_atom.clone(), p_atom).into(),
+        };
+        let variables = formula.free_variables().into_iter().collect();
+
+        formula.quantify(fol::Quantifier::Forall, variables)
+    }
+
+    fn transitivity_axiom(p: fol::Predicate, q: fol::Predicate, r: fol::Predicate) -> fol::Formula {
+        // turn p, q, r into atoms
+        // variables of the three atoms need to distinct
+        // to do so the variable index goes from 1 to p.arity + q.arity + r.arity
+        let p_atom = fol::Atom {
+            predicate_symbol: p.symbol,
+            terms: get_general_variables(1, p.arity),
+        };
+        let q_atom = fol::Atom {
+            predicate_symbol: q.symbol,
+            terms: get_general_variables(p.arity + 1, p.arity + q.arity),
+        };
+        let r_atom = fol::Atom {
+            predicate_symbol: r.symbol,
+            terms: get_general_variables(p.arity + q.arity + 1, p.arity + q.arity + r.arity),
+        };
+
+        // (less_p_q(xs, ys) and less_q_r(ys, zs)) -> lessp_r(xs, zs)
+        let formula = fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Implication,
+            lhs: Box::new(fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: create_order_formula(p_atom.clone(), q_atom.clone()).into(),
+                rhs: create_order_formula(q_atom, r_atom.clone()).into(),
+            }),
+            rhs: create_order_formula(p_atom, r_atom).into(),
+        };
+        let variables = formula.free_variables().into_iter().collect();
+
+        formula.quantify(fol::Quantifier::Forall, variables)
+    }
+
+    // reflexivity for each predicate
+    let mut axioms: Vec<_> = theory
+        .predicates()
+        .into_iter()
+        .map(irreflexivity_axiom)
+        .collect();
+
+    // transitivity for each tuple (p, q, r)
+    for p in theory.predicates() {
+        for q in theory.predicates() {
+            for r in theory.predicates() {
+                axioms.push(transitivity_axiom(p.clone(), q.clone(), r))
+            }
+        }
+    }
+
+    fol::Theory { formulas: axioms }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::ordered_completion;
+    use super::{ordered_completion, ordered_completion_axioms};
     use crate::{syntax_tree::fol, translating::tau_star::tau_star};
 
     #[test]
@@ -138,6 +215,25 @@ mod tests {
             assert!(
                 ordered_completion(theory.clone()).is_none(),
                 "`{theory}` should not be completable"
+            );
+        }
+    }
+
+    #[test]
+    fn test_ordered_completion_axioms() {
+        for (src, target) in [
+            ("p :- p.", "not less_p_p. less_p_p and less_p_p -> less_p_p."),
+            (
+                "p(X) :- q.",
+                "not less_q_q. forall X1 not less_p_p(X1, X1). less_q_q and less_q_q -> less_q_q. forall X1 (less_q_q and less_q_p(X1) -> less_q_p(X1)). forall X1 (less_q_p(X1) and less_p_q(X1) -> less_q_q). forall X1 X2 (less_q_p(X1) and less_p_p(X1, X2) -> less_q_p(X2)). forall X1 (less_p_q(X1) and less_q_q -> less_p_q(X1)). forall X1 X2 (less_p_q(X1) and less_q_p(X2) -> less_p_p(X1, X2)). forall X1 X2 (less_p_p(X1, X2) and less_p_q(X2) -> less_p_q(X1)). forall X1 X2 X3 (less_p_p(X1, X2) and less_p_p(X2, X3) -> less_p_p(X1, X3)).",
+            ),
+        ] {
+            let left = ordered_completion_axioms(tau_star(src.parse().unwrap()));
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
             );
         }
     }
