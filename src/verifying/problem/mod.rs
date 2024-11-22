@@ -136,6 +136,20 @@ impl Problem {
         self
     }
 
+    // TODO: Improve naming scheme for formulas
+    pub fn create_unique_formula_names(mut self) -> Self {
+        let mut formulas = vec![];
+        for (i, f) in self.formulas.into_iter().enumerate() {
+            formulas.push(AnnotatedFormula {
+                name: format!("formula_{i}_{}", f.name),
+                role: f.role,
+                formula: f.formula,
+            });
+        }
+        self.formulas = formulas;
+        self
+    }
+
     pub fn axioms(&self) -> Vec<AnnotatedFormula> {
         self.formulas
             .iter()

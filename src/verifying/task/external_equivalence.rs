@@ -704,7 +704,8 @@ impl Task for AssembledExternalEquivalenceTask {
                         Problem::with_name(format!("forward_outline_{i}_{j}"))
                             .add_annotated_formulas(axioms.clone())
                             .add_annotated_formulas(std::iter::once(conjecture.clone()))
-                            .rename_conflicting_symbols(),
+                            .rename_conflicting_symbols()
+                            .create_unique_formula_names(),
                     );
                 }
                 axioms.append(&mut lemma.consequences.clone());
@@ -722,6 +723,7 @@ impl Task for AssembledExternalEquivalenceTask {
                     )
                     .add_annotated_formulas(self.forward_conclusions)
                     .rename_conflicting_symbols()
+                    .create_unique_formula_names()
                     .decompose(self.decomposition),
             );
         }
@@ -745,7 +747,8 @@ impl Task for AssembledExternalEquivalenceTask {
                         Problem::with_name(format!("backward_outline_{i}_{j}"))
                             .add_annotated_formulas(axioms.clone())
                             .add_annotated_formulas(std::iter::once(conjecture.clone()))
-                            .rename_conflicting_symbols(),
+                            .rename_conflicting_symbols()
+                            .create_unique_formula_names(),
                     );
                 }
                 axioms.append(&mut lemma.consequences.clone());
@@ -763,6 +766,7 @@ impl Task for AssembledExternalEquivalenceTask {
                     )
                     .add_annotated_formulas(self.backward_conclusions)
                     .rename_conflicting_symbols()
+                    .create_unique_formula_names()
                     .decompose(self.decomposition),
             );
         }

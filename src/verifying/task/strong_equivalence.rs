@@ -105,7 +105,8 @@ impl Task for StrongEquivalenceTask {
                         role: Role::Conjecture,
                         formula,
                     })
-                    .rename_conflicting_symbols(),
+                    .rename_conflicting_symbols()
+                    .create_unique_formula_names(),
             );
         }
         if matches!(
@@ -129,7 +130,8 @@ impl Task for StrongEquivalenceTask {
                         role: Role::Conjecture,
                         formula,
                     })
-                    .rename_conflicting_symbols(),
+                    .rename_conflicting_symbols()
+                    .create_unique_formula_names(),
             );
         }
 

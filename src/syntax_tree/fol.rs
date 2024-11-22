@@ -963,12 +963,8 @@ impl_node!(AnnotatedFormula, Format, AnnotatedFormulaParser);
 impl AnnotatedFormula {
     pub fn into_problem_formula(self, role: problem::Role) -> problem::AnnotatedFormula {
         problem::AnnotatedFormula {
-            name: if self.name.is_empty() {
-                // TODO: Revisit default naming scheme!
-                self.role.to_string()
-            } else {
-                self.name
-            },
+            // TODO: Revisit default naming scheme!
+            name: self.name,
             role,
             formula: self.formula,
         }
