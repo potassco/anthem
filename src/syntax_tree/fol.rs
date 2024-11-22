@@ -143,6 +143,13 @@ impl SymbolicTerm {
             SymbolicTerm::Symbol(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
         }
     }
+
+    pub fn substitute(self, var: Variable, term: SymbolicTerm) -> Self {
+        match self {
+            SymbolicTerm::Variable(s) if var.name == s && var.sort == Sort::Symbol => term,
+            _ => self,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -202,6 +209,12 @@ impl GeneralTerm {
                     "cannot substitute general term `{term}` for the integer variable `{var}`"
                 ),
             },
+            GeneralTerm::SymbolicTerm(t) if var.sort == Sort::Symbol => match term {
+                GeneralTerm::SymbolicTerm(term) => GeneralTerm::SymbolicTerm(t.substitute(var, term)),
+                _ => panic!(
+                    "cannot substitute general term `{term}` for the symbolic variable `{var}`"
+                ),
+            }
             t => t,
         }
     }
