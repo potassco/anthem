@@ -58,11 +58,49 @@ pub fn ordered_completion(theory: fol::Theory) -> Option<fol::Theory> {
     Some(fol::Theory { formulas })
 }
 
+fn create_order_atom(p: fol::Atom, q: fol::Atom) -> fol::Atom {
+    fol::Atom {
+        predicate_symbol: format!("less_{}_{}", p.predicate_symbol, q.predicate_symbol),
+        terms: p.terms.into_iter().chain(q.terms).collect(),
+    }
+}
+
 fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Formula {
     // replaces all positive atoms q(zs) in formula (i.e. all q(zs) not in the scope of any negation) by
     // q(zs) and less_p_q(xs, zs)
     // where p(xs) is head_atom
-    todo!()
+    match formula {
+        fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(ref q)) => {
+            let order_atom = create_order_atom(q.clone(), head_atom);
+
+            fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Conjunction,
+                lhs: formula.into(),
+                rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(order_atom)).into(),
+            }
+        }
+        fol::Formula::AtomicFormula(_) => formula,
+        fol::Formula::UnaryFormula {
+            connective: fol::UnaryConnective::Negation,
+            ..
+        } => formula,
+        fol::Formula::BinaryFormula {
+            connective,
+            lhs,
+            rhs,
+        } => fol::Formula::BinaryFormula {
+            connective,
+            lhs: conjoin_order_atoms(*lhs, head_atom.clone()).into(),
+            rhs: conjoin_order_atoms(*rhs, head_atom).into(),
+        },
+        fol::Formula::QuantifiedFormula {
+            quantification,
+            formula,
+        } => fol::Formula::QuantifiedFormula {
+            quantification,
+            formula: conjoin_order_atoms(*formula, head_atom).into(),
+        },
+    }
 }
 
 #[cfg(test)]
