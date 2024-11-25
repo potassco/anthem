@@ -97,6 +97,7 @@ pub enum Property {
 pub enum Translation {
     Completion,
     Gamma,
+    OrderedCompletion,
     TauStar,
 }
 
