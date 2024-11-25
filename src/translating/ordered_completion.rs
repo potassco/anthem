@@ -67,7 +67,7 @@ fn create_order_formula(p: fol::Atom, q: fol::Atom) -> fol::Formula {
 
 fn conjoin_order_atoms(formula: fol::Formula, head_atom: fol::Atom) -> fol::Formula {
     // replaces all positive atoms q(zs) in formula (i.e. all q(zs) not in the scope of any negation) by
-    // q(zs) and less_p_q(xs, zs)
+    // q(zs) and less_q_p(zs, xs)
     // where p(xs) is head_atom
     match formula {
         fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(ref q)) => {
@@ -144,7 +144,7 @@ pub fn ordered_completion_axioms(theory: fol::Theory) -> fol::Theory {
             terms: get_general_variables(p.arity + q.arity + 1, p.arity + q.arity + r.arity),
         };
 
-        // (less_p_q(xs, ys) and less_q_r(ys, zs)) -> lessp_r(xs, zs)
+        // (less_p_q(xs, ys) and less_q_r(ys, zs)) -> less_p_r(xs, zs)
         let formula = fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Implication,
             lhs: Box::new(fol::Formula::BinaryFormula {
