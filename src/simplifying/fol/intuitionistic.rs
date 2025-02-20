@@ -1,8 +1,8 @@
 use crate::{
     convenience::unbox::{fol::UnboxedFormula, Unbox as _},
     syntax_tree::fol::{
-        AtomicFormula, BinaryConnective, Comparison, Formula, Guard, Quantification, Relation,
-        UnaryConnective,
+        AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, Guard, IntegerTerm,
+        Quantification, Quantifier, Relation, Sort, SymbolicTerm, UnaryConnective, Variable,
     },
 };
 
@@ -17,6 +17,7 @@ pub const INTUITIONISTIC: &[fn(Formula) -> Formula] = &[
     remove_orphaned_variables,
     remove_empty_quantifications,
     join_nested_quantifiers,
+    substitute_defined_variables,
 ];
 
 pub fn evaluate_comparisons(formula: Formula) -> Formula {
@@ -403,6 +404,70 @@ pub fn join_nested_quantifiers(formula: Formula) -> Formula {
     }
 }
 
+pub fn substitute_defined_variables(formula: Formula) -> Formula {
+    // Substitute defined variables in existential quantifications
+
+    fn find_definition(variable: &Variable, formula: &Formula) -> Option<GeneralTerm> {
+        match formula {
+            Formula::AtomicFormula(AtomicFormula::Comparison(comparison)) => comparison
+                .individuals()
+                .filter_map(|individual| match individual {
+                    (lhs, Relation::Equal, rhs) => Some((lhs, rhs)),
+                    _ => None,
+                })
+                .flat_map(|(lhs, rhs)| [(lhs, rhs), (rhs, lhs)])
+                .filter_map(|(x, term)| match (x, term, &variable.sort) {
+                    (GeneralTerm::Variable(name), _, Sort::General)
+                    | (
+                        GeneralTerm::IntegerTerm(IntegerTerm::Variable(name)),
+                        GeneralTerm::IntegerTerm(_),
+                        Sort::Integer,
+                    )
+                    | (
+                        GeneralTerm::SymbolicTerm(SymbolicTerm::Variable(name)),
+                        GeneralTerm::SymbolicTerm(_),
+                        Sort::Symbol,
+                    ) if variable.name == *name && !term.variables().contains(variable) => {
+                        Some(term)
+                    }
+                    _ => None,
+                })
+                .next()
+                .cloned(),
+
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs,
+                rhs,
+            } => find_definition(variable, lhs).or_else(|| find_definition(variable, rhs)),
+
+            _ => None,
+        }
+    }
+
+    match formula {
+        Formula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier: quantifier @ Quantifier::Exists,
+                    variables,
+                },
+            formula,
+        } => {
+            let mut formula = *formula;
+
+            for variable in variables.iter().rev() {
+                if let Some(definition) = find_definition(variable, &formula) {
+                    formula = formula.substitute(variable.clone(), definition);
+                }
+            }
+
+            Formula::quantify(formula, quantifier, variables)
+        }
+        x => x,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
@@ -412,7 +477,7 @@ mod tests {
             apply_reverse_implication_definition, apply_reverse_implication_definition_inverse,
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
             remove_empty_quantifications, remove_idempotences, remove_identities,
-            remove_orphaned_variables, INTUITIONISTIC,
+            remove_orphaned_variables, substitute_defined_variables, INTUITIONISTIC,
         },
         crate::{
             convenience::{apply::Apply as _, compose::Compose as _},
@@ -652,6 +717,55 @@ mod tests {
                 src.parse::<Formula>()
                     .unwrap()
                     .apply(&mut join_nested_quantifiers),
+                target.parse().unwrap()
+            )
+        }
+    }
+
+    #[test]
+    fn test_substitute_defined_variables() {
+        for (src, target) in [
+            (
+                "exists X$g (X$g = 1 and p(X$g))",
+                "exists X$g (1 = 1 and p(1))",
+            ),
+            (
+                "exists X$g (X$g = a and p(X$g))",
+                "exists X$g (a = a and p(a))",
+            ),
+            (
+                "exists X$i (X$i = 1 and p(X$i))",
+                "exists X$i (1 = 1 and p(1))",
+            ),
+            (
+                "exists X$i (X$i = a and p(X$i))",
+                "exists X$i (X$i = a and p(X$i))",
+            ),
+            (
+                "exists X$s (X$s = 1 and p(X$s))",
+                "exists X$s (X$s = 1 and p(X$s))",
+            ),
+            (
+                "exists X$s (X$s = a and p(X$s))",
+                "exists X$s (a = a and p(a))",
+            ),
+            (
+                "exists X$i (X$i = X$i + 1 and p(X$i))",
+                "exists X$i (X$i = X$i + 1 and p(X$i))",
+            ),
+            (
+                "exists X$i (X$i = 1 or p(X$i))",
+                "exists X$i (X$i = 1 or p(X$i))",
+            ),
+            (
+                "forall X$i (X$i = 1 and p(X$i))",
+                "forall X$i (X$i = 1 and p(X$i))",
+            ),
+        ] {
+            assert_eq!(
+                src.parse::<Formula>()
+                    .unwrap()
+                    .apply(&mut substitute_defined_variables),
                 target.parse().unwrap()
             )
         }
