@@ -1111,8 +1111,22 @@ mod tests {
                         ],
                     },
                 ),
+                (
+                    "p (1)",
+                    Atom {
+                        predicate_symbol: "p".into(),
+                        terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))],
+                    },
+                ),
+                (
+                    "order",
+                    Atom {
+                        predicate_symbol: "order".into(),
+                        terms: vec![],
+                    },
+                ),
             ])
-            .should_reject(["p(1,)", "1", "P", "p("]);
+            .should_reject(["p(1,)", "1", "P", "p(", "or", "or ", "or(1)"]);
     }
 
     #[test]
