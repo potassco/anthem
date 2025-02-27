@@ -11,7 +11,10 @@ use {
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol, Node as _},
-        translating::{completion::completion, gamma::gamma, tau_star::tau_star},
+        translating::{
+            completion::completion, gamma::gamma, ordered_completion::ordered_completion,
+            tau_star::tau_star,
+        },
         verifying::{
             prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
@@ -85,6 +88,14 @@ pub fn main() -> Result<()> {
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let gamma_theory = gamma(theory);
                     print!("{gamma_theory}")
+                }
+
+                Translation::OrderedCompletion => {
+                    let theory =
+                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
+                    let ordered_completion_theory = ordered_completion(theory)
+                        .context("the given theory is not completable")?;
+                    print!("{ordered_completion_theory}")
                 }
 
                 Translation::TauStar => {
