@@ -1619,6 +1619,7 @@ mod tests {
                 "forall",
                 "or and or",
                 "and or and",
+                "or  and or(1)",
             ]);
     }
 
