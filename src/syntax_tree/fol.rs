@@ -15,7 +15,6 @@ use {
         syntax_tree::{impl_node, Node},
         verifying::problem,
     },
-    clap::ValueEnum,
     derive_more::derive::IntoIterator,
     indexmap::{IndexMap, IndexSet},
     std::hash::Hash,
@@ -955,13 +954,7 @@ pub enum Role {
 
 impl_node!(Role, Format, RoleParser);
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, ValueEnum)]
-pub enum Direction {
-    #[default]
-    Universal,
-    Forward,
-    Backward,
-}
+pub use crate::command_line::arguments::Direction;
 
 impl_node!(Direction, Format, DirectionParser);
 

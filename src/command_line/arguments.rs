@@ -145,7 +145,13 @@ pub enum Decomposition {
     Sequential,
 }
 
-pub use crate::syntax_tree::fol::Direction;
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, ValueEnum)]
+pub enum Direction {
+    #[default]
+    Universal,
+    Forward,
+    Backward,
+}
 
 #[cfg(test)]
 mod tests {
