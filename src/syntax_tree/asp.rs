@@ -258,6 +258,15 @@ impl AtomicFormula {
             AtomicFormula::Comparison(c) => c.function_constants(),
         }
     }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        match &self {
+            AtomicFormula::Literal(l) => l.atom.terms.iter().cloned().collect(),
+            AtomicFormula::Comparison(c) => {
+                IndexSet::from([c.lhs.clone(), c.rhs.clone()])
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -351,6 +360,14 @@ impl Body {
         }
         functions
     }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::new();
+        for formula in self.formulas.iter() {
+            terms.extend(formula.terms())
+        }
+        terms
+    }
 }
 
 impl FromIterator<AtomicFormula> for Body {
@@ -389,6 +406,17 @@ impl Rule {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
         functions
+    }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::new();
+        if let Some(head_terms) = self.head.terms() {
+            head_terms.iter().for_each(|term| {
+                terms.insert(term.clone());
+            });
+        }
+        terms.extend(self.body.terms());
+        terms
     }
 }
 
