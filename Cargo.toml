@@ -31,3 +31,4 @@ walkdir = "2"
 
 [dev-dependencies]
 assert_cmd = "2"
+tempfile = "3"
