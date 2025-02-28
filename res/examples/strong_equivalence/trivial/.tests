@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence=strong --no-proof-search --save-problems $OUT trivial.1.lp trivial.2.lp
