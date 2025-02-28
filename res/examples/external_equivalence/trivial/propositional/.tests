@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT propositional.spec propositional.lp propositional.ug

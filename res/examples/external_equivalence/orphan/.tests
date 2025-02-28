@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT orphan.1.lp orphan.2.lp orphan.b.ug

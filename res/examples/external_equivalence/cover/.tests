@@ -1,0 +1,2 @@
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT cover.spec cover.lp cover.ug
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT cover.lp cover_sym_break.lp cover.ug

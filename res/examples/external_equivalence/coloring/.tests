@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT coloring.spec coloring.lp coloring.ug
