@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence external --direction backward --no-proof-search --save-problems $OUT division.lp division.spec division.ug division.po
