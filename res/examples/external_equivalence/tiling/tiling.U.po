@@ -1,0 +1,64 @@
+definition: forall I$ J$ (filled2(I$,J$) <->
+  place(I$,J$,2) or place(I$-1,J$,2) or place(I$-2,J$,2)).
+
+definition: forall I$ J$ (filled3(I$,J$) <->
+  place(I$,J$,3) or place(I$,J$-1,3) or place(I$,J$-2,3)).
+
+lemma(forward):
+filled2(I$,J$) -> h(J$,I$) or h(J$,I$-1) or h(J$,I$-2).
+
+lemma(forward):
+filled2(I$,J$) -> covered(J$,I$).
+
+lemma(forward):
+filled3(I$,J$) -> v(J$,I$) or v(J$-1,I$) or v(J$-2,I$).
+
+lemma(forward):
+filled3(I$,J$) -> covered(J$,I$).
+
+lemma(forward):
+filled2(I$,J$) -> h(J$,I$) or h(J$,I$-1) or h(J$,I$-2).
+
+lemma(forward):
+filled2(I$,J$) -> covered(J$,I$).
+
+lemma(forward):
+  filled(I$,J$) ->
+    place(I$,J$,1) or filled2(I$,J$) or filled3(I$,J$).
+
+lemma(forward):
+  square(I$,J$) ->
+    place(I$,J$,1) or filled2(I$,J$) or filled3(I$,J$).
+
+lemma(forward):
+   square(I$,J$) -> place(I$,J$,1) or covered(J$,I$).
+
+
+
+lemma(backward):
+   place(V1, V2, V3) ->
+      V3 = 1 and square(V2, V1) and not covered(V2, V1) or
+      V3 = 2 and h(V2, V1) or
+      V3 = 3 and v(V2, V1).
+
+lemma(backward):
+  not(h(R,C) and v(R,C)).
+
+lemma(backward):
+   not(h(R$,C$) and h(R$,C$+I$) and 1 <= I$ <= 2).
+
+lemma(backward):
+   not(h(R$,C$) and v(R$,C$+I$) and 0 <= I$ <= 2).
+
+lemma(backward):
+   not(v(R$,C$) and h(R$+I$,C$) and 0 <= I$ <= 2).
+
+lemma(backward):
+  not(v(R$,C$) and h(R$+I$,C$-J$) and 0 <= J$ <= 2 and 1 <= I$ <= 2).
+
+lemma(backward):
+  square(I$,J$) -> place(I$,J$,1) or filled2(I$,J$) or filled3(I$,J$).
+
+lemma(backward): filled2(I$,J$) -> filled(I$,J$).
+
+lemma(backward): filled3(I$,J$) -> filled(I$,J$).
