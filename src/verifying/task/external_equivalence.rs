@@ -352,13 +352,16 @@ impl ExternalEquivalenceTask {
 
     fn ensure_assumptions_only_contain_input_symbols(
         &self,
+        program_input_symbols: &IndexSet<fol::Predicate>,
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
+                let mut input_symbols = program_input_symbols.clone();
+                input_symbols.append(&mut self.user_guide.input_predicates());
+
                 let predicates = formula.formula.predicates();
-                let inputs = self.user_guide.input_predicates();
-                if predicates.difference(&inputs).next().is_some() {
+                if predicates.difference(&input_symbols).next().is_some() {
                     return Err(
                         ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
                             formula.clone(),
@@ -415,7 +418,10 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
         self.ensure_placeholder_name_uniqueness()?;
-        self.ensure_assumptions_only_contain_input_symbols(&self.user_guide.formulas())?;
+        self.ensure_assumptions_only_contain_input_symbols(
+            &IndexSet::new(),
+            &self.user_guide.formulas(),
+        )?;
 
         match self.specification {
             Either::Left(ref program) => {
@@ -430,7 +436,10 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     specification,
                 )?;
-                self.ensure_assumptions_only_contain_input_symbols(&specification.formulas)?;
+                self.ensure_assumptions_only_contain_input_symbols(
+                    &program_private_predicates,
+                    &specification.formulas,
+                )?;
             }
         }
 

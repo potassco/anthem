@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT first_order.spec first_order.lp first_order.ug
