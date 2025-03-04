@@ -22,6 +22,12 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Generate CLI completion files
+    GenerateCompletion {
+        #[arg(long, value_enum)]
+        shell: clap_complete::Shell,
+    },
+
     Simplify {
         /// The simplification portfolio to use
         #[arg(long, value_enum)]

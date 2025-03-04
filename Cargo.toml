@@ -15,6 +15,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
 derive_more = { version = "1", features = ["full"] }
 either = "1"
 indexmap = "2"

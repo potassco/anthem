@@ -21,9 +21,10 @@ use {
         },
     },
     anyhow::{anyhow, Context, Result},
-    clap::Parser as _,
+    clap::{CommandFactory, Parser as _},
+    clap_complete::generate,
     either::Either,
-    std::time::Instant,
+    std::{io, time::Instant},
 };
 
 pub fn main() -> Result<()> {
@@ -37,6 +38,13 @@ pub fn main() -> Result<()> {
                     println!("{is_tight}");
                 }
             }
+
+            Ok(())
+        }
+
+        Command::GenerateCompletion { shell } => {
+            let mut cmd = Arguments::command();
+            generate(shell, &mut cmd, "anthem", &mut io::stdout());
 
             Ok(())
         }
