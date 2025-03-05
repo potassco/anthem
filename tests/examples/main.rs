@@ -1,6 +1,7 @@
 use {
     assert_cmd::Command,
     std::{
+        env,
         fs::File,
         io::{BufRead, BufReader},
         path::{Path, PathBuf},
@@ -39,7 +40,7 @@ impl Test {
             })
     }
 
-    fn execute(&self) {
+    fn execute(&self, tptp4x_name: &str) {
         match self.name.as_str() {
             "tptp_compliance" => {
                 let out = tempdir().unwrap().into_path();
@@ -63,7 +64,7 @@ impl Test {
                     .filter_map(Result::ok)
                     .filter(|entry| entry.file_type().is_file())
                     .for_each(|entry| {
-                        Command::new(Path::new(file!()).parent().unwrap().join("tptp4X"))
+                        Command::new(Path::new(file!()).parent().unwrap().join(tptp4x_name))
                             .arg(entry.path())
                             .assert()
                             .success();
@@ -76,8 +77,14 @@ impl Test {
 }
 
 #[test]
+#[cfg_attr(not(any(target_os = "linux", target_os = "macos")), ignore)]
 fn verify() {
+    let tptp4x_name = match env::consts::OS {
+        "linux" => "tptp4X_linux",
+        "macos" => "tptp4X_macos",
+        os => panic!("unexpected OS: {}", os),
+    };
     for test in Test::find() {
-        test.execute()
+        test.execute(tptp4x_name)
     }
 }
