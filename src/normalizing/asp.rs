@@ -86,10 +86,10 @@ pub fn remove_intervals_in_head(rule: Rule) -> Rule {
                 predicate_symbol: atom.predicate_symbol,
                 terms: new_terms,
             };
-            let new_head = match &rule_copy.head {
-                &Head::Basic(_) => Head::Basic(new_atom),
-                &Head::Choice(_) => Head::Choice(new_atom),
-                &Head::Falsity => unreachable!(),
+            let new_head = match rule_copy.head {
+                Head::Basic(_) => Head::Basic(new_atom),
+                Head::Choice(_) => Head::Choice(new_atom),
+                Head::Falsity => unreachable!(),
             };
 
             interval_formulas.append(&mut rule_copy.body.formulas);
