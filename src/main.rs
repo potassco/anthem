@@ -3,6 +3,7 @@ pub mod breaking;
 pub mod command_line;
 pub mod convenience;
 pub mod formatting;
+pub mod normalizing;
 pub mod parsing;
 pub mod simplifying;
 pub mod syntax_tree;
