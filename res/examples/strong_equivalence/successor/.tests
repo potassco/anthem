@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence strong --no-proof-search --save-problems $OUT successor.1.lp successor.2.lp
