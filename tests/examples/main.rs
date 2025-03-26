@@ -40,7 +40,7 @@ impl Test {
             })
     }
 
-    fn execute(&self, tptp4x_name: &str) {
+    fn execute(&self) {
         match self.name.as_str() {
             "tptp_compliance" => {
                 let out = tempdir().unwrap().into_path();
@@ -59,12 +59,18 @@ impl Test {
                     .assert()
                     .success();
 
+                let tptp4x_binary = match env::consts::OS {
+                    "linux" => "tptp4X_linux",
+                    "macos" => "tptp4X_macos",
+                    os => panic!("unexpected OS: {}", os),
+                };
+
                 WalkDir::new(out)
                     .into_iter()
                     .filter_map(Result::ok)
                     .filter(|entry| entry.file_type().is_file())
                     .for_each(|entry| {
-                        Command::new(Path::new(file!()).parent().unwrap().join(tptp4x_name))
+                        Command::new(Path::new(file!()).parent().unwrap().join(tptp4x_binary))
                             .arg(entry.path())
                             .assert()
                             .success();
@@ -79,12 +85,7 @@ impl Test {
 #[test]
 #[cfg_attr(not(any(target_os = "linux", target_os = "macos")), ignore)]
 fn verify() {
-    let tptp4x_name = match env::consts::OS {
-        "linux" => "tptp4X_linux",
-        "macos" => "tptp4X_macos",
-        os => panic!("unexpected OS: {}", os),
-    };
     for test in Test::find() {
-        test.execute(tptp4x_name)
+        test.execute()
     }
 }
