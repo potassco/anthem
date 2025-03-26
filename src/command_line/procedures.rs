@@ -42,11 +42,11 @@ pub fn main() -> Result<()> {
         }
 
         Command::Parse {
-            parse_as,
+            r#as,
             output,
             input,
         } => {
-            match parse_as {
+            match r#as {
                 ParseAs::Program => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;

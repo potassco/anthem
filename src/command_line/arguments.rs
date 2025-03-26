@@ -26,7 +26,7 @@ pub enum Command {
     Parse {
         /// What to parse the input as
         #[arg(long, value_enum)]
-        parse_as: ParseAs,
+        r#as: ParseAs,
 
         /// The output format
         #[arg(long, value_enum, default_value_t)]
