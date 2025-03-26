@@ -22,7 +22,7 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
-    /// Parse and output an input
+    /// Parse a file and print its debug or output representation
     Parse {
         /// What to parse the input as
         #[arg(long, value_enum)]
