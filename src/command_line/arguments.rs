@@ -22,6 +22,20 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Parse a file and print its debug or output representation
+    Parse {
+        /// What to parse the input as
+        #[arg(long, value_enum)]
+        r#as: ParseAs,
+
+        /// The output format
+        #[arg(long, value_enum, default_value_t)]
+        output: Output,
+
+        /// The file to parse
+        input: Option<PathBuf>,
+    },
+
     Simplify {
         /// The simplification portfolio to use
         #[arg(long, value_enum)]
@@ -108,6 +122,21 @@ pub enum Command {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Property {
     Tightness,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum ParseAs {
+    Program,
+    Theory,
+    Specification,
+    UserGuide,
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Output {
+    #[default]
+    Debug,
+    Default,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
