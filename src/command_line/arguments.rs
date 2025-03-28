@@ -129,6 +129,7 @@ pub enum SimplificationStrategy {
 pub enum Translation {
     Completion,
     Gamma,
+    OrderedCompletion,
     TauStar,
 }
 
