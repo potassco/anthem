@@ -262,9 +262,7 @@ impl AtomicFormula {
     pub fn terms(&self) -> IndexSet<Term> {
         match &self {
             AtomicFormula::Literal(l) => l.atom.terms.iter().cloned().collect(),
-            AtomicFormula::Comparison(c) => {
-                IndexSet::from([c.lhs.clone(), c.rhs.clone()])
-            }
+            AtomicFormula::Comparison(c) => IndexSet::from([c.lhs.clone(), c.rhs.clone()]),
         }
     }
 }

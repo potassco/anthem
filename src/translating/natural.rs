@@ -22,10 +22,10 @@ fn contains_symbol_or_infimum_or_supremum(t: &asp::Term) -> bool {
         asp::Term::UnaryOperation {
             op: asp::UnaryOperator::Negative,
             arg,
-        } => contains_symbol_or_infimum_or_supremum(&arg),
+        } => contains_symbol_or_infimum_or_supremum(arg),
         asp::Term::BinaryOperation { lhs, rhs, .. } => {
-            contains_symbol_or_infimum_or_supremum(&lhs)
-                || contains_symbol_or_infimum_or_supremum(&rhs)
+            contains_symbol_or_infimum_or_supremum(lhs)
+                || contains_symbol_or_infimum_or_supremum(rhs)
         }
     }
 }
@@ -37,17 +37,17 @@ fn is_term_regular_of_first_kind(t: &asp::Term) -> bool {
         asp::Term::UnaryOperation {
             op: asp::UnaryOperator::Negative,
             arg,
-        } => is_term_regular_of_first_kind(&arg) && !contains_symbol_or_infimum_or_supremum(&arg),
+        } => is_term_regular_of_first_kind(arg) && !contains_symbol_or_infimum_or_supremum(arg),
         asp::Term::BinaryOperation {
             op:
                 asp::BinaryOperator::Add | asp::BinaryOperator::Subtract | asp::BinaryOperator::Multiply,
             lhs,
             rhs,
         } => {
-            is_term_regular_of_first_kind(&lhs)
-                && !contains_symbol_or_infimum_or_supremum(&lhs)
-                && is_term_regular_of_first_kind(&rhs)
-                && !contains_symbol_or_infimum_or_supremum(&rhs)
+            is_term_regular_of_first_kind(lhs)
+                && !contains_symbol_or_infimum_or_supremum(lhs)
+                && is_term_regular_of_first_kind(rhs)
+                && !contains_symbol_or_infimum_or_supremum(rhs)
         }
         _ => false,
     }
@@ -60,10 +60,10 @@ fn is_term_regular_of_second_kind(t: &asp::Term) -> bool {
             lhs,
             rhs,
         } => {
-            is_term_regular_of_first_kind(&lhs)
-                && !contains_symbol_or_infimum_or_supremum(&lhs)
-                && is_term_regular_of_first_kind(&rhs)
-                && !contains_symbol_or_infimum_or_supremum(&rhs)
+            is_term_regular_of_first_kind(lhs)
+                && !contains_symbol_or_infimum_or_supremum(lhs)
+                && is_term_regular_of_first_kind(rhs)
+                && !contains_symbol_or_infimum_or_supremum(rhs)
         }
         _ => false,
     }
@@ -72,7 +72,7 @@ fn is_term_regular_of_second_kind(t: &asp::Term) -> bool {
 fn p2f(t: &asp::Term, int_vars: &IndexSet<std::string::String>) -> Option<fol::GeneralTerm> {
     // translates a term of first kind
     // check that t is regular of first kind and return None if not
-    if !is_term_regular_of_first_kind(&t) {
+    if !is_term_regular_of_first_kind(t) {
         return None;
     }
 
@@ -178,15 +178,15 @@ fn natural_comparison(
     };
     // TODO: would be nice to have: let f_relation: fol::Relation = c.relation.into();
 
-    let lhs = p2f(&c.lhs, &int_vars)?;
+    let lhs = p2f(&c.lhs, int_vars)?;
     let comp_formula =
         if f_relation == fol::Relation::Equal && is_term_regular_of_second_kind(&c.rhs) {
             if let asp::Term::BinaryOperation {
                 lhs: t2, rhs: t3, ..
             } = &c.rhs
             {
-                let t2 = p2f(&t2, &int_vars)?;
-                let t3 = p2f(&t3, &int_vars)?;
+                let t2 = p2f(t2, int_vars)?;
+                let t3 = p2f(t3, int_vars)?;
                 fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                     term: t2,
                     guards: vec![
@@ -204,7 +204,7 @@ fn natural_comparison(
                 return None;
             }
         } else {
-            let rhs = p2f(&c.rhs, &int_vars)?;
+            let rhs = p2f(&c.rhs, int_vars)?;
             fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                 term: lhs,
                 guards: vec![fol::Guard {
@@ -219,7 +219,7 @@ fn natural_comparison(
 fn natural_b_atom(l: &asp::Atom, int_vars: &IndexSet<std::string::String>) -> Option<fol::Atom> {
     let mut terms = Vec::<fol::GeneralTerm>::new();
     for t in &l.terms {
-        terms.push(p2f(t, &int_vars)?);
+        terms.push(p2f(t, int_vars)?);
     }
     Some(fol::Atom {
         predicate_symbol: l.predicate_symbol.to_string(),
@@ -231,7 +231,7 @@ fn natural_b_literal(
     l: &asp::Literal,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
-    let atom = natural_b_atom(&l.atom, &int_vars)?;
+    let atom = natural_b_atom(&l.atom, int_vars)?;
     Some(match l.sign {
         asp::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(atom)),
         asp::Sign::Negation => fol::Formula::UnaryFormula {
@@ -253,10 +253,10 @@ fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Opti
     for f in b.formulas.iter() {
         match f {
             asp::AtomicFormula::Literal(l) => {
-                formulas.push(natural_b_literal(&l, &int_vars)?);
+                formulas.push(natural_b_literal(l, int_vars)?);
             }
             asp::AtomicFormula::Comparison(c) => {
-                formulas.push(natural_comparison(&c, &int_vars)?);
+                formulas.push(natural_comparison(c, int_vars)?);
             }
         }
     }
@@ -297,7 +297,7 @@ fn get_fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
 fn natural_head_atom(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
-    fresh_vars: &Vec<String>,
+    fresh_vars: &[String],
 ) -> Option<fol::Formula> {
     // If head is not regular, returns None
     // If head is regular returns the atom with intervals replaced by fresh variables and regular terms translated:
@@ -306,9 +306,9 @@ fn natural_head_atom(
     // create an iterator over fresh_vars
     let mut fresh_vars = fresh_vars.iter();
     for t in &a.terms {
-        if is_term_regular_of_first_kind(&t) {
-            terms.push(p2f(&t, &int_vars)?);
-        } else if is_term_regular_of_second_kind(&t) {
+        if is_term_regular_of_first_kind(t) {
+            terms.push(p2f(t, int_vars)?);
+        } else if is_term_regular_of_second_kind(t) {
             let fresh_var = fresh_vars.next().unwrap();
             terms.push(fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(
                 fresh_var.clone(),
@@ -328,12 +328,13 @@ fn natural_head_atom(
 fn natural_head_interval(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
-    fresh_vars: &Vec<String>,
-) -> Option<fol::Formula> {
+    fresh_vars: &[String],
+) -> fol::Formula {
+    // assumes that natural_head_atom returned Some and therefore head is regular
     let mut formulas = Vec::<fol::Formula>::new();
     let mut fresh_vars = fresh_vars.iter();
     for t in &a.terms {
-        if is_term_regular_of_second_kind(&t) {
+        if is_term_regular_of_second_kind(t) {
             // term is of form t1..t2 with t1, t2 regular of first kind, or not natural rule
             let t1 = match t {
                 asp::Term::BinaryOperation { lhs, .. } => lhs,
@@ -347,7 +348,8 @@ fn natural_head_interval(
             // create formula for t1 <= fresh_var and fresh_var <= t2
             let comp_formula =
                 fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
-                    term: p2f(&t1, &int_vars)?,
+                    term: p2f(t1, int_vars)
+                        .expect("p2f should not return None for a lhs-term of the second kind"),
                     guards: vec![
                         fol::Guard {
                             relation: fol::Relation::LessEqual,
@@ -357,7 +359,9 @@ fn natural_head_interval(
                         },
                         fol::Guard {
                             relation: fol::Relation::LessEqual,
-                            term: p2f(&t2, &int_vars)?,
+                            term: p2f(t2, int_vars).expect(
+                                "p2f should not return None for a rhs-term of the second kind",
+                            ),
                         },
                     ],
                 }));
@@ -367,14 +371,14 @@ fn natural_head_interval(
         }
     }
     // conjoin all formulas
-    Some(fol::Formula::conjoin(formulas))
+    fol::Formula::conjoin(formulas)
 }
 
 fn natural_basic_head(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
-    let fresh_vars = get_fresh_variables_for_head_atom(&a);
+    let fresh_vars = get_fresh_variables_for_head_atom(a);
     let conclusion = natural_head_atom(a, int_vars, &fresh_vars)?;
     if fresh_vars.is_empty() {
         return Some(conclusion);
@@ -389,7 +393,7 @@ fn natural_basic_head(
             })
             .collect(),
     };
-    let conditions = natural_head_interval(&a, int_vars, &fresh_vars)?;
+    let conditions = natural_head_interval(a, int_vars, &fresh_vars);
     Some(fol::Formula::QuantifiedFormula {
         quantification,
         formula: Box::new(fol::Formula::BinaryFormula {
@@ -404,7 +408,7 @@ fn natural_choice_head(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
-    let fresh_vars = get_fresh_variables_for_head_atom(&a);
+    let fresh_vars = get_fresh_variables_for_head_atom(a);
     let head_atom = natural_head_atom(a, int_vars, &fresh_vars)?;
     // conclusion is a disjunction of natural_head_atom and its negation
     let conclusion = fol::Formula::BinaryFormula {
@@ -412,7 +416,7 @@ fn natural_choice_head(
         lhs: head_atom.clone().into(),
         rhs: fol::Formula::UnaryFormula {
             connective: fol::UnaryConnective::Negation,
-            formula: Box::new(head_atom.clone().into()),
+            formula: Box::new(head_atom.clone()),
         }
         .into(),
     };
@@ -429,7 +433,7 @@ fn natural_choice_head(
             })
             .collect(),
     };
-    let conditions = natural_head_interval(&a, int_vars, &fresh_vars)?;
+    let conditions = natural_head_interval(a, int_vars, &fresh_vars);
     Some(fol::Formula::QuantifiedFormula {
         quantification,
         formula: Box::new(fol::Formula::BinaryFormula {
@@ -446,8 +450,8 @@ fn natural_constraint() -> fol::Formula {
 
 fn natural_head(h: &asp::Head, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
     match h {
-        asp::Head::Basic(a) => natural_basic_head(&a, int_vars),
-        asp::Head::Choice(a) => natural_choice_head(&a, int_vars),
+        asp::Head::Basic(a) => natural_basic_head(a, int_vars),
+        asp::Head::Choice(a) => natural_choice_head(a, int_vars),
         asp::Head::Falsity => Some(natural_constraint()),
     }
 }
@@ -484,10 +488,13 @@ pub fn mu(p: asp::Program) -> fol::Theory {
 mod tests {
     use indexmap::IndexSet;
 
+    use crate::translating::natural::mu;
+
     use super::{
         contains_symbol_or_infimum_or_supremum, fol, get_int_variables,
-        is_term_regular_of_first_kind, is_term_regular_of_second_kind, natural_comparison,
-        natural_rule, p2f, p2f_int_term,
+        is_term_regular_of_first_kind, is_term_regular_of_second_kind, natural_b_atom,
+        natural_basic_head, natural_choice_head, natural_comparison, natural_head_atom,
+        natural_head_interval, natural_rule, p2f, p2f_int_term,
     };
 
     #[test]
@@ -933,6 +940,10 @@ mod tests {
     #[test]
     fn test_natural_rule() {
         for (source, target) in [
+            ("a.", "#true -> a"),
+            ("p(X).", "forall X (#true -> p(X))"),
+            ("a :- b.", "b -> a"),
+            ("p(X) :- q(X).", "forall X (q(X) -> p(X))"),
             ("p(X) :- X = 3.", "forall X (X = 3 -> p(X))"),
             ("{p(X)} :- X = 3.", "forall X (X = 3 -> p(X) or not p(X))"),
             ("p(1..2, N0).", "forall N0 (#true -> forall N0_0$i (1 <= N0_0$i <= 2-> p(N0_0$i, N0)))"),
@@ -969,10 +980,271 @@ mod tests {
             " :- X..5 = 3..5.",
         ] {
             let rule = rule.parse().unwrap();
-            println!("{:?}", natural_rule(&rule));
             assert!(
                 natural_rule(&rule).is_none(),
                 "assertion `natural_rule({rule}) is None` failed.",
+            );
+        }
+    }
+
+    #[test]
+    fn test_natural_head_atom() {
+        for (atom, int_vars, fresh_vars, target) in [
+            // note that at least the integer variables of the head must be included in the second input.
+            // ("p(1+Y, X)", vec![], vec![], ???) is an example which is excluded by the program logic before calling this method.
+            // Also note, that the right amount of new variables must be given.
+            ("p(1)", vec![], vec![], Some("p(1)")),
+            ("p(a)", vec![], vec![], Some("p(a)")),
+            ("p(X)", vec![], vec![], Some("p(X)")),
+            ("p(X)", vec!["X"], vec![], Some("p(X$i)")),
+            ("p(1..4)", vec![], vec!["N0"], Some("p(N0$i)")),
+            ("p(1/5)", vec![], vec![], None),
+            ("p(1..Y, X)", vec!["Y"], vec!["N0"], Some("p(N0$i, X)")),
+            (
+                "p(1..Y, X)",
+                vec!["Y", "X"],
+                vec!["N0"],
+                Some("p(N0$i, X$i)"),
+            ),
+            (
+                "q(1..5, X, 1..X, Y, Z, X..Y)",
+                vec!["X", "Y"],
+                vec!["N0", "N2", "N5"],
+                Some("q(N0$i, X$i, N2$i, Y$i, Z, N5$i)"),
+            ),
+            ("q(1..a)", vec![], vec![], None),
+            (
+                "q(1..5, X, 1..X, Y, Z, a..Y)",
+                vec!["X", "Y"],
+                vec!["N0", "N2", "N5"],
+                None,
+            ),
+            (
+                "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
+                vec!["X", "Y"],
+                vec!["N0", "N2", "N5"],
+                Some("q(N0$i, X$i, N2$i, Y$i, Z, N5$i)"),
+            ),
+        ] {
+            let atom = atom.parse().unwrap();
+            let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
+            let fresh_vars: Vec<std::string::String> =
+                fresh_vars.iter().map(|v| v.to_string()).collect();
+            let natural_head = natural_head_atom(&atom, &int_set, &fresh_vars);
+
+            match target {
+                Some(target_str) => {
+                    let target_formula: fol::Formula = target_str.parse().unwrap();
+                    assert_eq!(
+                        natural_head.as_ref().unwrap(),
+                        &target_formula,
+                        "assertion `natural_head_atom({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
+                        natural_head,
+                        &target_formula
+                    );
+                }
+                None => {
+                    assert!(
+                        natural_head.is_none(),
+                        "assertion `natural_head_atom({atom}) is None` failed:\n natural_head:\n{:?}",
+                        natural_head
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_natural_head_interval() {
+        for (atom, int_vars, fresh_vars, target) in [
+            // note: unregular cases are not tested for, as they are excluded by the program logic before calling this method.
+            // ("p(1..a), vec![], vec![], ???) is such an example")
+            ("p(1..4)", vec![], vec!["N0"], "1 <= N0$i <= 4"),
+            ("p(1..Y, X)", vec!["Y"], vec!["N0"], "1 <= N0$i <= Y$i"),
+            ("p(1..Y, X)", vec!["Y", "X"], vec!["N0"], "1 <= N0$i <= Y$i"),
+            (
+                "q(1..5, X, 1..X, Y, Z, X..Y)",
+                vec!["X", "Y"],
+                vec!["N0", "N2", "N5"],
+                "1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i",
+            ),
+            ("q(X)", vec![], vec![], "#true"),
+            (
+                "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
+                vec!["X", "Y"],
+                vec!["N0", "N2", "N5"],
+                "1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i",
+            ),
+        ] {
+            let atom = atom.parse().unwrap();
+            let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
+            let fresh_vars: Vec<std::string::String> =
+                fresh_vars.iter().map(|v| v.to_string()).collect();
+            let natural_head = natural_head_interval(&atom, &int_set, &fresh_vars);
+
+            let target_formula: fol::Formula = target.parse().unwrap();
+            assert_eq!(
+            natural_head,
+            target_formula,
+            "assertion `natural_head_interval({atom}) == target` failed:\n natural_head_interval:\n{:?}\n target:\n{:?}",
+            natural_head,
+            &target_formula
+            );
+        }
+    }
+
+    #[test]
+    fn test_natural_basic_head() {
+        for (atom, int_vars, target) in [
+            // note that at least the integer variables of the head must be included in the second input.
+            // ("p(1+Y, X)", vec![], vec![], ???) is an example which is excluded by the program logic before calling this method.
+            // Also note, that the right amount of new variables must be given.
+            ("a", vec![], Some("a")),
+            ("p(1)", vec![], Some("p(1)")),
+            ("p(a)", vec![], Some("p(a)")),
+            ("p(X)", vec![], Some("p(X)")),
+            ("p(X)", vec!["X"], Some("p(X$i)")),
+            ("p(1..4)", vec![], Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i))")),
+            ("p(1/5)", vec![], None),
+            ("p(1..Y, X)", vec!["Y"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X))")),
+            ("p(1..Y, X)", vec!["Y", "X"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i))")),
+            ("q(1..5, X, 1..X, Y, Z, X..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
+            ("q(1..a)", vec![],  None),
+            ("q(1..5, X, 1..X, Y, Z, a..Y)", vec!["X", "Y"], None),
+            ("q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
+
+
+        ] {
+            let atom = atom.parse().unwrap();
+            let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
+            let natural_head = natural_basic_head(&atom, &int_set);
+
+            match target {
+                Some(target_str) => {
+                    let target_formula: fol::Formula = target_str.parse().unwrap();
+                    assert_eq!(
+                        natural_head.as_ref().unwrap(),
+                        &target_formula,
+                        "assertion `natural_basic_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
+                        natural_head,
+                        &target_formula
+                    );
+                }
+                None => {
+                    assert!(
+                        natural_head.is_none(),
+                        "assertion `natural_basic_head({atom}) is None` failed:\n natural_head:\n{:?}",
+                        natural_head
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_natural_choice_head() {
+        for (atom, int_vars, target) in [
+            // note that at least the integer variables of the head must be included in the second input.
+            // ("p(1+Y, X)", vec![], vec![], ???) is an example which is excluded by the program logic before calling this method.
+            // Also note, that the right amount of new variables must be given.
+            ("a", vec![], Some("a or not a")),
+            ("p(1)", vec![], Some("p(1) or not p(1)")),
+            ("p(a)", vec![], Some("p(a) or not p(a)")),
+            ("p(X)", vec![], Some("p(X) or not p(X)")),
+            ("p(X)", vec!["X"], Some("p(X$i) or not p(X$i)")),
+            ("p(1..4)", vec![], Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i) or not p(N0$i))")),
+            ("p(1/5)", vec![], None),
+            ("p(1..Y, X)", vec!["Y"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X) or  not p(N0$i, X))")),
+            ("p(1..Y, X)", vec!["Y", "X"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i) or not p(N0$i, X$i))")),
+            ("q(1..5, X, 1..X, Y, Z, X..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
+            ("q(1..a)", vec![],  None),
+            ("q(1..5, X, 1..X, Y, Z, a..Y)", vec!["X", "Y"], None),
+            ("q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
+
+
+        ] {
+            let atom = atom.parse().unwrap();
+            let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
+            let natural_head = natural_choice_head(&atom, &int_set);
+
+            match target {
+                Some(target_str) => {
+                    let target_formula: fol::Formula = target_str.parse().unwrap();
+                    assert_eq!(
+                        natural_head.as_ref().unwrap(),
+                        &target_formula,
+                        "assertion `natural_choice_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
+                        natural_head,
+                        &target_formula
+                    );
+                }
+                None => {
+                    assert!(
+                        natural_head.is_none(),
+                        "assertion `natural_choice_head({atom}) is None` failed:\n natural_head:\n{:?}",
+                        natural_head
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_natural_b_atom() {
+        for (atom, int_vars, target) in [
+            ("a", vec![], Some("a")),
+            ("p(1)", vec![], Some("p(1)")),
+            ("p(a)", vec![], Some("p(a)")),
+            ("p(X)", vec![], Some("p(X)")),
+            ("p(X)", vec!["X"], Some("p(X$i)")),
+            ("p(1..4)", vec![], None),
+            ("p(1/5)", vec![], None),
+            (
+                "p(X+Y, 2-X, -Z)",
+                vec!["X", "Y", "Z"],
+                Some("p(X$i + Y$i, 2-X$i, -Z$i)"),
+            ),
+            ("p(1..Y, X)", vec!["Y"], None),
+        ] {
+            let atom = atom.parse().unwrap();
+            let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
+            let body = natural_b_atom(&atom, &int_set);
+
+            match target {
+                Some(target_str) => {
+                    let target_formula: fol::Atom = target_str.parse().unwrap();
+                    assert_eq!(
+                        body.as_ref().unwrap(),
+                        &target_formula,
+                        "assertion `natural_b_atom({atom}) == target` failed:\n body:\n{:?}\n target:\n{:?}",
+                        body,
+                        &target_formula
+                    );
+                }
+                None => {
+                    assert!(
+                        body.is_none(),
+                        "assertion `natural_b_atom({atom}) is None` failed:\n body:\n{:?}",
+                        body
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_mu() {
+        for (source, target) in [
+            ("p(X) :- q(X). q(4/2).", "forall X (q(X) -> p(X)). forall V1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = 4 and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and #true -> q(V1))."),
+            ("p(X) :- q(1..5), a(X). q(1..3) :- p(X).", "forall V1 X (V1 = X and (exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z = K$i and I$i <= K$i <= J$i) and q(Z)) and exists Z (Z = X and a(Z))) -> p(V1)).\nforall X (p(X) -> forall N0$i (1 <= N0$i <= 3 -> q(N0$i)))."),
+        ] {
+            let rule = source.parse().unwrap();
+            let mu: fol::Theory = mu(rule);
+            let mu_string = mu.to_string();
+            let target_theory: fol::Theory = target.parse().unwrap();
+            let target = target_theory.to_string();
+            assert_eq!(mu, target_theory,
+            "assertion `mu(source) == target` failed:\n mu:\n{mu_string:?}\n target:\n{target:?}",
             );
         }
     }
@@ -980,5 +1252,3 @@ mod tests {
 
 // TODO: add function for mu translation
 // TODO: make it into command line option (add further option to enum)
-// TODO: open PR and request review from Tobias, Zach
-// TODO: natural_head_atom test cases
