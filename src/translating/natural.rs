@@ -1249,6 +1249,3 @@ mod tests {
         }
     }
 }
-
-// TODO: add function for mu translation
-// TODO: make it into command line option (add further option to enum)

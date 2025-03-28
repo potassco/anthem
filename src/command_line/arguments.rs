@@ -130,6 +130,7 @@ pub enum Translation {
     Completion,
     Gamma,
     TauStar,
+    Mu,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
