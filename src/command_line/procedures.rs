@@ -11,7 +11,7 @@ use {
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol, Node as _},
-        translating::{completion::completion, gamma::gamma, tau_star::tau_star},
+        translating::{completion::completion, gamma::gamma, natural::mu, tau_star::tau_star},
         verifying::{
             prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
@@ -91,6 +91,12 @@ pub fn main() -> Result<()> {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
                     let theory = tau_star(program);
+                    print!("{theory}")
+                }
+                Translation::Mu => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let theory = mu(program);
                     print!("{theory}")
                 }
             }
