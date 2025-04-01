@@ -1,6 +1,7 @@
 use {
     assert_cmd::Command,
     std::{
+        env,
         fs::File,
         io::{BufRead, BufReader},
         path::{Path, PathBuf},
@@ -58,12 +59,18 @@ impl Test {
                     .assert()
                     .success();
 
+                let tptp4x_binary = match env::consts::OS {
+                    "linux" => "tptp4X_linux",
+                    "macos" => "tptp4X_macos",
+                    os => panic!("unexpected OS: {}", os),
+                };
+
                 WalkDir::new(out)
                     .into_iter()
                     .filter_map(Result::ok)
                     .filter(|entry| entry.file_type().is_file())
                     .for_each(|entry| {
-                        Command::new(Path::new(file!()).parent().unwrap().join("tptp4X"))
+                        Command::new(Path::new(file!()).parent().unwrap().join(tptp4x_binary))
                             .arg(entry.path())
                             .assert()
                             .success();
@@ -76,6 +83,7 @@ impl Test {
 }
 
 #[test]
+#[cfg_attr(not(any(target_os = "linux", target_os = "macos")), ignore)]
 fn verify() {
     for test in Test::find() {
         test.execute()
