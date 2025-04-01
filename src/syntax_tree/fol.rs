@@ -157,7 +157,7 @@ pub enum GeneralTerm {
     Infimum,
     Supremum,
     FunctionConstant(String),
-    Variable(String), // WHY not Variable(Variable)?
+    Variable(String),
     IntegerTerm(IntegerTerm),
     SymbolicTerm(SymbolicTerm),
 }
