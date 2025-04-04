@@ -121,6 +121,7 @@ pub enum Command {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Property {
+    Regularity,
     Tightness,
 }
 

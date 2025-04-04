@@ -1,6 +1,6 @@
 use {
     crate::{
-        analyzing::tightness::Tightness,
+        analyzing::{regularity::Regularity as _, tightness::Tightness},
         command_line::{
             arguments::{
                 Arguments, Command, Equivalence, Output, ParseAs, Property,
@@ -32,6 +32,13 @@ pub fn main() -> Result<()> {
     match Arguments::parse().command {
         Command::Analyze { property, input } => {
             match property {
+                Property::Regularity => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let is_regular = program.is_regular();
+                    println!("{is_regular}");
+                }
+
                 Property::Tightness => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
