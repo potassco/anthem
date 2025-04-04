@@ -206,13 +206,13 @@ fn natural_comparison(
 }
 
 fn natural_b_atom(l: &asp::Atom, int_vars: &IndexSet<std::string::String>) -> Option<fol::Atom> {
-    let mut terms = Vec::<fol::GeneralTerm>::new();
-    for t in &l.terms {
-        terms.push(p2f(t, int_vars)?);
-    }
     Some(fol::Atom {
         predicate_symbol: l.predicate_symbol.to_string(),
-        terms,
+        terms: l
+            .terms
+            .iter()
+            .map(|t| p2f(t, int_vars))
+            .collect::<Option<Vec<fol::GeneralTerm>>>()?,
     })
 }
 
