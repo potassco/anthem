@@ -1,10 +1,8 @@
-//! Natural translation
-//! [1] Transforming Gringo Rules into Formulas in a Natural Way; Lifschitz V. 2021
-//! [2] Here and There with Arithmetics; Lifschitz V. 2021
-//! [3]
-//! [4]
-//! It follows the description given in [1]
-//! The other papers give examples of the translation which were used in the tests
+// Natural translation
+// [1] Transforming Gringo Rules into Formulas in a Natural Way; Lifschitz V. 2021
+// [2] Here and There with Arithmetics; Lifschitz V. 2021
+// It follows the description given in [1]
+// The other papers give examples of the translation which were used in the tests
 
 use {
     crate::syntax_tree::{asp, fol},
@@ -929,7 +927,7 @@ mod tests {
 
             assert_eq!(comp, target,
             "assertion `natural_comparison({source}) == target` failed:\n comp:\n{comp:?}\n target:\n{target:?}\n int_vars: {int_set:?}",
-            );
+            );get_f
         }
     }
 
