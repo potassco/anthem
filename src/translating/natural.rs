@@ -129,9 +129,9 @@ fn p2f_int_term(t: &asp::Term) -> Option<fol::IntegerTerm> {
     }
 }
 
-fn int_variables(r: &asp::Rule) -> IndexSet<std::string::String> {
+fn int_variables(r: &asp::Rule) -> IndexSet<String> {
     // Parse rule and return all variables appearing at least once in the scope of unary/binary operations/comparison
-    let mut vars = IndexSet::<std::string::String>::new();
+    let mut vars = IndexSet::<String>::new();
     // iterate over all terms in the rule and then over all variables in the term
     for term in r.terms() {
         match term {
