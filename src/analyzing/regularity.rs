@@ -9,3 +9,19 @@ impl Regularity for Program {
         natural(self.clone()).is_some()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use {super::Regularity, crate::syntax_tree::asp::Program, std::str::FromStr};
+
+    #[test]
+    fn test_regularity() {
+        for program in ["a.", "p(1 + 2).", "p(1 - 2).", "p(1 * 2).", "p(X..Y)."] {
+            assert!(Program::from_str(program).unwrap().is_regular())
+        }
+
+        for program in ["p(1 / 2).", "p(1 \\ 2).", "p(X) :- X = (1..X) + Y."] {
+            assert!(!Program::from_str(program).unwrap().is_regular())
+        }
+    }
+}
