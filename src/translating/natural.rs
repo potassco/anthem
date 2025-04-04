@@ -927,7 +927,7 @@ mod tests {
 
             assert_eq!(comp, target,
             "assertion `natural_comparison({source}) == target` failed:\n comp:\n{comp:?}\n target:\n{target:?}\n int_vars: {int_set:?}",
-            );get_f
+            );
         }
     }
 
