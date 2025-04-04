@@ -342,7 +342,7 @@ impl Atom {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
     Equal,
     NotEqual,
@@ -353,6 +353,19 @@ pub enum Relation {
 }
 
 impl_node!(Relation, Format, RelationParser);
+
+impl From<crate::syntax_tree::asp::Relation> for Relation {
+    fn from(value: crate::syntax_tree::asp::Relation) -> Self {
+        match value {
+            crate::syntax_tree::asp::Relation::Equal => Relation::Equal,
+            crate::syntax_tree::asp::Relation::NotEqual => Relation::NotEqual,
+            crate::syntax_tree::asp::Relation::Greater => Relation::Greater,
+            crate::syntax_tree::asp::Relation::Less => Relation::Less,
+            crate::syntax_tree::asp::Relation::GreaterEqual => Relation::GreaterEqual,
+            crate::syntax_tree::asp::Relation::LessEqual => Relation::LessEqual,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Guard {

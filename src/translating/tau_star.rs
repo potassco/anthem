@@ -10,7 +10,7 @@ lazy_static! {
 }
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     let mut max_arity = 0;
     let mut head_arity;
     for rule in program.rules.iter() {
@@ -874,7 +874,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Translate a rule using a pre-defined list of global variables
-fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {

@@ -158,6 +158,8 @@ pub enum SimplificationStrategy {
 pub enum Translation {
     Completion,
     Gamma,
+    Mu,
+    Natural,
     TauStar,
 }
 

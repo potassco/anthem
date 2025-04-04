@@ -11,7 +11,9 @@ use {
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol, Node as _},
-        translating::{completion::completion, gamma::gamma, tau_star::tau_star},
+        translating::{
+            completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+        },
         verifying::{
             prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
@@ -130,6 +132,20 @@ pub fn main() -> Result<()> {
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let gamma_theory = gamma(theory);
                     print!("{gamma_theory}")
+                }
+
+                Translation::Mu => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let theory = mu(program);
+                    print!("{theory}")
+                }
+
+                Translation::Natural => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let theory = natural(program).context("the given program is not regular")?;
+                    print!("{theory}")
                 }
 
                 Translation::TauStar => {
