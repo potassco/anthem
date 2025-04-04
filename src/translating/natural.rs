@@ -83,16 +83,16 @@ fn p2f(t: &asp::Term, int_vars: &IndexSet<std::string::String>) -> Option<fol::G
                 Some(fol::GeneralTerm::Variable(v.0.clone()))
             }
         }
-        asp::Term::PrecomputedTerm(p) => match p {
-            asp::PrecomputedTerm::Infimum => Some(fol::GeneralTerm::Infimum),
+        asp::Term::PrecomputedTerm(p) => Some(match p {
+            asp::PrecomputedTerm::Infimum => fol::GeneralTerm::Infimum,
             asp::PrecomputedTerm::Numeral(i) => {
-                Some(fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(*i)))
+                fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(*i))
             }
-            asp::PrecomputedTerm::Symbol(s) => Some(fol::GeneralTerm::SymbolicTerm(
-                fol::SymbolicTerm::Symbol(s.to_string()),
-            )),
-            asp::PrecomputedTerm::Supremum => Some(fol::GeneralTerm::Supremum),
-        },
+            asp::PrecomputedTerm::Symbol(s) => {
+                fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s.to_string()))
+            }
+            asp::PrecomputedTerm::Supremum => fol::GeneralTerm::Supremum,
+        }),
         _ => p2f_int_term(t).map(fol::GeneralTerm::IntegerTerm),
     }
 }
