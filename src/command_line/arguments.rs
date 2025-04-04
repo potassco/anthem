@@ -129,8 +129,9 @@ pub enum SimplificationStrategy {
 pub enum Translation {
     Completion,
     Gamma,
-    TauStar,
     Mu,
+    Natural,
+    TauStar,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

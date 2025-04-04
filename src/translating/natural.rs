@@ -8,7 +8,6 @@
 
 use {
     crate::syntax_tree::{asp, fol},
-    crate::translating::tau_star,
     indexmap::IndexSet,
 };
 
@@ -456,7 +455,7 @@ fn natural_head(h: &asp::Head, int_vars: &IndexSet<std::string::String>) -> Opti
     }
 }
 
-fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
+pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
     let int_vars = get_int_variables(r);
     let head = natural_head(&r.head, &int_vars)?;
     let body = natural_body(&r.body, &int_vars)?;
@@ -470,31 +469,28 @@ fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
     )
 }
 
-pub fn mu(p: asp::Program) -> fol::Theory {
-    // should this be mu?
-    let mut formulas: Vec<fol::Formula> = vec![];
-    let globals = tau_star::choose_fresh_global_variables(&p);
-    for r in p.rules.iter() {
-        let fol_rule = natural_rule(r);
-        match fol_rule {
-            Some(f) => formulas.push(f),
-            None => formulas.push(tau_star::tau_star_rule(r, &globals)),
+pub fn natural(program: asp::Program) -> Option<fol::Theory> {
+    let mut formulas = Vec::<fol::Formula>::new();
+    for r in program.rules {
+        if let Some(f) = natural_rule(&r) {
+            formulas.push(f);
+        } else {
+            return None;
         }
     }
-    fol::Theory { formulas }
+    Some(fol::Theory { formulas })
 }
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-
-    use crate::translating::natural::mu;
-
-    use super::{
-        contains_symbol_or_infimum_or_supremum, fol, get_int_variables,
-        is_term_regular_of_first_kind, is_term_regular_of_second_kind, natural_b_atom,
-        natural_basic_head, natural_choice_head, natural_comparison, natural_head_atom,
-        natural_head_interval, natural_rule, p2f, p2f_int_term,
+    use {
+        super::{
+            contains_symbol_or_infimum_or_supremum, fol, get_int_variables,
+            is_term_regular_of_first_kind, is_term_regular_of_second_kind, natural_b_atom,
+            natural_basic_head, natural_choice_head, natural_comparison, natural_head_atom,
+            natural_head_interval, natural_rule, p2f, p2f_int_term,
+        },
+        indexmap::IndexSet,
     };
 
     #[test]
@@ -1229,23 +1225,6 @@ mod tests {
                     );
                 }
             }
-        }
-    }
-
-    #[test]
-    fn test_mu() {
-        for (source, target) in [
-            ("p(X) :- q(X). q(4/2).", "forall X (q(X) -> p(X)). forall V1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = 4 and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and #true -> q(V1))."),
-            ("p(X) :- q(1..5), a(X). q(1..3) :- p(X).", "forall V1 X (V1 = X and (exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z = K$i and I$i <= K$i <= J$i) and q(Z)) and exists Z (Z = X and a(Z))) -> p(V1)).\nforall X (p(X) -> forall N0$i (1 <= N0$i <= 3 -> q(N0$i)))."),
-        ] {
-            let rule = source.parse().unwrap();
-            let mu: fol::Theory = mu(rule);
-            let mu_string = mu.to_string();
-            let target_theory: fol::Theory = target.parse().unwrap();
-            let target = target_theory.to_string();
-            assert_eq!(mu, target_theory,
-            "assertion `mu(source) == target` failed:\n mu:\n{mu_string:?}\n target:\n{target:?}",
-            );
         }
     }
 }
