@@ -1,6 +1,6 @@
 use {
     crate::{
-        command_line::arguments::Decomposition,
+        command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             compose::Compose as _,
@@ -10,6 +10,7 @@ use {
         syntax_tree::{asp, fol},
         translating::{
             gamma::{self, gamma},
+            mu::mu,
             tau_star::tau_star,
         },
         verifying::{
@@ -29,6 +30,7 @@ pub struct StrongEquivalenceTask {
     pub right: asp::Program,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
+    pub formula_representation: FormulaRepresentation,
     pub simplify: bool,
     pub break_equivalences: bool,
 }
@@ -67,8 +69,15 @@ impl Task for StrongEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
-        let mut left = tau_star(self.left);
-        let mut right = tau_star(self.right);
+        let mut left = match self.formula_representation {
+            FormulaRepresentation::Mu => mu(self.left),
+            FormulaRepresentation::TauStar => tau_star(self.left),
+        };
+
+        let mut right = match self.formula_representation {
+            FormulaRepresentation::Mu => mu(self.right),
+            FormulaRepresentation::TauStar => tau_star(self.right),
+        };
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
