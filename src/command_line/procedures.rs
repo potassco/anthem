@@ -3,8 +3,8 @@ use {
         analyzing::tightness::Tightness,
         command_line::{
             arguments::{
-                Arguments, Command, Equivalence, Property, SimplificationPortfolio,
-                SimplificationStrategy, Translation,
+                Arguments, Command, Equivalence, Output, ParseAs, Property,
+                SimplificationPortfolio, SimplificationStrategy, Translation,
             },
             files::Files,
         },
@@ -39,6 +39,51 @@ pub fn main() -> Result<()> {
                     println!("{is_tight}");
                 }
             }
+
+            Ok(())
+        }
+
+        Command::Parse {
+            r#as,
+            output,
+            input,
+        } => {
+            match r#as {
+                ParseAs::Program => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    match output {
+                        Output::Debug => println!("{program:#?}"),
+                        Output::Default => print!("{program}"),
+                    }
+                }
+                ParseAs::Theory => {
+                    let theory =
+                        input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
+                    match output {
+                        Output::Debug => println!("{theory:#?}"),
+                        Output::Default => print!("{theory}"),
+                    }
+                }
+                ParseAs::Specification => {
+                    let specification = input.map_or_else(
+                        fol::Specification::from_stdin,
+                        fol::Specification::from_file,
+                    )?;
+                    match output {
+                        Output::Debug => println!("{specification:#?}"),
+                        Output::Default => print!("{specification}"),
+                    }
+                }
+                ParseAs::UserGuide => {
+                    let user_guide =
+                        input.map_or_else(fol::UserGuide::from_stdin, fol::UserGuide::from_file)?;
+                    match output {
+                        Output::Debug => println!("{user_guide:#?}"),
+                        Output::Default => print!("{user_guide}"),
+                    }
+                }
+            };
 
             Ok(())
         }

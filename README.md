@@ -10,10 +10,10 @@ Check out the [API documentation](https://docs.rs/anthem/) for the available fun
 
 ## Where's anthem 1?
 
-You're currently looking at version 2 of `anthem`, which is the latest version and the only one that is actively developed.
-This is a complete reimplementation crafted by Zach Hansen and Tobias Stolzmann.
-
-Until recently, you would have found Patrick Lühne's version 1 here, which was discontinued and therefore moved to [anthem-1](https://github.com/potassco/anthem-1).
+Until recently, you would have found Patrick Lühne's version 1 of `anthem` here, which was discontinued and therefore moved to [anthem-1](https://github.com/potassco/anthem-1).
+You are currently looking at version 2, which is the latest version and the only one that is actively developed.
+This version is a complete reimplementation of the original system with significantly extended capabilities.
+It was started by Zach Hansen and Tobias Stolzmann, but is now being developed by a growing [group of people](CONTRIBUTORS.md).
 We'd like to thank Patrick for the effort he put into his implementation and the kindness of resolving the naming conflict with us.
 
 ## License
