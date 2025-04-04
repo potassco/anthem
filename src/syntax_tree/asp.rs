@@ -184,7 +184,7 @@ impl Literal {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
     Equal,
     NotEqual,

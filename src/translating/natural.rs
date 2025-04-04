@@ -165,15 +165,7 @@ fn natural_comparison(
 ) -> Option<fol::Formula> {
     // translate comparison
 
-    let f_relation = match c.relation {
-        asp::Relation::Equal => fol::Relation::Equal,
-        asp::Relation::NotEqual => fol::Relation::NotEqual,
-        asp::Relation::Greater => fol::Relation::Greater,
-        asp::Relation::Less => fol::Relation::Less,
-        asp::Relation::GreaterEqual => fol::Relation::GreaterEqual,
-        asp::Relation::LessEqual => fol::Relation::LessEqual,
-    };
-    // TODO: would be nice to have: let f_relation: fol::Relation = c.relation.into();
+    let f_relation = c.relation.into();
 
     let lhs = p2f(&c.lhs, int_vars)?;
     let comp_formula =
