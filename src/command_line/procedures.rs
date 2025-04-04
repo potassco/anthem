@@ -170,6 +170,7 @@ pub fn main() -> Result<()> {
             equivalence,
             decomposition,
             direction,
+            formula_representation,
             bypass_tightness,
             no_simplify,
             no_eq_break,
@@ -199,12 +200,14 @@ pub fn main() -> Result<()> {
                             .ok_or(anyhow!("no right program was provided"))?,
                     )?,
                     decomposition,
+                    formula_representation,
                     direction,
                     simplify: !no_simplify,
                     break_equivalences: !no_eq_break,
                 }
                 .decompose()?
                 .report_warnings(),
+
                 Equivalence::External => ExternalEquivalenceTask {
                     specification: match files
                         .specification()
@@ -228,6 +231,7 @@ pub fn main() -> Result<()> {
                         .map(fol::Specification::from_file)
                         .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
                     decomposition,
+                    formula_representation,
                     direction,
                     bypass_tightness,
                     simplify: !no_simplify,

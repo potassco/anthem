@@ -2,7 +2,7 @@ use {
     crate::{
         analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
         breaking::fol::ht::break_equivalences_annotated_formula,
-        command_line::arguments::Decomposition,
+        command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             with_warnings::{Result, WithWarnings},
@@ -113,6 +113,7 @@ impl Display for ExternalEquivalenceTaskWarning {
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
+    UnsupportedFormulaRepresentation,
     NonTightProgram(asp::Program),
     ProgramContainsPrivateRecursion(asp::Program),
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
@@ -205,6 +206,9 @@ impl Display for ExternalEquivalenceTaskError {
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "the given proof outline contains errors")
             }
+            ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
+                writeln!(f, "tau-star is the only formula-representation currently supported for external equivalence")
+            }
         }
     }
 }
@@ -217,6 +221,7 @@ pub struct ExternalEquivalenceTask {
     pub proof_outline: fol::Specification,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
+    pub formula_representation: FormulaRepresentation,
     pub bypass_tightness: bool,
     pub simplify: bool,
     pub break_equivalences: bool,
@@ -373,6 +378,16 @@ impl ExternalEquivalenceTask {
 
         Ok(WithWarnings::flawless(()))
     }
+
+    fn ensure_valid_formula_representation(
+        &self,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        if !matches!(self.formula_representation, FormulaRepresentation::TauStar) {
+            return Err(ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation);
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
 }
 
 impl Task for ExternalEquivalenceTask {
@@ -380,6 +395,8 @@ impl Task for ExternalEquivalenceTask {
     type Warning = ExternalEquivalenceTaskWarning;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
+        self.ensure_valid_formula_representation()?;
+
         let placeholders = self
             .user_guide
             .placeholders()
@@ -495,6 +512,8 @@ impl Task for ExternalEquivalenceTask {
                 .collect();
             fol::Specification { formulas }
         };
+
+        // TODO: allow more formula representations beyond tau-star
 
         let left = match self.specification {
             Either::Left(program) => control_translate(

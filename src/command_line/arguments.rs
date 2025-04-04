@@ -73,6 +73,10 @@ pub enum Command {
         #[arg(long, value_enum, default_value_t)]
         direction: Direction,
 
+        /// The ASP-to-target-language translation to use
+        #[arg(long, value_enum, default_value_t)]
+        formula_representation: FormulaRepresentation,
+
         /// Bypass the tightness checks during verification of external equivalence
         #[arg(long, action)]
         bypass_tightness: bool,
@@ -163,6 +167,19 @@ pub enum Translation {
     Natural,
     TauStar,
 }
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum FormulaRepresentation {
+    Mu,
+    #[default]
+    TauStar,
+}
+
+// TODO: In the future, there may be more options for reducing
+// HT formulas obtained via a Formula Representation translation into FOL,
+// for example, ordered completion
+// When that happens, we can add a Reduction enum with options
+// gamma, completion, ordered completion, NCOMP, etc.
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Equivalence {
