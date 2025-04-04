@@ -131,7 +131,7 @@ fn p2f_int_term(t: &asp::Term) -> Option<fol::IntegerTerm> {
     }
 }
 
-fn get_int_variables(r: &asp::Rule) -> IndexSet<std::string::String> {
+fn int_variables(r: &asp::Rule) -> IndexSet<std::string::String> {
     // Parse rule and return all variables appearing at least once in the scope of unary/binary operations/comparison
     let mut vars = IndexSet::<std::string::String>::new();
     // iterate over all terms in the rule and then over all variables in the term
@@ -262,7 +262,7 @@ fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Opti
     Some(fol::Formula::conjoin(formulas))
 }
 
-fn get_fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
+fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
     let mut fresh_vars = Vec::<String>::new();
     let taken_vars = a.variables();
     let terms = &a.terms;
@@ -377,7 +377,7 @@ fn natural_basic_head(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
-    let fresh_vars = get_fresh_variables_for_head_atom(a);
+    let fresh_vars = fresh_variables_for_head_atom(a);
     let conclusion = natural_head_atom(a, int_vars, &fresh_vars)?;
     if fresh_vars.is_empty() {
         return Some(conclusion);
@@ -407,7 +407,7 @@ fn natural_choice_head(
     a: &asp::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
-    let fresh_vars = get_fresh_variables_for_head_atom(a);
+    let fresh_vars = fresh_variables_for_head_atom(a);
     let head_atom = natural_head_atom(a, int_vars, &fresh_vars)?;
     // conclusion is a disjunction of natural_head_atom and its negation
     let conclusion = fol::Formula::BinaryFormula {
@@ -456,7 +456,7 @@ fn natural_head(h: &asp::Head, int_vars: &IndexSet<std::string::String>) -> Opti
 }
 
 pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
-    let int_vars = get_int_variables(r);
+    let int_vars = int_variables(r);
     let head = natural_head(&r.head, &int_vars)?;
     let body = natural_body(&r.body, &int_vars)?;
     Some(
@@ -485,7 +485,7 @@ pub fn natural(program: asp::Program) -> Option<fol::Theory> {
 mod tests {
     use {
         super::{
-            contains_symbol_or_infimum_or_supremum, fol, get_int_variables,
+            contains_symbol_or_infimum_or_supremum, fol, int_variables,
             is_term_regular_of_first_kind, is_term_regular_of_second_kind, natural_b_atom,
             natural_basic_head, natural_choice_head, natural_comparison, natural_head_atom,
             natural_head_interval, natural_rule, p2f, p2f_int_term,
@@ -772,7 +772,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_int_variables() {
+    fn test_int_variables() {
         for (rule, expected) in [
             ("p(X).", vec![]),
             ("p(X +2).", vec!["X"]),
@@ -786,13 +786,13 @@ mod tests {
             ("p(X, a, 4+5..X+Y):- Z = X + Y.", vec!["X", "Y"]),
         ] {
             let rule = rule.parse().unwrap();
-            let int_vars = get_int_variables(&rule);
+            let int_vars = int_variables(&rule);
             let mut expected_set = IndexSet::new();
             for var in expected {
                 expected_set.insert(var.to_string());
             }
             assert_eq!(int_vars, expected_set,
-            "assertion `get_int_variables({rule}) == expected` failed:\n int_vars:\n{int_vars:?}\n expected_set:\n{expected_set:?}",
+            "assertion `int_variables({rule}) == expected` failed:\n int_vars:\n{int_vars:?}\n expected_set:\n{expected_set:?}",
             );
         }
     }
