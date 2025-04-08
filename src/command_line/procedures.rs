@@ -311,9 +311,9 @@ pub fn main() -> Result<()> {
                 }
 
                 if success {
-                    print!("> Success! Anthem found a proof of equivalence.")
+                    print!("> Success! Anthem found a proof of the theorem.")
                 } else {
-                    print!("> Failure! Anthem was unable to find a proof of equivalence.")
+                    print!("> Failure! Anthem was unable to find a proof of the theorem.")
                 }
 
                 if !no_timing {
