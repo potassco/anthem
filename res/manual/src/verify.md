@@ -14,7 +14,11 @@ The property can be automatically verified with the command
     anthem verify --equivalence strong p1.lp p2.lp
 ```
 
-We can additionally specify the translation used to obtain the HTA representation of our programs ....
+We can additionally specify the translation used to obtain the HTA representation of our programs.
+Valid options are `tau*` (the default) or `mu`, which can be enabled with the command
+```
+    anthem verify --equivalence strong <programs> --formula-representation mu
+```
 
 
 ## External Equivalence
@@ -52,6 +56,9 @@ This is done by transforming the program(s) into their formula representations u
 Note that the `universal` direction is the default, and may be dropped.
 To verify that the program posesses a certain property expressed by the specification, set the direction to backward (`--direction backward`).
 To verify that the program's external behavior is a consequence of the specification, set the direction to forward (`--direction forward`).
+
+Currently, external equivalence only supports `tau*` as a valid option for `--formula-representation`.
+
 
 #### Tightness and Private Recursion
 External equivalence can only be verified automatically if the program(s) are tight.
