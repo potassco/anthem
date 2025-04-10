@@ -18,3 +18,7 @@ Users can check their programs for tightness with the command
 ```
     anthem analyze program.lp --property tightness
 ```
+
+## Regular Rules
+
+TODO: Chris

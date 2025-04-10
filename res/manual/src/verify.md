@@ -14,6 +14,8 @@ The property can be automatically verified with the command
     anthem verify --equivalence strong p1.lp p2.lp
 ```
 
+We can additionally specify the translation used to obtain the HTA representation of our programs ....
+
 
 ## External Equivalence
 Strong equivalence is sometimes too strong of a condition.
