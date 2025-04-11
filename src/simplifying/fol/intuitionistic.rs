@@ -1,5 +1,5 @@
 use crate::{
-    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
+    convenience::unbox::{Unbox as _, fol::UnboxedFormula},
     syntax_tree::fol::{
         AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, Guard, IntegerTerm,
         Quantification, Quantifier, Relation, Sort, SymbolicTerm, UnaryConnective, Variable,
@@ -472,12 +472,12 @@ pub fn substitute_defined_variables(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{
-            apply_equivalence_definition, apply_equivalence_definition_inverse,
+            INTUITIONISTIC, apply_equivalence_definition, apply_equivalence_definition_inverse,
             apply_negation_definition, apply_negation_definition_inverse,
             apply_reverse_implication_definition, apply_reverse_implication_definition_inverse,
             evaluate_comparisons, join_nested_quantifiers, remove_annihilations,
             remove_empty_quantifications, remove_idempotences, remove_identities,
-            remove_orphaned_variables, substitute_defined_variables, INTUITIONISTIC,
+            remove_orphaned_variables, substitute_defined_variables,
         },
         crate::{
             convenience::{apply::Apply as _, compose::Compose as _},

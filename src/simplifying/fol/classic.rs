@@ -1,5 +1,5 @@
 use crate::{
-    convenience::unbox::{fol::UnboxedFormula, Unbox as _},
+    convenience::unbox::{Unbox as _, fol::UnboxedFormula},
     syntax_tree::fol::{Formula, UnaryConnective},
 };
 

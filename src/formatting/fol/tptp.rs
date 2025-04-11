@@ -2,12 +2,12 @@ use {
     crate::{
         formatting::{Associativity, Precedence},
         syntax_tree::{
+            Node,
             fol::{
                 Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
                 FunctionConstant, GeneralTerm, IntegerTerm, Quantification, Quantifier, Relation,
                 Sort, SymbolicTerm, UnaryConnective, UnaryOperator, Variable,
             },
-            Node,
         },
     },
     std::fmt::{self, Display, Formatter},
@@ -682,7 +682,9 @@ mod tests {
                         connective: BinaryConnective::Conjunction,
                         lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                             predicate_symbol: "p".into(),
-                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Variable("X".to_string()))],
+                            terms: vec![GeneralTerm::IntegerTerm(IntegerTerm::Variable(
+                                "X".to_string()
+                            ))],
                         }))
                         .into(),
                         rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
@@ -690,13 +692,17 @@ mod tests {
                             terms: vec![GeneralTerm::Variable("Y1".to_string())],
                         }))
                         .into(),
-                    }.into(),
+                    }
+                    .into(),
                     rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                         predicate_symbol: "t".into(),
-                        terms: vec![GeneralTerm::SymbolicTerm(SymbolicTerm::Variable("X_i".into()))],
+                        terms: vec![GeneralTerm::SymbolicTerm(SymbolicTerm::Variable(
+                            "X_i".into()
+                        ))],
                     }))
                     .into(),
-                }.into()
+                }
+                .into()
             })
             .to_string(),
             "![X_i_s: symbol, X_i: $int, Y1_g: general]: ((p(f__integer__(X_i)) & q(Y1_g)) & t(f__symbolic__(X_i_s)))"

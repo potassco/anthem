@@ -1,5 +1,5 @@
 use crate::{
-    convenience::unbox::{fol::UnboxedFormula, Unbox},
+    convenience::unbox::{Unbox, fol::UnboxedFormula},
     syntax_tree::fol::{
         AnnotatedFormula, BinaryConnective, Formula, Quantification, Quantifier, Specification,
         Theory,
@@ -81,8 +81,14 @@ mod tests {
         for (src, target) in [
             ("p <-> q", "p -> q. p <- q."),
             ("p(X) <-> q(X)", "p(X) -> q(X). p(X) <- q(X)."),
-            ("forall X (p(X) <-> q(X))", "forall X (p(X) -> q(X)). forall X (p(X) <- q(X))."),
-            ("forall X (forall Y (p(X, Y) <-> q(X, Y)))", "forall X (forall Y (p(X, Y) -> q(X, Y))). forall X (forall Y (p(X, Y) <- q(X, Y)))."),
+            (
+                "forall X (p(X) <-> q(X))",
+                "forall X (p(X) -> q(X)). forall X (p(X) <- q(X)).",
+            ),
+            (
+                "forall X (forall Y (p(X, Y) <-> q(X, Y)))",
+                "forall X (forall Y (p(X, Y) -> q(X, Y))). forall X (forall Y (p(X, Y) <- q(X, Y))).",
+            ),
         ] {
             let src: Formula = src.parse().unwrap();
             let target: Theory = target.parse().unwrap();
