@@ -1,9 +1,9 @@
 use {
     crate::{
-        convenience::unbox::{fol::UnboxedFormula, Unbox},
+        convenience::unbox::{Unbox, fol::UnboxedFormula},
         syntax_tree::fol,
     },
-    indexmap::{map::Entry, IndexMap},
+    indexmap::{IndexMap, map::Entry},
     itertools::Itertools,
 };
 
@@ -180,15 +180,42 @@ mod tests {
     #[test]
     fn test_completion() {
         for (src, target) in [
-            ("p(X) :- q(X).", "forall V1 (p(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))))."),
-            ("p(a). p(b). q(X,Y) :- p(X), p(Y).", "forall V1 (p(V1) <-> V1 = a and #true or V1 = b and #true). forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))."),
-            ("{p(X+1)} :- q(X).", "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1)))."),
-            ("r(X) :- q(X). r(G,Y) :- G < Y. r(a).", "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) )."),
-            ("composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).", "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z)))))."),
-            ("p :- q, not t. p :- r. r :- t.", "p <-> (q and not t) or (r). r <-> t."),
-            ("p. p(a). :- q.", "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true)."),
-            ("p(X) :- q(X, Y).", "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1))))."),
-            (":- s(X, I), not covered(X).", "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false)."),
+            (
+                "p(X) :- q(X).",
+                "forall V1 (p(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z)))).",
+            ),
+            (
+                "p(a). p(b). q(X,Y) :- p(X), p(Y).",
+                "forall V1 (p(V1) <-> V1 = a and #true or V1 = b and #true). forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))))).",
+            ),
+            (
+                "{p(X+1)} :- q(X).",
+                "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1))).",
+            ),
+            (
+                "r(X) :- q(X). r(G,Y) :- G < Y. r(a).",
+                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) ).",
+            ),
+            (
+                "composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).",
+                "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z))))).",
+            ),
+            (
+                "p :- q, not t. p :- r. r :- t.",
+                "p <-> (q and not t) or (r). r <-> t.",
+            ),
+            (
+                "p. p(a). :- q.",
+                "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true).",
+            ),
+            (
+                "p(X) :- q(X, Y).",
+                "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1)))).",
+            ),
+            (
+                ":- s(X, I), not covered(X).",
+                "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false).",
+            ),
         ] {
             let left = completion(tau_star(src.parse().unwrap())).unwrap();
             let right = target.parse().unwrap();

@@ -90,7 +90,7 @@ impl Display for ExternalEquivalenceTaskWarning {
             ExternalEquivalenceTaskWarning::NonTightProgram(program) => {
                 writeln!(f, "the following program is not tight: ")?;
                 writeln!(f, "{program}")
-            },
+            }
             ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula) => {
                 let proof_direction = match formula.direction {
                     fol::Direction::Forward => fol::Direction::Backward,
@@ -102,9 +102,10 @@ impl Display for ExternalEquivalenceTaskWarning {
                     f,
                     "the following assumption is ignored in the {proof_direction} direction of the proof due its annotated direction: {formula}"
                 )
-            },
+            }
             ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(formula) => writeln!(
-                f, "the following formula is ignored because user guides only permit assumptions: {formula}"
+                f,
+                "the following formula is ignored because user guides only permit assumptions: {formula}"
             ),
             ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => writeln!(f, "{w}"),
         }
@@ -198,16 +199,25 @@ impl Display for ExternalEquivalenceTaskError {
                 writeln!(f)
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
-                writeln!(f, "the following placeholder is given conflicting sorts within the user guide: {s}")
+                writeln!(
+                    f,
+                    "the following placeholder is given conflicting sorts within the user guide: {s}"
+                )
             }
             ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(formula) => {
-                writeln!(f, "the following assumption contains a predicate that is not an input symbol: {formula}")
+                writeln!(
+                    f,
+                    "the following assumption contains a predicate that is not an input symbol: {formula}"
+                )
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "the given proof outline contains errors")
             }
             ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
-                writeln!(f, "tau-star is the only formula-representation currently supported for external equivalence")
+                writeln!(
+                    f,
+                    "tau-star is the only formula-representation currently supported for external equivalence"
+                )
             }
         }
     }

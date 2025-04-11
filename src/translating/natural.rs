@@ -755,8 +755,8 @@ mod tests {
 
             let p2f_int_clone = p2f_int.clone();
             assert_eq!(
-            p2f_int_clone, target,
-            "assertion `p2f_int_term({source}) == target` failed:\n p2f_int:\n{p2f_int:?}\n target:\n{target:?}"
+                p2f_int_clone, target,
+                "assertion `p2f_int_term({source}) == target` failed:\n p2f_int:\n{p2f_int:?}\n target:\n{target:?}"
             );
         }
     }
@@ -781,8 +781,9 @@ mod tests {
             for var in expected {
                 expected_set.insert(var.to_string());
             }
-            assert_eq!(int_vars, expected_set,
-            "assertion `int_variables({rule}) == expected` failed:\n int_vars:\n{int_vars:?}\n expected_set:\n{expected_set:?}",
+            assert_eq!(
+                int_vars, expected_set,
+                "assertion `int_variables({rule}) == expected` failed:\n int_vars:\n{int_vars:?}\n expected_set:\n{expected_set:?}",
             );
         }
     }
@@ -917,8 +918,9 @@ mod tests {
             }
             let comp = natural_comparison(&source, &int_set);
 
-            assert_eq!(comp, target,
-            "assertion `natural_comparison({source}) == target` failed:\n comp:\n{comp:?}\n target:\n{target:?}\n int_vars: {int_set:?}",
+            assert_eq!(
+                comp, target,
+                "assertion `natural_comparison({source}) == target` failed:\n comp:\n{comp:?}\n target:\n{target:?}\n int_vars: {int_set:?}",
             );
         }
     }
@@ -932,27 +934,49 @@ mod tests {
             ("p(X) :- q(X).", "forall X (q(X) -> p(X))"),
             ("p(X) :- X = 3.", "forall X (X = 3 -> p(X))"),
             ("{p(X)} :- X = 3.", "forall X (X = 3 -> p(X) or not p(X))"),
-            ("p(1..2, N0).", "forall N0 (#true -> forall N0_0$i (1 <= N0_0$i <= 2-> p(N0_0$i, N0)))"),
+            (
+                "p(1..2, N0).",
+                "forall N0 (#true -> forall N0_0$i (1 <= N0_0$i <= 2-> p(N0_0$i, N0)))",
+            ),
             ("q(X+1) :- p(X).", "forall X$i (p(X$i) -> q(X$i + 1))"), // example (1) from paper [1]
-            (" :- p(X,Y,Z), X < Y, Y=1..Z.", "forall X Y$i Z$i (p(X, Y$i, Z$i) and X < Y$i and (1 <= Y$i <= Z$i) -> #false)"), // example from paper [1]
-            ("q(1..X, 1..Y) :- p(X,Y,Z).",
-            "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))"), //( example from paper [1]
-            ("{q(1..X, Y)} :- p(X,Y).", "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))"), // example from paper [1]
-            ("p(X,Y) :- X = 1..2, Y = 1..2.", "forall X$i Y$i (1 <= X$i <= 2 and (1 <= Y$i <= 2) -> p(X$i, Y$i))"), // example (6) from paper [2]
-            ("p(X,Y) :- X = Y, Y = 1..2.", "forall X Y$i ( X = Y$i and (1 <= Y$i  <= 2) -> p(X, Y$i))" ), // example (7) from paper [2]
-            ("{h(1..10,1..10-2)}.", "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))" ), // Inspired by Tiling example
-            ("{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
-            "forall X$i Y$i T$i ((1 <= X$i <= 10 and (1 <= Y$i <= 10) and (1 <= T$i  <= 3)) -> (place(X$i, Y$i, T$i) or not place(X$i, Y$i, T$i)))") // Inspired by Tiling
+            (
+                " :- p(X,Y,Z), X < Y, Y=1..Z.",
+                "forall X Y$i Z$i (p(X, Y$i, Z$i) and X < Y$i and (1 <= Y$i <= Z$i) -> #false)",
+            ), // example from paper [1]
+            (
+                "q(1..X, 1..Y) :- p(X,Y,Z).",
+                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))",
+            ), //( example from paper [1]
+            (
+                "{q(1..X, Y)} :- p(X,Y).",
+                "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))",
+            ), // example from paper [1]
+            (
+                "p(X,Y) :- X = 1..2, Y = 1..2.",
+                "forall X$i Y$i (1 <= X$i <= 2 and (1 <= Y$i <= 2) -> p(X$i, Y$i))",
+            ), // example (6) from paper [2]
+            (
+                "p(X,Y) :- X = Y, Y = 1..2.",
+                "forall X Y$i ( X = Y$i and (1 <= Y$i  <= 2) -> p(X, Y$i))",
+            ), // example (7) from paper [2]
+            (
+                "{h(1..10,1..10-2)}.",
+                "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))",
+            ), // Inspired by Tiling example
+            (
+                "{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
+                "forall X$i Y$i T$i ((1 <= X$i <= 10 and (1 <= Y$i <= 10) and (1 <= T$i  <= 3)) -> (place(X$i, Y$i, T$i) or not place(X$i, Y$i, T$i)))",
+            ), // Inspired by Tiling
         ] {
             let rule = source.parse().unwrap();
             let natural = natural_rule(&rule).unwrap();
             let natural_string = natural.to_string();
             let target_formula: fol::Formula = target.parse().unwrap();
             let target = target_formula.to_string();
-            assert_eq!(natural, target_formula,
-            "assertion `natural_rule({rule}) == target` failed:\n natural:\n{natural_string:?}\n target:\n{target:?}",
+            assert_eq!(
+                natural, target_formula,
+                "assertion `natural_rule({rule}) == target` failed:\n natural:\n{natural_string:?}\n target:\n{target:?}",
             );
-
         }
     }
 
@@ -1070,11 +1094,9 @@ mod tests {
 
             let target_formula: fol::Formula = target.parse().unwrap();
             assert_eq!(
-            natural_head,
-            target_formula,
-            "assertion `natural_head_interval({atom}) == target` failed:\n natural_head_interval:\n{:?}\n target:\n{:?}",
-            natural_head,
-            &target_formula
+                natural_head, target_formula,
+                "assertion `natural_head_interval({atom}) == target` failed:\n natural_head_interval:\n{:?}\n target:\n{:?}",
+                natural_head, &target_formula
             );
         }
     }
@@ -1090,16 +1112,38 @@ mod tests {
             ("p(a)", vec![], Some("p(a)")),
             ("p(X)", vec![], Some("p(X)")),
             ("p(X)", vec!["X"], Some("p(X$i)")),
-            ("p(1..4)", vec![], Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i))")),
+            (
+                "p(1..4)",
+                vec![],
+                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i))"),
+            ),
             ("p(1/5)", vec![], None),
-            ("p(1..Y, X)", vec!["Y"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X))")),
-            ("p(1..Y, X)", vec!["Y", "X"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i))")),
-            ("q(1..5, X, 1..X, Y, Z, X..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
-            ("q(1..a)", vec![],  None),
+            (
+                "p(1..Y, X)",
+                vec!["Y"],
+                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X))"),
+            ),
+            (
+                "p(1..Y, X)",
+                vec!["Y", "X"],
+                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i))"),
+            ),
+            (
+                "q(1..5, X, 1..X, Y, Z, X..Y)",
+                vec!["X", "Y"],
+                Some(
+                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                ),
+            ),
+            ("q(1..a)", vec![], None),
             ("q(1..5, X, 1..X, Y, Z, a..Y)", vec!["X", "Y"], None),
-            ("q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
-
-
+            (
+                "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
+                vec!["X", "Y"],
+                Some(
+                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                ),
+            ),
         ] {
             let atom = atom.parse().unwrap();
             let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();
@@ -1138,16 +1182,38 @@ mod tests {
             ("p(a)", vec![], Some("p(a) or not p(a)")),
             ("p(X)", vec![], Some("p(X) or not p(X)")),
             ("p(X)", vec!["X"], Some("p(X$i) or not p(X$i)")),
-            ("p(1..4)", vec![], Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i) or not p(N0$i))")),
+            (
+                "p(1..4)",
+                vec![],
+                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i) or not p(N0$i))"),
+            ),
             ("p(1/5)", vec![], None),
-            ("p(1..Y, X)", vec!["Y"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X) or  not p(N0$i, X))")),
-            ("p(1..Y, X)", vec!["Y", "X"], Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i) or not p(N0$i, X$i))")),
-            ("q(1..5, X, 1..X, Y, Z, X..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
-            ("q(1..a)", vec![],  None),
+            (
+                "p(1..Y, X)",
+                vec!["Y"],
+                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X) or  not p(N0$i, X))"),
+            ),
+            (
+                "p(1..Y, X)",
+                vec!["Y", "X"],
+                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i) or not p(N0$i, X$i))"),
+            ),
+            (
+                "q(1..5, X, 1..X, Y, Z, X..Y)",
+                vec!["X", "Y"],
+                Some(
+                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                ),
+            ),
+            ("q(1..a)", vec![], None),
             ("q(1..5, X, 1..X, Y, Z, a..Y)", vec!["X", "Y"], None),
-            ("q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)", vec!["X", "Y"],  Some("forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))")),
-
-
+            (
+                "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
+                vec!["X", "Y"],
+                Some(
+                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                ),
+            ),
         ] {
             let atom = atom.parse().unwrap();
             let int_set: IndexSet<_> = int_vars.iter().map(|v| v.to_string()).collect();

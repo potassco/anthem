@@ -2,6 +2,7 @@ use {
     crate::{
         formatting::{Associativity, Precedence},
         syntax_tree::{
+            Node,
             fol::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
                 Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
@@ -9,7 +10,6 @@ use {
                 Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
                 UserGuide, UserGuideEntry, Variable,
             },
-            Node,
         },
     },
     std::fmt::{self, Display, Formatter},
