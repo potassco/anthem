@@ -6,7 +6,7 @@ use {
     anyhow::{Context as _, Result},
     indexmap::IndexSet,
     itertools::Itertools,
-    std::{fmt, fs::File, io::Write as _, iter::repeat, path::Path},
+    std::{fmt, fs::File, io::Write as _, iter::repeat_n, path::Path},
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -254,7 +254,7 @@ impl fmt::Display for Problem {
             //     .intersperse(" * ")
             //     .collect();
             let input: String =
-                Itertools::intersperse(repeat("general").take(predicate.arity), " * ").collect();
+                Itertools::intersperse(repeat_n("general", predicate.arity), " * ").collect();
             if predicate.arity > 0 {
                 writeln!(f, "tff(predicate_{i}, type, {symbol}: ({input}) > $o).")?
             } else {
