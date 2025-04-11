@@ -5,8 +5,10 @@ use {
         command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
+            compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
+        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
@@ -494,6 +496,32 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
+        let theory_translate = |program: asp::Program| {
+            // TODO: allow more formula representations beyond tau-star
+            let mut theory = tau_star(program).replace_placeholders(&placeholders);
+
+            if self.simplify {
+                let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                theory = theory
+                    .into_iter()
+                    .map(|f| f.apply_fixpoint(&mut portfolio))
+                    .collect();
+            }
+
+            theory = completion(theory).expect("tau_star did not create a completable theory");
+
+            if self.simplify {
+                let mut portfolio =
+                    [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                theory = theory
+                    .into_iter()
+                    .map(|f| f.apply_fixpoint(&mut portfolio))
+                    .collect();
+            }
+
+            theory
+        };
+
         let control_translate = |theory: fol::Theory| {
             let mut constraint_counter = 0..;
             let formulas = theory
@@ -523,20 +551,12 @@ impl Task for ExternalEquivalenceTask {
             fol::Specification { formulas }
         };
 
-        // TODO: allow more formula representations beyond tau-star
-
         let left = match self.specification {
-            Either::Left(program) => control_translate(
-                completion(tau_star(program).replace_placeholders(&placeholders))
-                    .expect("tau_star did not create a completable theory"),
-            ),
+            Either::Left(program) => control_translate(theory_translate(program)),
             Either::Right(specification) => specification.replace_placeholders(&placeholders),
         };
 
-        let right = control_translate(
-            completion(tau_star(self.program).replace_placeholders(&placeholders))
-                .expect("tau_star did not create a completable theory"),
-        );
+        let right = control_translate(theory_translate(self.program));
 
         // TODO: Warn when a conflict between private predicates is encountered
         // TODO: Check if renaming creates new conflicts
