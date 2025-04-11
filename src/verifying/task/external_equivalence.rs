@@ -5,8 +5,10 @@ use {
         command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
+            compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
+        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
@@ -90,7 +92,7 @@ impl Display for ExternalEquivalenceTaskWarning {
             ExternalEquivalenceTaskWarning::NonTightProgram(program) => {
                 writeln!(f, "the following program is not tight: ")?;
                 writeln!(f, "{program}")
-            },
+            }
             ExternalEquivalenceTaskWarning::InconsistentDirectionAnnotation(formula) => {
                 let proof_direction = match formula.direction {
                     fol::Direction::Forward => fol::Direction::Backward,
@@ -102,9 +104,10 @@ impl Display for ExternalEquivalenceTaskWarning {
                     f,
                     "the following assumption is ignored in the {proof_direction} direction of the proof due its annotated direction: {formula}"
                 )
-            },
+            }
             ExternalEquivalenceTaskWarning::InvalidRoleWithinUserGuide(formula) => writeln!(
-                f, "the following formula is ignored because user guides only permit assumptions: {formula}"
+                f,
+                "the following formula is ignored because user guides only permit assumptions: {formula}"
             ),
             ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => writeln!(f, "{w}"),
         }
@@ -198,16 +201,25 @@ impl Display for ExternalEquivalenceTaskError {
                 writeln!(f)
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
-                writeln!(f, "the following placeholder is given conflicting sorts within the user guide: {s}")
+                writeln!(
+                    f,
+                    "the following placeholder is given conflicting sorts within the user guide: {s}"
+                )
             }
             ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(formula) => {
-                writeln!(f, "the following assumption contains a predicate that is not an input symbol: {formula}")
+                writeln!(
+                    f,
+                    "the following assumption contains a predicate that is not an input symbol: {formula}"
+                )
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "the given proof outline contains errors")
             }
             ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
-                writeln!(f, "tau-star is the only formula-representation currently supported for external equivalence")
+                writeln!(
+                    f,
+                    "tau-star is the only formula-representation currently supported for external equivalence"
+                )
             }
         }
     }
@@ -484,6 +496,22 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
+        let theory_translate = |program: asp::Program| {
+            // TODO: allow more formula representations beyond tau-star
+            let mut theory = completion(tau_star(program).replace_placeholders(&placeholders))
+                .expect("tau_star did not create a completable theory");
+
+            if self.simplify {
+                let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                theory = theory
+                    .into_iter()
+                    .map(|f| f.apply_fixpoint(&mut portfolio))
+                    .collect();
+            }
+
+            theory
+        };
+
         let control_translate = |theory: fol::Theory| {
             let mut constraint_counter = 0..;
             let formulas = theory
@@ -513,20 +541,12 @@ impl Task for ExternalEquivalenceTask {
             fol::Specification { formulas }
         };
 
-        // TODO: allow more formula representations beyond tau-star
-
         let left = match self.specification {
-            Either::Left(program) => control_translate(
-                completion(tau_star(program).replace_placeholders(&placeholders))
-                    .expect("tau_star did not create a completable theory"),
-            ),
+            Either::Left(program) => control_translate(theory_translate(program)),
             Either::Right(specification) => specification.replace_placeholders(&placeholders),
         };
 
-        let right = control_translate(
-            completion(tau_star(self.program).replace_placeholders(&placeholders))
-                .expect("tau_star did not create a completable theory"),
-        );
+        let right = control_translate(theory_translate(self.program));
 
         // TODO: Warn when a conflict between private predicates is encountered
         // TODO: Check if renaming creates new conflicts

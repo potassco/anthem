@@ -72,9 +72,11 @@ mod tests {
         );
 
         for program in ["a :- not c. c :- not a.", "a :- p(1). p(X) :- q(X)."] {
-            assert!(!Program::from_str(program)
-                .unwrap()
-                .has_private_recursion(&private_predicates))
+            assert!(
+                !Program::from_str(program)
+                    .unwrap()
+                    .has_private_recursion(&private_predicates)
+            )
         }
 
         for program in [
@@ -84,9 +86,11 @@ mod tests {
             "a :- not b. b :- not a.",
             "{p(X)} :- not not p(X). b :- a.",
         ] {
-            assert!(Program::from_str(program)
-                .unwrap()
-                .has_private_recursion(&private_predicates))
+            assert!(
+                Program::from_str(program)
+                    .unwrap()
+                    .has_private_recursion(&private_predicates)
+            )
         }
     }
 }

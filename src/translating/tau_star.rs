@@ -134,7 +134,9 @@ fn construct_total_function_formula(
                     asp::BinaryOperator::Add => fol::BinaryOperator::Add,
                     asp::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
                     asp::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
-                    _ => unreachable!("addition, subtraction and multiplication are the only supported total functions"),
+                    _ => unreachable!(
+                        "addition, subtraction and multiplication are the only supported total functions"
+                    ),
                 },
                 lhs: fol::IntegerTerm::Variable(i.clone()).into(),
                 rhs: fol::IntegerTerm::Variable(j.clone()).into(),
@@ -908,12 +910,36 @@ mod tests {
     #[test]
     fn test_val() {
         for (term, var, target) in [
-            ("X + 1", "Z1", "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)"),
-            ("3 - 5", "Z1", "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)"),
-            ("Xanadu/Yak", "Z1", "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = Q$i)"),
-            ("X \\ 3", "Z1", "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = R$i)"),
-            ("X..Y", "Z", "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)"),
-            ("X+1..Y", "Z1", "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)"),
+            (
+                "X + 1",
+                "Z1",
+                "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)",
+            ),
+            (
+                "3 - 5",
+                "Z1",
+                "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)",
+            ),
+            (
+                "Xanadu/Yak",
+                "Z1",
+                "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = Q$i)",
+            ),
+            (
+                "X \\ 3",
+                "Z1",
+                "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = R$i)",
+            ),
+            (
+                "X..Y",
+                "Z",
+                "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)",
+            ),
+            (
+                "X+1..Y",
+                "Z1",
+                "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
+            ),
         ] {
             let left = val(term.parse().unwrap(), var.parse().unwrap());
             let right = target.parse().unwrap();
@@ -930,13 +956,28 @@ mod tests {
         for (src, target) in [
             ("p(t)", "exists Z (Z = t and p(Z))"),
             ("not p(t)", "exists Z (Z = t and not p(Z))"),
-            ("X < 1..5", "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)"),
+            (
+                "X < 1..5",
+                "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)",
+            ),
             ("not not p(t)", "exists Z (Z = t and not not p(Z))"),
             ("not not x", "not not x"),
-            ("not p(X,5)", "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))"),
-            ("not p(X,0-5)", "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))"),
-            ("p(X,-1..5)", "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))"),
-            ("p(X,-(1..5))", "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))")
+            (
+                "not p(X,5)",
+                "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))",
+            ),
+            (
+                "not p(X,0-5)",
+                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))",
+            ),
+            (
+                "p(X,-1..5)",
+                "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))",
+            ),
+            (
+                "p(X,-(1..5))",
+                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))",
+            ),
         ] {
             let left = tau_b(src.parse().unwrap());
             let right = target.parse().unwrap();
@@ -952,20 +993,44 @@ mod tests {
     fn test_tau_star() {
         for (src, target) in [
             ("a:- b. a :- c.", "b -> a. c -> a."),
-            ("p(a). p(b). q(X, Y) :- p(X), p(Y).", "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2))."),
+            (
+                "p(a). p(b). q(X, Y) :- p(X), p(Y).",
+                "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2)).",
+            ),
             ("p.", "#true -> p."),
             ("q :- not p.", "not p -> q."),
-            ("{q(X)} :- p(X).", "forall V1 X (V1 = X and exists Z (Z = X and p(Z)) and not not q(V1) -> q(V1))."),
-            ("{q(V)} :- p(V).", "forall V V1 (V1 = V and exists Z (Z = V and p(Z)) and not not q(V1) -> q(V1))."),
-            ("{q(V+1)} :- p(V), not q(X).", "forall V V1 X (exists I$i J$i (V1 = I$i + J$i and I$i = V and J$i = 1) and (exists Z (Z = V and p(Z)) and exists Z (Z = X and not q(Z))) and not not q(V1) -> q(V1))."),
-            (":- p(X,3), not q(X,a).", "forall X (exists Z Z1 (Z = X and Z1 = 3 and p(Z,Z1)) and exists Z Z1 (Z = X and Z1 = a and not q(Z,Z1)) -> #false)."),
+            (
+                "{q(X)} :- p(X).",
+                "forall V1 X (V1 = X and exists Z (Z = X and p(Z)) and not not q(V1) -> q(V1)).",
+            ),
+            (
+                "{q(V)} :- p(V).",
+                "forall V V1 (V1 = V and exists Z (Z = V and p(Z)) and not not q(V1) -> q(V1)).",
+            ),
+            (
+                "{q(V+1)} :- p(V), not q(X).",
+                "forall V V1 X (exists I$i J$i (V1 = I$i + J$i and I$i = V and J$i = 1) and (exists Z (Z = V and p(Z)) and exists Z (Z = X and not q(Z))) and not not q(V1) -> q(V1)).",
+            ),
+            (
+                ":- p(X,3), not q(X,a).",
+                "forall X (exists Z Z1 (Z = X and Z1 = 3 and p(Z,Z1)) and exists Z Z1 (Z = X and Z1 = a and not q(Z,Z1)) -> #false).",
+            ),
             (":- p.", "p -> #false."),
             ("{p} :- q.", "q and not not p -> p."),
             ("{p}.", "#true and not not p -> p."),
-            ("{p(5)}.", "forall V1 (V1 = 5 and #true and not not p(V1) -> p(V1))."),
+            (
+                "{p(5)}.",
+                "forall V1 (V1 = 5 and #true and not not p(V1) -> p(V1)).",
+            ),
             ("p. q.", "#true -> p. #true -> q."),
-            ("{ra(X,a)} :- ta(X). ra(5,a).", "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2))."),
-            ("p(X/2) :- X=4.", "forall V1 X (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and exists Z Z1 (Z = X and Z1 = 4 and Z = Z1) -> p(V1))."),
+            (
+                "{ra(X,a)} :- ta(X). ra(5,a).",
+                "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2)).",
+            ),
+            (
+                "p(X/2) :- X=4.",
+                "forall V1 X (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and exists Z Z1 (Z = X and Z1 = 4 and Z = Z1) -> p(V1)).",
+            ),
         ] {
             let left = tau_star(src.parse().unwrap());
             let right = target.parse().unwrap();

@@ -1,7 +1,7 @@
 use {
     crate::{
         convenience::{
-            unbox::{fol::UnboxedFormula, Unbox as _},
+            unbox::{Unbox as _, fol::UnboxedFormula},
             with_warnings::{Result, WithWarnings},
         },
         syntax_tree::fol,
@@ -30,9 +30,11 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
     ) -> std::result::Result<Self, Self::Error> {
         match annotated_formula.role {
             fol::Role::Lemma => Ok(GeneralLemma {
-                conjectures: vec![annotated_formula
-                    .clone()
-                    .into_problem_formula(problem::Role::Conjecture)],
+                conjectures: vec![
+                    annotated_formula
+                        .clone()
+                        .into_problem_formula(problem::Role::Conjecture),
+                ],
                 consequences: vec![annotated_formula.into_problem_formula(problem::Role::Axiom)],
             }),
             fol::Role::InductiveLemma => {
@@ -56,7 +58,9 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
                         base_annotated.into_problem_formula(problem::Role::Conjecture),
                         step_annotated.into_problem_formula(problem::Role::Conjecture),
                     ],
-                    consequences: vec![annotated_formula.into_problem_formula(problem::Role::Axiom)],
+                    consequences: vec![
+                        annotated_formula.into_problem_formula(problem::Role::Axiom),
+                    ],
                 })
             }
             fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition => Err(
@@ -267,12 +271,16 @@ pub enum ProofOutlineError {
     TakenPredicate(fol::Predicate),
     #[error("the following definition contains free variables in the RHS: {0}")]
     FreeRhsVariables(fol::Formula),
-    #[error("undefined predicate -- `{predicate}` occurs for the first time in the RHS of definition `{definition}`")]
+    #[error(
+        "undefined predicate -- `{predicate}` occurs for the first time in the RHS of definition `{definition}`"
+    )]
     UndefinedRhsPredicate {
         definition: fol::Formula,
         predicate: fol::Predicate,
     },
-    #[error("the following definition has different variables in the LHS than the universal quantification: `{0}`")]
+    #[error(
+        "the following definition has different variables in the LHS than the universal quantification: `{0}`"
+    )]
     DefinedPredicateVariableListMismatch(fol::Formula),
     #[error(
         "the LHS of the following definition contains the non-variable term `{term}` : `{formula}`"
@@ -285,7 +293,9 @@ pub enum ProofOutlineError {
     MalformedInductiveLemma(fol::Formula),
     #[error("the antecedent of the following inductive lemma is malformed: `{0}`")]
     MalformedInductiveAntecedent(fol::Formula),
-    #[error("the universally quantified variables in the following inductive lemma do not match the RHS free variables: `{0}`")]
+    #[error(
+        "the universally quantified variables in the following inductive lemma do not match the RHS free variables: `{0}`"
+    )]
     MalformedInductiveVariables(fol::Formula),
     #[error(
         "the inductive term in the following inductive lemma is not an integer variable: `{0}`"
@@ -313,7 +323,10 @@ impl Display for ProofOutlineWarning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ProofOutlineWarning::ExcessQuantifiedVariables(formula) => {
-                writeln!(f, "the universally quantified list of variables contains members which do not occur in the RHS of {formula}")
+                writeln!(
+                    f,
+                    "the universally quantified list of variables contains members which do not occur in the RHS of {formula}"
+                )
             }
         }
     }
@@ -367,7 +380,7 @@ impl ProofOutline {
                     }
                 }
                 fol::Role::Assumption | fol::Role::Spec => {
-                    return Err(ProofOutlineError::AnnotatedFormulaWithInvalidRole(anf))
+                    return Err(ProofOutlineError::AnnotatedFormulaWithInvalidRole(anf));
                 }
             }
         }
@@ -493,17 +506,17 @@ mod tests {
                 "forall M$i ( 0 + M$i >= M$i )",
                 "forall N$i M$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
             ),
-            ] {
-                let formula: fol::Formula = src.parse().unwrap();
-                let (base_result, step_result) = formula.inductive_lemma().unwrap().data;
-                let (base_target, step_target): (fol::Formula, fol::Formula) =
-                    (base.parse().unwrap(), step.parse().unwrap());
-                assert_eq!(
-                    (base_result.clone(), step_result.clone()),
-                    (base_target.clone(), step_target.clone()),
-                    "\n({base_result},{step_result})\n != \n({base_target},{step_target})"
-                )
-            }
+        ] {
+            let formula: fol::Formula = src.parse().unwrap();
+            let (base_result, step_result) = formula.inductive_lemma().unwrap().data;
+            let (base_target, step_target): (fol::Formula, fol::Formula) =
+                (base.parse().unwrap(), step.parse().unwrap());
+            assert_eq!(
+                (base_result.clone(), step_result.clone()),
+                (base_target.clone(), step_target.clone()),
+                "\n({base_result},{step_result})\n != \n({base_target},{step_target})"
+            )
+        }
     }
 
     #[test]

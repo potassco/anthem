@@ -2,12 +2,12 @@ use {
     crate::{
         formatting::{Associativity, Precedence},
         syntax_tree::{
+            Node,
             asp::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
                 PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
                 Variable,
             },
-            Node,
         },
     },
     std::fmt::{self, Display, Formatter},
@@ -28,7 +28,7 @@ impl Display for Format<'_, PrecomputedTerm> {
 
 impl Display for Format<'_, Variable> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0 .0)
+        write!(f, "{}", self.0.0)
     }
 }
 

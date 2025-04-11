@@ -36,6 +36,7 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Simplify a given first-order theory
     Simplify {
         /// The simplification portfolio to use
         #[arg(long, value_enum)]

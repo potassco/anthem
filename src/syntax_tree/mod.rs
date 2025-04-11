@@ -4,7 +4,7 @@ use {
         fmt::{Debug, Display},
         fs::{self, File},
         hash::Hash,
-        io::{self, stdin, Write as _},
+        io::{self, Write as _, stdin},
         path::Path,
         str::FromStr,
     },

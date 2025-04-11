@@ -1,8 +1,8 @@
 [package]
 name = "anthem"
-version = "0.1.0-dev"
-rust-version = "1.75.0"
-edition = "2021"
+version = "2.0.0"
+rust-version = "1.85.0"
+edition = "2024"
 authors = ["Zach Hansen <zachhansen@unomaha.edu>", "Tobias Stolzmann <tobias.stolzmann@gmail.com>"]
 description = "A translator between answer set programs and first-order logic"
 categories = ["compilers"]
@@ -15,15 +15,15 @@ license = "MIT"
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
-derive_more = { version = "1", features = ["full"] }
+derive_more = { version = "2", features = ["full"] }
 either = "1"
 indexmap = "2"
-itertools = "0.13"
+itertools = "0.14"
 lazy_static = "1"
 num_cpus = "1"
 pest = "2"
 pest_derive = "2"
-petgraph = "0.6"
+petgraph = "0.8"
 regex = "1"
 thiserror = "2"
 threadpool = "1"

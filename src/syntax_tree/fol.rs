@@ -12,7 +12,7 @@ use {
             UserGuideParser, VariableParser,
         },
         simplifying::fol::intuitionistic::join_nested_quantifiers,
-        syntax_tree::{impl_node, Node},
+        syntax_tree::{Node, impl_node},
         verifying::problem,
     },
     clap::ValueEnum,
