@@ -24,4 +24,5 @@ For more details on these commands, and a list of available options, add the `--
     anthem translate --help
     anthem verify --help
     anthem analyze --help
+    anthem simplify --help
 ```
