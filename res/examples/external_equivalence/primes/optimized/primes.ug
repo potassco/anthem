@@ -1,0 +1,6 @@
+input: a -> integer.
+input: b -> integer.
+
+assumption: a > 1.
+
+output: prime/1.
