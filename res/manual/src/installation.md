@@ -19,6 +19,6 @@ Mac users may prefer to install and run `anthem` with [Docker](https://www.docke
 
 ```
     git clone https://github.com/potassco/anthem.git && cd anthem
-    docker build --tag 'anthem-image' ./
-    docker run -it 'anthem-image'
+    docker build -t anthem 
+    docker run -it --name anthem-container anthem /bin/bash
 ```
