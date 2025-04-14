@@ -71,7 +71,7 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
 }
 
 // TODO: Think about the name
-trait CheckInternal {
+pub(crate) trait CheckInternal {
     // Returns the predicate defined in the LHS of the formula if it is a valid definition, else returns an error
     fn definition(
         &self,
