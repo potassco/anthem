@@ -15,10 +15,13 @@ Installation instructions can be found [here](https://vprover.github.io/).
 
 # Installing with Docker
 In our experience, building `vampire` on MacOS is tricky.
-Mac users may prefer to install and run `anthem` with [Docker](https://www.docker.com/), as follows.
+Non-Linux users may prefer to install and run `anthem` with [Docker](https://www.docker.com/).
+Make sure Docker is running then run the following commands.
 
 ```
     git clone https://github.com/potassco/anthem.git && cd anthem
-    docker build -t anthem 
+    docker build -t anthem .
     docker run -it --name anthem-container anthem /bin/bash
 ```
+Now you can run your `anthem` commands in the interactive Docker terminal. 
+Try ``anthem --help`` to get started or ``ls anthem/res/examples`` to see available examples.
