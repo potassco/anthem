@@ -185,10 +185,101 @@ pub fn restrict_quantifier_domain(formula: Formula) -> Formula {
     simplified_formula
 }
 
+pub fn extend_quantifier_scope(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // Bring a conjunctive or disjunctive term into the scope of a quantifer
+        // e.g. exists X ( F(X) ) & G => exists X ( F(X) & G )
+        // where X does not occur free in G
+        UnboxedFormula::BinaryFormula {
+            connective,
+            lhs:
+                Formula::QuantifiedFormula {
+                    quantification:
+                        Quantification {
+                            quantifier,
+                            variables,
+                        },
+                    formula: f,
+                },
+            rhs,
+        } => match connective {
+            BinaryConnective::Conjunction | BinaryConnective::Disjunction => {
+                let mut collision = false;
+                for var in variables.iter() {
+                    if rhs.free_variables().contains(var) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                match collision {
+                    true => formula,
+                    false => Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier,
+                            variables,
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective,
+                            lhs: f,
+                            rhs: rhs.into(),
+                        }
+                        .into(),
+                    },
+                }
+            }
+            _ => formula,
+        },
+
+        UnboxedFormula::BinaryFormula {
+            connective,
+            lhs,
+            rhs:
+                Formula::QuantifiedFormula {
+                    quantification:
+                        Quantification {
+                            quantifier,
+                            variables,
+                        },
+                    formula: f,
+                },
+        } => match connective {
+            BinaryConnective::Conjunction | BinaryConnective::Disjunction => {
+                let mut collision = false;
+                for var in variables.iter() {
+                    if lhs.free_variables().contains(var) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                match collision {
+                    true => formula,
+                    false => Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier,
+                            variables,
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective,
+                            lhs: lhs.into(),
+                            rhs: f,
+                        }
+                        .into(),
+                    },
+                }
+            }
+            _ => formula,
+        },
+
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
-        super::{remove_double_negation, restrict_quantifier_domain},
+        super::{extend_quantifier_scope, remove_double_negation, restrict_quantifier_domain},
         crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
 
@@ -246,6 +337,32 @@ mod tests {
             let src = restrict_quantifier_domain(src.parse().unwrap());
             let target = target.parse().unwrap();
             assert_eq!(src, target, "{src} != {target}")
+        }
+    }
+
+    #[test]
+    fn test_extend_quantification_scope() {
+        for (src, target) in [
+            (
+                "exists X (q(X) and 1 < 3) and p(Z)",
+                "exists X (q(X) and 1 < 3 and p(Z))",
+            ),
+            (
+                "exists X (q(X) and 1 < 3) and p(X)",
+                "exists X (q(X) and 1 < 3) and p(X)",
+            ),
+            (
+                "forall Z X (q(X) and 1 < Z) or p(Y,Z$)",
+                "forall Z X (q(X) and 1 < Z or p(Y,Z$))",
+            ),
+            (
+                "p(Z) and exists X (q(X) and 1 < 3)",
+                "exists X (p(Z) and (q(X) and 1 < 3))",
+            ),
+        ] {
+            let result = extend_quantifier_scope(src.parse().unwrap());
+            let target = target.parse().unwrap();
+            assert_eq!(result, target, "{result} != {target}")
         }
     }
 }
