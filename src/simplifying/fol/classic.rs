@@ -7,7 +7,11 @@ use crate::{
     },
 };
 
-pub const CLASSIC: &[fn(Formula) -> Formula] = &[remove_double_negation];
+pub const CLASSIC: &[fn(Formula) -> Formula] = &[
+    restrict_quantifier_domain,
+    extend_quantifier_scope,
+    remove_double_negation,
+];
 
 impl Formula {
     /// Inverse function to conjoin
