@@ -2,14 +2,15 @@ use crate::{
     convenience::unbox::{Unbox as _, fol::UnboxedFormula},
     simplifying::fol::replacement_helper,
     syntax_tree::fol::{
-        AtomicFormula, BinaryConnective, Comparison, Formula, Quantification, Quantifier, Relation,
-        Sort, UnaryConnective,
+        AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, IntegerTerm,
+        Quantification, Quantifier, Relation, Sort, SymbolicTerm, UnaryConnective,
     },
 };
 
 pub const CLASSIC: &[fn(Formula) -> Formula] = &[
     restrict_quantifier_domain,
     extend_quantifier_scope,
+    simplify_transitive_equality,
     remove_double_negation,
 ];
 
@@ -280,10 +281,101 @@ pub fn extend_quantifier_scope(formula: Formula) -> Formula {
     }
 }
 
+pub fn simplify_transitive_equality(formula: Formula) -> Formula {
+    match formula.clone().unbox() {
+        // When X is a subsort of Y (or sort(X) = sort(Y)) and t is a term:
+        // exists X Y (X = t and Y = t and F)
+        // =>
+        // exists X (X = t and F(X))
+        // Replace Y with X within F
+        UnboxedFormula::QuantifiedFormula {
+            quantification:
+                Quantification {
+                    quantifier: Quantifier::Exists,
+                    mut variables,
+                },
+            formula: f,
+        } => match f.clone().unbox() {
+            UnboxedFormula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                ..
+            } => {
+                let mut simplified = formula.clone();
+                let mut simplify = false;
+                let conjunctive_terms = Formula::conjoin_invert(f.clone());
+                let mut ct_copy = conjunctive_terms.clone();
+                for (i, ct1) in conjunctive_terms.iter().enumerate() {
+                    // Search for an equality formula
+                    if let Formula::AtomicFormula(AtomicFormula::Comparison(c1)) = ct1 {
+                        if c1.equality_comparison() {
+                            for (j, ct2) in conjunctive_terms.iter().enumerate() {
+                                // Search for a second equality formula
+                                if let Formula::AtomicFormula(AtomicFormula::Comparison(c2)) = ct2 {
+                                    if c2.equality_comparison() && i != j {
+                                        if let Some((keep_var, drop_var, drop_term)) =
+                                            super::transitive_equality(
+                                                c1.clone(),
+                                                c2.clone(),
+                                                variables.clone(),
+                                            )
+                                        {
+                                            variables.retain(|x| x != &drop_var);
+                                            ct_copy.retain(|t| {
+                                                t != &Formula::AtomicFormula(
+                                                    AtomicFormula::Comparison(drop_term.clone()),
+                                                )
+                                            });
+                                            let keep = match keep_var.sort {
+                                                Sort::General => {
+                                                    GeneralTerm::Variable(keep_var.name)
+                                                }
+                                                Sort::Integer => GeneralTerm::IntegerTerm(
+                                                    IntegerTerm::Variable(keep_var.name),
+                                                ),
+                                                Sort::Symbol => GeneralTerm::SymbolicTerm(
+                                                    SymbolicTerm::Variable(keep_var.name),
+                                                ),
+                                            };
+                                            let inner = Formula::conjoin(ct_copy.clone())
+                                                .substitute(drop_var, keep);
+                                            simplified = Formula::QuantifiedFormula {
+                                                quantification: Quantification {
+                                                    quantifier: Quantifier::Exists,
+                                                    variables: variables.clone(),
+                                                },
+                                                formula: inner.into(),
+                                            };
+                                            simplify = true;
+                                        }
+                                    }
+                                }
+                                if simplify {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if simplify {
+                        break;
+                    }
+                }
+                simplified
+            }
+
+            _ => formula,
+        },
+
+        x => x.rebox(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
-        super::{extend_quantifier_scope, remove_double_negation, restrict_quantifier_domain},
+        super::{
+            extend_quantifier_scope, remove_double_negation, restrict_quantifier_domain,
+            simplify_transitive_equality,
+        },
         crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
     };
 
@@ -367,6 +459,18 @@ mod tests {
             let result = extend_quantifier_scope(src.parse().unwrap());
             let target = target.parse().unwrap();
             assert_eq!(result, target, "{result} != {target}")
+        }
+    }
+
+    #[test]
+    fn test_simplify_transitive_equality() {
+        for (src, target) in [(
+            "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
+            "exists X Z ( X = 5 and not p(X,X))",
+        )] {
+            let src = simplify_transitive_equality(src.parse().unwrap());
+            let target = target.parse().unwrap();
+            assert_eq!(src, target, "{src} != {target}")
         }
     }
 }
