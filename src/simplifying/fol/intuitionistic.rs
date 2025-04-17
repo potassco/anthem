@@ -8,9 +8,9 @@ use crate::{
 
 pub const INTUITIONISTIC: &[fn(Formula) -> Formula] = &[
     evaluate_comparisons,
-    apply_negation_definition,
+    apply_negation_definition_inverse,
     apply_reverse_implication_definition,
-    apply_equivalence_definition,
+    apply_equivalence_definition_inverse,
     remove_identities,
     remove_annihilations,
     remove_idempotences,
