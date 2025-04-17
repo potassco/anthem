@@ -764,4 +764,95 @@ mod unstable {
             x => x.rebox(),
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{
+            extend_quantifier_scope, restrict_quantifier_domain, simplify_transitive_equality,
+        };
+
+        #[test]
+        fn test_restrict_quantifiers() {
+            for (src, target) in [
+                (
+                    "exists Z Z1 ( exists I$i J$i ( Z = J$i and q(I$i, J$i) ) and Z = Z1 )",
+                    "exists Z1 J1$i ( exists I$i J$i ( J1$i = J$i and q(I$i, J$i) ) and J1$i = Z1 )",
+                ),
+                (
+                    "exists Z Z1 ( exists I$i J$i ( q(I$i, J$i) and Z = J$i) and Z = Z1 )",
+                    "exists Z1 J1$i ( exists I$i J$i ( q(I$i, J$i) and J1$i = J$i) and J1$i = Z1 )",
+                ),
+                (
+                    "exists Z Z1 ( Z = Z1 and exists I$i J$i ( q(I$i, J$i) and Z = J$i) )",
+                    "exists Z1 J1$i ( J1$i = Z1 and exists I$i J$i ( q(I$i, J$i) and J1$i = J$i) )",
+                ),
+                (
+                    "exists Z Z1 ( Z = Z1 and exists I$i J$i ( q(I$i, J$i) and Z = J$i and 3 > 2) and 1 < 5 )",
+                    "exists Z1 J1$i ( J1$i = Z1 and exists I$i J$i ( q(I$i, J$i) and J1$i = J$i and 3 > 2) and 1 < 5 )",
+                ),
+                (
+                    "forall X Y ( exists Z I$i (p(X) and p(Z) and Y = I$i) -> q(X) )",
+                    "forall X I1$i ( exists Z I$i (p(X) and p(Z) and I1$i = I$i) -> q(X) )",
+                ),
+                (
+                    "forall X Y ( exists Z I$i (p(X) and p(Z) and Y = I$i) -> q(Y) )",
+                    "forall X Y ( exists Z I$i (p(X) and p(Z) and Y = I$i) -> q(Y) )",
+                ),
+                (
+                    "forall X Y ( exists I$i J$i (Y = J$i and p(I$i, J$i) and I$i = X) -> q(Z) )",
+                    "forall X J1$i ( exists I$i J$i (J1$i = J$i and p(I$i, J$i) and I$i = X) -> q(Z) )",
+                ),
+                (
+                    "forall X Y ( exists Z I$i (p(X,Z) or Y = I$i) -> q(X) )",
+                    "forall X Y ( exists Z I$i (p(X,Z) or Y = I$i) -> q(X) )",
+                ),
+                (
+                    "forall X Y ( exists Z I$i (p(X,Z) and I$i = X) -> exists A X (q(A,X)) )",
+                    "forall Y I1$i ( exists Z I$i (p(I1$i,Z) and I$i = I1$i) -> exists A X (q(A,X)) )",
+                ),
+            ] {
+                let src = restrict_quantifier_domain(src.parse().unwrap());
+                let target = target.parse().unwrap();
+                assert_eq!(src, target, "{src} != {target}")
+            }
+        }
+
+        #[test]
+        fn test_extend_quantification_scope() {
+            for (src, target) in [
+                (
+                    "exists X (q(X) and 1 < 3) and p(Z)",
+                    "exists X (q(X) and 1 < 3 and p(Z))",
+                ),
+                (
+                    "exists X (q(X) and 1 < 3) and p(X)",
+                    "exists X (q(X) and 1 < 3) and p(X)",
+                ),
+                (
+                    "forall Z X (q(X) and 1 < Z) or p(Y,Z$)",
+                    "forall Z X (q(X) and 1 < Z or p(Y,Z$))",
+                ),
+                (
+                    "p(Z) and exists X (q(X) and 1 < 3)",
+                    "exists X (p(Z) and (q(X) and 1 < 3))",
+                ),
+            ] {
+                let result = extend_quantifier_scope(src.parse().unwrap());
+                let target = target.parse().unwrap();
+                assert_eq!(result, target, "{result} != {target}")
+            }
+        }
+
+        #[test]
+        fn test_simplify_transitive_equality() {
+            for (src, target) in [(
+                "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
+                "exists X Z ( X = 5 and not p(X,X))",
+            )] {
+                let src = simplify_transitive_equality(src.parse().unwrap());
+                let target = target.parse().unwrap();
+                assert_eq!(src, target, "{src} != {target}")
+            }
+        }
+    }
 }
