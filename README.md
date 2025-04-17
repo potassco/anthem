@@ -1,7 +1,8 @@
 # anthem
 
-`anthem` is a command line application for translating answer set programs in the mini-gringo dialect of [clingo](https://potassco.org/clingo/) to first-order theories.
-Using an automated theorem prover, these theories can then be used to verify properties of the original programs, such as strong and external equivalence.
+`anthem` is a command-line application for assisting in the verification of answer set programs.
+It operates by translating answer set programs written in the mini-gringo dialect of [clingo](https://potassco.org/clingo/) into many-sorted first-order theories.
+Using automated theorem provers, `anthem` can then verify properties of the original programs, such as strong and external equivalence.
 
 Check out the [Manual](https://potassco.org/anthem/) to learn how to install and use `anthem`.
 

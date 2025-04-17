@@ -1,14 +1,15 @@
 [package]
 name = "anthem"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 rust-version = "1.85.0"
 edition = "2024"
 authors = ["Zach Hansen <zachhansen@unomaha.edu>", "Tobias Stolzmann <tobias.stolzmann@gmail.com>"]
-description = "A translator between answer set programs and first-order logic"
-categories = ["compilers"]
-keywords = ["translator", "answer set programming", "first-order logic"]
-repository = "https://github.com/teiesti/anthem-next"
+description = "A command-line application for assisting in the verification of answer set programs"
+categories = ["command-line-utilities", "compilers", "mathematics"]
+keywords = ["asp", "clingo", "logic", "proof-assistant"]
+homepage = "https://potassco.org/anthem"
 documentation = "https://docs.rs/anthem"
+repository = "https://github.com/potassco/anthem"
 readme = "README.md"
 license = "MIT"
 
