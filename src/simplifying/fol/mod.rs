@@ -1,5 +1,6 @@
 use crate::{
-    convenience::apply::Apply as _,
+    convenience::{apply::Apply as _, compose::Compose},
+    simplifying::fol::intuitionistic::INTUITIONISTIC,
     syntax_tree::fol::{Formula, Theory},
     verifying::problem::{AnnotatedFormula, Problem, Role},
 };
@@ -47,6 +48,11 @@ pub fn validate_simplifications(formula: Formula) -> Vec<crate::verifying::probl
             .apply(&mut intuitionistic::remove_orphaned_variables)
             .apply(&mut intuitionistic::remove_empty_quantifications);
         formulas.push((f2.clone(), "simplify_transitive_equality".to_string()));
+
+        f2 = f2.apply(&mut [INTUITIONISTIC].concat().into_iter().compose())
+            .apply(&mut intuitionistic::remove_orphaned_variables)
+            .apply(&mut intuitionistic::remove_empty_quantifications);
+        formulas.push((f2.clone(), "intuitionistic".to_string()));
 
         if f1 == f2 {
             break;
