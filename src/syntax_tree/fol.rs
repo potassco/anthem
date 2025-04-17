@@ -859,6 +859,27 @@ impl Formula {
         }
     }
 
+    // Replacing var with term within self is unsafe if self contains a subformula
+    // of the form QxF, where var is free in F and a variable in term occurs in x
+    pub fn unsafe_substitution(self, var: &Variable, term: &GeneralTerm) -> bool {
+        match self {
+            Formula::AtomicFormula(_) => false,
+            Formula::UnaryFormula { formula, .. } => formula.unsafe_substitution(var, term),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                lhs.unsafe_substitution(var, term) || rhs.unsafe_substitution(var, term)
+            }
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let tvars = term.variables();
+                let qvars: IndexSet<Variable> = IndexSet::from_iter(quantification.variables);
+                let overlap: IndexSet<&Variable> = tvars.intersection(&qvars).collect();
+                formula.free_variables().contains(var) && !overlap.is_empty()
+            }
+        }
+    }
+
     pub fn quantify(self, quantifier: Quantifier, variables: Vec<Variable>) -> Formula {
         if variables.is_empty() {
             self
