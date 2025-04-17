@@ -40,3 +40,6 @@ A term is called "regular of second kind" if it is of form t1..t2 where t1 and t
 
 A "comparison of first kind" is of form "t1 c t2" where t1 and t2 are regular of first kind and c is any comparison operator.
 A "comparison of second kind" is of form "t1=t2", where t1 is regular of first kind and t2 is regular of second kind
+
+For a detailed description see: Transforming Gringo Rules into Formulas in a Natural Way; Lifschitz V. 2021
+
