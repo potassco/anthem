@@ -60,6 +60,39 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    ValidateSimplifications {
+        /// The simplification strategy to use
+        #[arg(long, default_value_t, value_enum)]
+        strategy: SimplificationStrategy,
+
+        /// Omit proof search and just create problem files
+        #[arg(long, action)]
+        no_proof_search: bool,
+
+        /// Omit display of system runtimes
+        #[arg(long, action)]
+        no_timing: bool,
+
+        /// The time limit in seconds to prove each problem passed to a prover
+        #[arg(long, short, default_value_t = 60)]
+        time_limit: usize,
+
+        /// The number of prover instances to spawn
+        #[arg(long, short = 'n', default_value_t = 1)]
+        prover_instances: usize,
+
+        /// The number of threads each prover may use
+        #[arg(long, short = 'm', default_value_t = 1)]
+        prover_cores: usize,
+
+        /// The destination directory for the problem files
+        #[arg(long)]
+        save_problems: Option<PathBuf>,
+
+        /// The file to validate
+        input: Option<PathBuf>,
+    },
+
     /// Create and optionally verify a set of problem files from a claim about answer set programs or first-order theories
     Verify {
         /// The equivalence theory used to proof the claim

@@ -15,6 +15,7 @@ use {
             completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
         },
         verifying::{
+            problem::Problem,
             prover::{Prover, Report, Status, Success, vampire::Vampire},
             task::{
                 Task, external_equivalence::ExternalEquivalenceTask,
@@ -25,8 +26,99 @@ use {
     anyhow::{Context, Result, anyhow},
     clap::Parser as _,
     either::Either,
-    std::time::Instant,
+    std::{path::PathBuf, time::Instant},
 };
+
+fn run_problems(
+    problems: Vec<Problem>,
+    out_dir: Option<PathBuf>,
+    no_proof_search: bool,
+    no_timing: bool,
+    time_limit: usize,
+    prover_instances: usize,
+    prover_cores: usize,
+    start_time: Instant,
+) -> Result<()> {
+    if let Some(out_dir) = out_dir {
+        for problem in &problems {
+            let mut path = out_dir.clone();
+            path.push(format!("{}.p", problem.name));
+            problem.to_file(path)?;
+        }
+    }
+
+    if !no_proof_search {
+        let prover = Vampire {
+            time_limit,
+            instances: prover_instances,
+            cores: prover_cores,
+        };
+
+        let problems = problems.into_iter().inspect(|problem| {
+            println!("> Proving {}...", problem.name);
+            println!("Axioms:");
+            for axiom in problem.axioms() {
+                println!("    {}", axiom.formula);
+            }
+            println!();
+            println!("Conjectures:");
+            for conjecture in problem.conjectures() {
+                println!("    {}", conjecture.formula);
+            }
+            println!();
+        });
+
+        let mut success = true;
+        for result in prover.prove_all(problems) {
+            match result {
+                Ok(report) => match report.status() {
+                    Ok(status) => {
+                        println!("> Proving {} ended with a SZS status", report.problem.name);
+                        print!("Status: {status}");
+                        if !no_timing {
+                            print!(" ({} ms)", report.elapsed_time.as_millis())
+                        }
+                        println!();
+                        if !matches!(status, Status::Success(Success::Theorem)) {
+                            success = false;
+                        }
+                    }
+                    Err(error) => {
+                        println!(
+                            "> Proving {} ended without a SZS status",
+                            report.problem.name
+                        );
+                        println!("Output/stdout:");
+                        println!("{}", report.output.stdout);
+                        println!("Output/stderr:");
+                        println!("{}", report.output.stderr);
+                        println!("Error: {error}");
+                        success = false;
+                    }
+                },
+                Err(error) => {
+                    println!("> Proving <a problem> ended with an error"); // TODO: Get the name of the problem
+                    println!("Error: {error}");
+                    success = false;
+                }
+            }
+            println!();
+        }
+
+        if success {
+            print!("> Success! Anthem found a proof of the theorem.")
+        } else {
+            print!("> Failure! Anthem was unable to find a proof of the theorem.")
+        }
+
+        if !no_timing {
+            print!(" ({} ms)", start_time.elapsed().as_millis())
+        }
+
+        println!()
+    }
+    Ok(())
+}
 
 pub fn main() -> Result<()> {
     match Arguments::parse().command {
@@ -166,6 +258,39 @@ pub fn main() -> Result<()> {
             Ok(())
         }
 
+        Command::ValidateSimplifications {
+            strategy,
+            input,
+            no_proof_search,
+            no_timing,
+            time_limit,
+            prover_instances,
+            prover_cores,
+            save_problems: out_dir,
+        } => {
+            let theory = input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
+
+            assert!(theory.formulas.len() == 1);
+
+            let problems = match strategy {
+                SimplificationStrategy::Fixpoint => {
+                    crate::simplifying::fol::validate_simplifications(theory.formulas[0].clone())
+                }
+                _ => todo!(),
+            };
+
+            run_problems(
+                problems,
+                out_dir,
+                no_proof_search,
+                no_timing,
+                time_limit,
+                prover_instances,
+                prover_cores,
+                Instant::now(),
+            )
+        }
+
         Command::Verify {
             equivalence,
             decomposition,
@@ -241,89 +366,16 @@ pub fn main() -> Result<()> {
                 .report_warnings(),
             };
 
-            if let Some(out_dir) = out_dir {
-                for problem in &problems {
-                    let mut path = out_dir.clone();
-                    path.push(format!("{}.p", problem.name));
-                    problem.to_file(path)?;
-                }
-            }
-
-            if !no_proof_search {
-                let prover = Vampire {
-                    time_limit,
-                    instances: prover_instances,
-                    cores: prover_cores,
-                };
-
-                let problems = problems.into_iter().inspect(|problem| {
-                    println!("> Proving {}...", problem.name);
-                    println!("Axioms:");
-                    for axiom in problem.axioms() {
-                        println!("    {}", axiom.formula);
-                    }
-                    println!();
-                    println!("Conjectures:");
-                    for conjecture in problem.conjectures() {
-                        println!("    {}", conjecture.formula);
-                    }
-                    println!();
-                });
-
-                let mut success = true;
-                for result in prover.prove_all(problems) {
-                    match result {
-                        Ok(report) => match report.status() {
-                            Ok(status) => {
-                                println!(
-                                    "> Proving {} ended with a SZS status",
-                                    report.problem.name
-                                );
-                                print!("Status: {status}");
-                                if !no_timing {
-                                    print!(" ({} ms)", report.elapsed_time.as_millis())
-                                }
-                                println!();
-                                if !matches!(status, Status::Success(Success::Theorem)) {
-                                    success = false;
-                                }
-                            }
-                            Err(error) => {
-                                println!(
-                                    "> Proving {} ended without a SZS status",
-                                    report.problem.name
-                                );
-                                println!("Output/stdout:");
-                                println!("{}", report.output.stdout);
-                                println!("Output/stderr:");
-                                println!("{}", report.output.stderr);
-                                println!("Error: {error}");
-                                success = false;
-                            }
-                        },
-                        Err(error) => {
-                            println!("> Proving <a problem> ended with an error"); // TODO: Get the name of the problem
-                            println!("Error: {error}");
-                            success = false;
-                        }
-                    }
-                    println!();
-                }
-
-                if success {
-                    print!("> Success! Anthem found a proof of the theorem.")
-                } else {
-                    print!("> Failure! Anthem was unable to find a proof of the theorem.")
-                }
-
-                if !no_timing {
-                    print!(" ({} ms)", start_time.elapsed().as_millis())
-                }
-
-                println!()
-            }
-
-            Ok(())
+            run_problems(
+                problems,
+                out_dir,
+                no_proof_search,
+                no_timing,
+                time_limit,
+                prover_instances,
+                prover_cores,
+                start_time,
+            )
         }
     }
 }

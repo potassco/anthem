@@ -7,20 +7,20 @@ use crate::{
 };
 
 pub const CLASSIC: &[fn(Formula) -> Formula] = &[
-    //remove_double_negation,
+    remove_double_negation,
     substitute_defined_variables,
-    // unstable::eliminate_redundant_quantifiers,
-    // super::intuitionistic::remove_orphaned_variables,
-    // super::intuitionistic::remove_empty_quantifications,
-    // unstable::restrict_quantifier_domain,
-    // super::intuitionistic::remove_orphaned_variables,
-    // super::intuitionistic::remove_empty_quantifications,
-    // unstable::extend_quantifier_scope,
-    // super::intuitionistic::remove_orphaned_variables,
-    // super::intuitionistic::remove_empty_quantifications,
-    // unstable::simplify_transitive_equality,
-    // super::intuitionistic::remove_orphaned_variables,
-    // super::intuitionistic::remove_empty_quantifications,
+    //unstable::eliminate_redundant_quantifiers,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
+    unstable::restrict_quantifier_domain,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
+    unstable::extend_quantifier_scope,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
+    unstable::simplify_transitive_equality,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
 ];
 
 pub fn remove_double_negation(formula: Formula) -> Formula {
@@ -177,7 +177,7 @@ mod tests {
     }
 }
 
-mod unstable {
+pub mod unstable {
     use {
         crate::{
             convenience::unbox::{Unbox as _, fol::UnboxedFormula},
@@ -616,7 +616,7 @@ mod unstable {
         result
     }
 
-    pub(super) fn restrict_quantifier_domain(formula: Formula) -> Formula {
+    pub(crate) fn restrict_quantifier_domain(formula: Formula) -> Formula {
         let mut simplified_formula = formula.clone();
         match formula.clone().unbox() {
             // Replace a general variable in an outer quantification with a fresh integer variable capturing an inner quantification
@@ -747,7 +747,7 @@ mod unstable {
         simplified_formula
     }
 
-    pub(super) fn eliminate_redundant_quantifiers(formula: Formula) -> Formula {
+    pub(crate) fn eliminate_redundant_quantifiers(formula: Formula) -> Formula {
         match formula.clone().unbox() {
             // Remove redundant existentials
             // e.g. exists Z$g (Z$g = X$g and F(Z$g)) => F(X$g)
@@ -835,7 +835,7 @@ mod unstable {
         }
     }
 
-    pub(super) fn extend_quantifier_scope(formula: Formula) -> Formula {
+    pub(crate) fn extend_quantifier_scope(formula: Formula) -> Formula {
         match formula.clone().unbox() {
             // Bring a conjunctive or disjunctive term into the scope of a quantifer
             // e.g. exists X ( F(X) ) & G => exists X ( F(X) & G )
@@ -926,7 +926,7 @@ mod unstable {
         }
     }
 
-    pub(super) fn simplify_transitive_equality(formula: Formula) -> Formula {
+    pub(crate) fn simplify_transitive_equality(formula: Formula) -> Formula {
         match formula.clone().unbox() {
             // When X is a subsort of Y (or sort(X) = sort(Y)) and t is a term:
             // exists X Y (X = t and Y = t and F)
