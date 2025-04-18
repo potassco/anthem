@@ -509,15 +509,15 @@ impl Task for ExternalEquivalenceTask {
                 .expect("tau_star did not create a completable theory");
 
             if self.simplify {
-                // let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                // theory = theory
-                //     .into_iter()
-                //     .map(|f| f.apply_fixpoint(&mut portfolio))
-                //     .collect();
+                let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
                 theory = theory
-                    .into_iter()
-                    .map(|f| simplify_classic_fixpoint(f))
-                    .collect();
+                     .into_iter()
+                     .map(|f| f.apply_fixpoint(&mut portfolio))
+                     .collect();
+//                theory = theory
+//                    .into_iter()
+//                    .map(|f| simplify_classic_fixpoint(f))
+//                    .collect();
             }
 
             theory
