@@ -30,30 +30,28 @@ pub fn validate_simplifications(formula: Formula) -> Vec<crate::verifying::probl
         formulas.push((f2.clone(), "remove_double_negation".to_string()));
 
         f2 = f2
-            .apply(&mut classic::substitute_defined_variables)
-            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+            .apply(&mut classic::substitute_defined_variables);
+        //    .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
         formulas.push((f2.clone(), "substitute_defined_variables".to_string()));
 
         f2 = f2
-            .apply(&mut classic::unstable::restrict_quantifier_domain)
-            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+            .apply(&mut classic::unstable::restrict_quantifier_domain);
+        //    .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
         formulas.push((f2.clone(), "restrict_quantifier_domain".to_string()));
 
         f2 = f2
-            .apply(&mut classic::unstable::extend_quantifier_scope)
-            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+            .apply(&mut classic::unstable::extend_quantifier_scope);
+        //    .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
         formulas.push((f2.clone(), "extend_quantifier_scope".to_string()));
 
         f2 = f2
-            .apply(&mut classic::unstable::simplify_transitive_equality)
-            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+            .apply(&mut classic::unstable::simplify_transitive_equality);
+        //    .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
         formulas.push((f2.clone(), "simplify_transitive_equality".to_string()));
 
-        // f2 = f2
-        //     .apply(&mut [INTUITIONISTIC].concat().into_iter().compose())
-        //     .apply(&mut intuitionistic::remove_orphaned_variables)
-        //     .apply(&mut intuitionistic::remove_empty_quantifications);
-        // formulas.push((f2.clone(), "intuitionistic".to_string()));
+        f2 = f2
+            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+        formulas.push((f2.clone(), "intuitionistic".to_string()));
 
         if f1 == f2 {
             break;
