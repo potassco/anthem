@@ -9,9 +9,17 @@ use crate::{
 pub const CLASSIC: &[fn(Formula) -> Formula] = &[
     remove_double_negation,
     substitute_defined_variables,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
     unstable::restrict_quantifier_domain,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
     unstable::extend_quantifier_scope,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
     unstable::simplify_transitive_equality,
+    super::intuitionistic::remove_orphaned_variables,
+    super::intuitionistic::remove_empty_quantifications,
 ];
 
 pub fn remove_double_negation(formula: Formula) -> Formula {
