@@ -931,13 +931,16 @@ pub mod unstable {
             // When X is a subsort of Y (or sort(X) = sort(Y)) and t is a term:
             // exists X Y (X = t and Y = t and F)
             // =>
-            // exists X (X = t and F(X))
+            // exists X Y (X = t and F(X))
             // Replace Y with X within F
+            // Keep Y in the quantification just in case you have
+            // the corner case Y = Y & Y= Y & F(Y)
+            // Remove Orphaned Variables can handle Y later
             UnboxedFormula::QuantifiedFormula {
                 quantification:
                     Quantification {
                         quantifier: Quantifier::Exists,
-                        mut variables,
+                        variables,
                     },
                 formula: f,
             } => match f.clone().unbox() {
@@ -966,7 +969,7 @@ pub mod unstable {
                                                     variables.clone(),
                                                 )
                                             {
-                                                variables.retain(|x| x != &drop_var);
+                                                //variables.retain(|x| x != &drop_var);
                                                 ct_copy.retain(|t| {
                                                     t != &Formula::AtomicFormula(
                                                         AtomicFormula::Comparison(
@@ -1020,8 +1023,10 @@ pub mod unstable {
 
     #[cfg(test)]
     mod tests {
+        use crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula};
+
         use super::{
-            eliminate_redundant_quantifiers, extend_quantifier_scope, restrict_quantifier_domain,
+            extend_quantifier_scope, restrict_quantifier_domain, eliminate_redundant_quantifiers,
             simplify_transitive_equality,
         };
 
@@ -1099,13 +1104,20 @@ pub mod unstable {
 
         #[test]
         fn test_simplify_transitive_equality() {
-            for (src, target) in [(
+            for (src, target) in [
+            (
                 "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
-                "exists X Z ( X = 5 and not p(X,X))",
-            )] {
-                let src = simplify_transitive_equality(src.parse().unwrap());
+                "exists X Y Z ( X = 5 and not p(X,X))",
+            ),
+            (
+                "forall V1 (orphan(V1) <-> exists Y Z (V1 = V1 and (V1 = V1 and living(V1) and (Y = Y and V1 = V1 and father(Y, V1)) and (Z = Z and V1 = V1 and mother(Z, V1)) and (Y = Y and not living(Y)) and (Z = Z and not living(Z)))))",
+                "f",
+            ),
+            ] {
+                let src: Formula = src.parse().unwrap();
+                let simplified = src.apply(&mut simplify_transitive_equality);
                 let target = target.parse().unwrap();
-                assert_eq!(src, target, "{src} != {target}")
+                assert_eq!(simplified, target, "{simplified} != {target}")
             }
         }
     }
