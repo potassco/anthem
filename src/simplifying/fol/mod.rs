@@ -26,7 +26,11 @@ pub fn validate_simplifications(formula: Formula) -> Vec<crate::verifying::probl
     let mut f2;
 
     loop {
-        f2 = f1.clone().apply(&mut classic::remove_double_negation);
+        f2 = f1.clone()
+            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+        formulas.push((f2.clone(), "intuitionistic".to_string()));
+
+        f2 = f2.apply(&mut classic::remove_double_negation);
         formulas.push((f2.clone(), "remove_double_negation".to_string()));
 
         f2 = f2
@@ -49,9 +53,9 @@ pub fn validate_simplifications(formula: Formula) -> Vec<crate::verifying::probl
         //    .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
         formulas.push((f2.clone(), "simplify_transitive_equality".to_string()));
 
-        f2 = f2
-            .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
-        formulas.push((f2.clone(), "intuitionistic".to_string()));
+        // f2 = f2
+        //     .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+        // formulas.push((f2.clone(), "intuitionistic".to_string()));
 
         if f1 == f2 {
             break;
