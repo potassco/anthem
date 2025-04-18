@@ -164,10 +164,15 @@ mod tests {
     }
 }
 
-mod unstable {
+pub(crate) mod unstable {
     use {
         crate::{
-            convenience::unbox::{Unbox as _, fol::UnboxedFormula},
+            convenience::{
+                apply::Apply as _,
+                compose::Compose as _,
+                unbox::{Unbox as _, fol::UnboxedFormula},
+            },
+            simplifying::fol::intuitionistic::INTUITIONISTIC,
             syntax_tree::fol::{
                 AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, Guard,
                 IntegerTerm, Quantification, Quantifier, Relation, Sort, SymbolicTerm, Variable,
@@ -175,6 +180,40 @@ mod unstable {
         },
         indexmap::IndexSet,
     };
+
+    pub(crate) fn simplify_classic_fixpoint(formula: Formula) -> Formula {
+        let mut f1 = formula;
+        let mut f2;
+
+        loop {
+            f2 = f1
+                .clone()
+                .apply(&mut super::remove_double_negation)
+                .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+
+            f2 = f2
+                .apply(&mut super::substitute_defined_variables)
+                .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+
+            f2 = f2
+                .apply(&mut restrict_quantifier_domain)
+                .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+
+            f2 = f2
+                .apply(&mut extend_quantifier_scope)
+                .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+
+            f2 = f2
+                .apply(&mut simplify_transitive_equality)
+                .apply(&mut [INTUITIONISTIC].concat().into_iter().compose());
+
+            if f1 == f2 {
+                break;
+            }
+            f1 = f2;
+        }
+        f1
+    }
 
     /// True if v1 is subsorteq to v2 and False otherwise
     fn subsort(v1: &Variable, v2: &Variable) -> bool {

@@ -8,8 +8,15 @@ use {
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        simplifying::fol::{
+            classic::{CLASSIC, unstable::simplify_classic_fixpoint},
+            ht::HT,
+            intuitionistic::INTUITIONISTIC,
+        },
+        syntax_tree::{
+            asp,
+            fol::{self, Theory},
+        },
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -502,10 +509,14 @@ impl Task for ExternalEquivalenceTask {
                 .expect("tau_star did not create a completable theory");
 
             if self.simplify {
-                let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                // let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                // theory = theory
+                //     .into_iter()
+                //     .map(|f| f.apply_fixpoint(&mut portfolio))
+                //     .collect();
                 theory = theory
                     .into_iter()
-                    .map(|f| f.apply_fixpoint(&mut portfolio))
+                    .map(|f| simplify_classic_fixpoint(f))
                     .collect();
             }
 
