@@ -678,13 +678,15 @@ mod unstable {
             // When X is a subsort of Y (or sort(X) = sort(Y)) and t is a term:
             // exists X Y (X = t and Y = t and F)
             // =>
-            // exists X (X = t and F(X))
+            // exists X Y (X = t and F(X))
             // Replace Y with X within F
+            // Keep Y in the quantification to safely navigate edge case where Y = Y & Y = Y & F(Y)
+            // which can be produced by Substitute Defined Variables
             UnboxedFormula::QuantifiedFormula {
                 quantification:
                     Quantification {
                         quantifier: Quantifier::Exists,
-                        mut variables,
+                        variables,
                     },
                 formula: f,
             } => match f.clone().unbox() {
@@ -713,7 +715,6 @@ mod unstable {
                                                     variables.clone(),
                                                 )
                                             {
-                                                variables.retain(|x| x != &drop_var);
                                                 ct_copy.retain(|t| {
                                                     t != &Formula::AtomicFormula(
                                                         AtomicFormula::Comparison(
@@ -767,6 +768,8 @@ mod unstable {
 
     #[cfg(test)]
     mod tests {
+        use crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula};
+
         use super::{
             extend_quantifier_scope, restrict_quantifier_domain, simplify_transitive_equality,
         };
@@ -845,11 +848,18 @@ mod unstable {
 
         #[test]
         fn test_simplify_transitive_equality() {
-            for (src, target) in [(
-                "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
-                "exists X Z ( X = 5 and not p(X,X))",
-            )] {
-                let src = simplify_transitive_equality(src.parse().unwrap());
+            for (src, target) in [
+                (
+                    "exists X Y Z ( X = 5 and Y = 5 and not p(X,Y))",
+                    "exists X Y Z ( X = 5 and not p(X,X))",
+                ),
+                (
+                    "forall V1 (orphan(V1) <-> exists Y Z (V1 = V1 and (V1 = V1 and living(V1) and (Y = Y and V1 = V1 and father(Y, V1)) and (Z = Z and V1 = V1 and mother(Z, V1)) and (Y = Y and not living(Y)) and (Z = Z and not living(Z)))))",
+                    "forall V1 (orphan(V1) <-> exists Y Z (V1 = V1 and V1 = V1 and living(V1) and V1 = V1 and father(Y, V1) and Z = Z and V1 = V1 and mother(Z, V1) and not living(Y) and Z = Z and not living(Z)))",
+                ),
+            ] {
+                let f: Formula = src.parse().unwrap();
+                let src = f.apply(&mut simplify_transitive_equality);
                 let target = target.parse().unwrap();
                 assert_eq!(src, target, "{src} != {target}")
             }
