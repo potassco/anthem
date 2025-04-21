@@ -259,6 +259,16 @@ impl GeneralTerm {
     }
 }
 
+impl From<Variable> for GeneralTerm {
+    fn from(variable: Variable) -> Self {
+        match variable.sort {
+            Sort::General => GeneralTerm::Variable(variable.name),
+            Sort::Integer => GeneralTerm::IntegerTerm(IntegerTerm::Variable(variable.name)),
+            Sort::Symbol => GeneralTerm::SymbolicTerm(SymbolicTerm::Variable(variable.name)),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Predicate {
     pub symbol: String,
@@ -613,7 +623,7 @@ pub struct Quantification {
 
 impl_node!(Quantification, Format, QuantificationParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Sort {
     General,
     Integer,
@@ -646,6 +656,15 @@ pub struct Variable {
 }
 
 impl_node!(Variable, Format, VariableParser);
+
+impl Variable {
+    fn sequence(prefix: &Variable) -> impl Iterator<Item = Self> {
+        (1..).map(|i| Variable {
+            name: format!("{}_{}", prefix.name, i),
+            sort: prefix.sort,
+        })
+    }
+}
 
 impl TryFrom<GeneralTerm> for Variable {
     type Error = GeneralTerm;
@@ -848,10 +867,35 @@ impl Formula {
             Formula::QuantifiedFormula {
                 quantification,
                 formula,
-            } if !quantification.variables.contains(&var) => Formula::QuantifiedFormula {
-                quantification,
-                formula: formula.substitute(var, term).into(),
-            },
+            } if !quantification.variables.contains(&var) => {
+                let mut formula = *formula;
+                let mut variables = vec![];
+
+                let term_variables = term.variables();
+                let formula_variables = formula.free_variables();
+
+                for variable in quantification.variables {
+                    if term_variables.contains(&variable) {
+                        let fresh_variable = Variable::sequence(&variable)
+                            .find(|candidate| {
+                                !term_variables.contains(candidate)
+                                    && !formula_variables.contains(candidate)
+                            })
+                            .unwrap();
+
+                        formula = formula.substitute(variable, fresh_variable.clone().into());
+                        variables.push(fresh_variable);
+                    } else {
+                        variables.push(variable);
+                    }
+                }
+
+                Formula::quantify(
+                    formula.substitute(var, term),
+                    quantification.quantifier,
+                    variables,
+                )
+            }
             f @ Formula::QuantifiedFormula {
                 quantification: _,
                 formula: _,
@@ -1229,6 +1273,24 @@ mod tests {
                 "Z",
                 "I",
                 "exists J$i (J$i = N$i and I = Z1)",
+            ),
+            (
+                "X = 5 and exists Y ( p(X, Y) )",
+                "X",
+                "Z",
+                "Z = 5 and exists Y ( p(Z, Y) )",
+            ),
+            (
+                "X = 5 and exists Y ( p(X, Y) )",
+                "X",
+                "Y",
+                "Y = 5 and exists Y_1 ( p(Y, Y_1) )",
+            ),
+            (
+                "X = 5 and exists Y ( p(X, Y, Y_1) )",
+                "X",
+                "Y",
+                "Y = 5 and exists Y_2 ( p(Y, Y_2, Y_1) )",
             ),
         ] {
             assert_eq!(
