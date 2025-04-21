@@ -660,7 +660,7 @@ impl_node!(Variable, Format, VariableParser);
 impl Variable {
     fn sequence(prefix: &Variable) -> impl Iterator<Item = Self> {
         (1..).map(|i| Variable {
-            name: format!("{}_{}", prefix.name, i),
+            name: format!("{}{}", prefix.name, i),
             sort: prefix.sort,
         })
     }
@@ -1284,13 +1284,13 @@ mod tests {
                 "X = 5 and exists Y ( p(X, Y) )",
                 "X",
                 "Y",
-                "Y = 5 and exists Y_1 ( p(Y, Y_1) )",
+                "Y = 5 and exists Y1 ( p(Y, Y1) )",
             ),
             (
-                "X = 5 and exists Y ( p(X, Y, Y_1) )",
+                "X = 5 and exists Y ( p(X, Y, Y1) )",
                 "X",
                 "Y",
-                "Y = 5 and exists Y_2 ( p(Y, Y_2, Y_1) )",
+                "Y = 5 and exists Y2 ( p(Y, Y2, Y1) )",
             ),
         ] {
             assert_eq!(
