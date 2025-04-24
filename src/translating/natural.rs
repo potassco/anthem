@@ -5,39 +5,41 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{fol, mini_gringo},
     indexmap::IndexSet,
 };
 
-fn contains_symbol_or_infimum_or_supremum(t: &asp::Term) -> bool {
+fn contains_symbol_or_infimum_or_supremum(t: &mini_gringo::Term) -> bool {
     match t {
-        asp::Term::Variable(_) => false,
-        asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Symbol(_)) => true,
-        asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Infimum) => true,
-        asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Supremum) => true,
-        asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(_)) => false,
-        asp::Term::UnaryOperation {
-            op: asp::UnaryOperator::Negative,
+        mini_gringo::Term::Variable(_) => false,
+        mini_gringo::Term::PrecomputedTerm(mini_gringo::PrecomputedTerm::Symbol(_)) => true,
+        mini_gringo::Term::PrecomputedTerm(mini_gringo::PrecomputedTerm::Infimum) => true,
+        mini_gringo::Term::PrecomputedTerm(mini_gringo::PrecomputedTerm::Supremum) => true,
+        mini_gringo::Term::PrecomputedTerm(mini_gringo::PrecomputedTerm::Numeral(_)) => false,
+        mini_gringo::Term::UnaryOperation {
+            op: mini_gringo::UnaryOperator::Negative,
             arg,
         } => contains_symbol_or_infimum_or_supremum(arg),
-        asp::Term::BinaryOperation { lhs, rhs, .. } => {
+        mini_gringo::Term::BinaryOperation { lhs, rhs, .. } => {
             contains_symbol_or_infimum_or_supremum(lhs)
                 || contains_symbol_or_infimum_or_supremum(rhs)
         }
     }
 }
 
-fn is_term_regular_of_first_kind(t: &asp::Term) -> bool {
+fn is_term_regular_of_first_kind(t: &mini_gringo::Term) -> bool {
     match t {
-        asp::Term::Variable(_) => true,
-        asp::Term::PrecomputedTerm(_) => true,
-        asp::Term::UnaryOperation {
-            op: asp::UnaryOperator::Negative,
+        mini_gringo::Term::Variable(_) => true,
+        mini_gringo::Term::PrecomputedTerm(_) => true,
+        mini_gringo::Term::UnaryOperation {
+            op: mini_gringo::UnaryOperator::Negative,
             arg,
         } => is_term_regular_of_first_kind(arg) && !contains_symbol_or_infimum_or_supremum(arg),
-        asp::Term::BinaryOperation {
+        mini_gringo::Term::BinaryOperation {
             op:
-                asp::BinaryOperator::Add | asp::BinaryOperator::Subtract | asp::BinaryOperator::Multiply,
+                mini_gringo::BinaryOperator::Add
+                | mini_gringo::BinaryOperator::Subtract
+                | mini_gringo::BinaryOperator::Multiply,
             lhs,
             rhs,
         } => {
@@ -50,10 +52,10 @@ fn is_term_regular_of_first_kind(t: &asp::Term) -> bool {
     }
 }
 
-fn is_term_regular_of_second_kind(t: &asp::Term) -> bool {
+fn is_term_regular_of_second_kind(t: &mini_gringo::Term) -> bool {
     match t {
-        asp::Term::BinaryOperation {
-            op: asp::BinaryOperator::Interval,
+        mini_gringo::Term::BinaryOperation {
+            op: mini_gringo::BinaryOperator::Interval,
             lhs,
             rhs,
         } => {
@@ -66,7 +68,10 @@ fn is_term_regular_of_second_kind(t: &asp::Term) -> bool {
     }
 }
 
-fn p2f(t: &asp::Term, int_vars: &IndexSet<std::string::String>) -> Option<fol::GeneralTerm> {
+fn p2f(
+    t: &mini_gringo::Term,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::GeneralTerm> {
     // translates a term of first kind
     // check that t is regular of first kind and return None if not
     if !is_term_regular_of_first_kind(t) {
@@ -74,7 +79,7 @@ fn p2f(t: &asp::Term, int_vars: &IndexSet<std::string::String>) -> Option<fol::G
     }
 
     match t {
-        asp::Term::Variable(v) => {
+        mini_gringo::Term::Variable(v) => {
             if int_vars.contains(v.0.as_str()) {
                 Some(fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(
                     v.0.clone(), // TODO: choose fresh variable names?
@@ -83,40 +88,40 @@ fn p2f(t: &asp::Term, int_vars: &IndexSet<std::string::String>) -> Option<fol::G
                 Some(fol::GeneralTerm::Variable(v.0.clone()))
             }
         }
-        asp::Term::PrecomputedTerm(p) => Some(match p {
-            asp::PrecomputedTerm::Infimum => fol::GeneralTerm::Infimum,
-            asp::PrecomputedTerm::Numeral(i) => {
+        mini_gringo::Term::PrecomputedTerm(p) => Some(match p {
+            mini_gringo::PrecomputedTerm::Infimum => fol::GeneralTerm::Infimum,
+            mini_gringo::PrecomputedTerm::Numeral(i) => {
                 fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(*i))
             }
-            asp::PrecomputedTerm::Symbol(s) => {
+            mini_gringo::PrecomputedTerm::Symbol(s) => {
                 fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s.to_string()))
             }
-            asp::PrecomputedTerm::Supremum => fol::GeneralTerm::Supremum,
+            mini_gringo::PrecomputedTerm::Supremum => fol::GeneralTerm::Supremum,
         }),
         _ => p2f_int_term(t).map(fol::GeneralTerm::IntegerTerm),
     }
 }
 
-fn p2f_int_term(t: &asp::Term) -> Option<fol::IntegerTerm> {
+fn p2f_int_term(t: &mini_gringo::Term) -> Option<fol::IntegerTerm> {
     // translates a (integer) term of first kind
     // TODO: choose fresh variable names?
     match t {
-        asp::Term::Variable(v) => Some(fol::IntegerTerm::Variable(v.0.clone())),
-        asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(i)) => {
+        mini_gringo::Term::Variable(v) => Some(fol::IntegerTerm::Variable(v.0.clone())),
+        mini_gringo::Term::PrecomputedTerm(mini_gringo::PrecomputedTerm::Numeral(i)) => {
             Some(fol::IntegerTerm::Numeral(*i))
         }
-        asp::Term::UnaryOperation {
-            op: asp::UnaryOperator::Negative,
+        mini_gringo::Term::UnaryOperation {
+            op: mini_gringo::UnaryOperator::Negative,
             arg,
         } => Some(fol::IntegerTerm::UnaryOperation {
             op: fol::UnaryOperator::Negative,
             arg: Box::new(p2f_int_term(arg)?),
         }),
-        asp::Term::BinaryOperation { op, lhs, rhs } => {
+        mini_gringo::Term::BinaryOperation { op, lhs, rhs } => {
             let op = match op {
-                asp::BinaryOperator::Add => fol::BinaryOperator::Add,
-                asp::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
-                asp::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
+                mini_gringo::BinaryOperator::Add => fol::BinaryOperator::Add,
+                mini_gringo::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
+                mini_gringo::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
                 _ => return None,
             };
             Some(fol::IntegerTerm::BinaryOperation {
@@ -129,17 +134,17 @@ fn p2f_int_term(t: &asp::Term) -> Option<fol::IntegerTerm> {
     }
 }
 
-fn int_variables(r: &asp::Rule) -> IndexSet<String> {
+fn int_variables(r: &mini_gringo::Rule) -> IndexSet<String> {
     // Parse rule and return all variables appearing at least once in the scope of unary/binary operations/comparison
     let mut vars = IndexSet::<String>::new();
     // iterate over all terms in the rule and then over all variables in the term
     for term in r.terms() {
         match term {
-            asp::Term::UnaryOperation { op: _, arg } => {
+            mini_gringo::Term::UnaryOperation { op: _, arg } => {
                 // add all variables from arg to vars
                 vars.extend(arg.variables().into_iter().map(|v| v.0));
             }
-            asp::Term::BinaryOperation { lhs, rhs, .. } => {
+            mini_gringo::Term::BinaryOperation { lhs, rhs, .. } => {
                 // add all variables from lhs and rhs to vars
                 vars.extend(lhs.variables().into_iter().map(|v| v.0));
                 vars.extend(rhs.variables().into_iter().map(|v| v.0));
@@ -149,8 +154,9 @@ fn int_variables(r: &asp::Rule) -> IndexSet<String> {
     }
     // iterate over all comparisons in the body
     for f in r.body.formulas.iter() {
-        if let asp::AtomicFormula::Comparison(c) = f {
-            if c.relation == asp::Relation::Equal && is_term_regular_of_second_kind(&c.rhs) {
+        if let mini_gringo::AtomicFormula::Comparison(c) = f {
+            if c.relation == mini_gringo::Relation::Equal && is_term_regular_of_second_kind(&c.rhs)
+            {
                 vars.extend(c.lhs.variables().into_iter().map(|v| v.0));
             }
         }
@@ -160,7 +166,7 @@ fn int_variables(r: &asp::Rule) -> IndexSet<String> {
 }
 
 fn natural_comparison(
-    c: &asp::Comparison,
+    c: &mini_gringo::Comparison,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
     // translate comparison
@@ -170,7 +176,7 @@ fn natural_comparison(
     let lhs = p2f(&c.lhs, int_vars)?;
     let comp_formula =
         if f_relation == fol::Relation::Equal && is_term_regular_of_second_kind(&c.rhs) {
-            if let asp::Term::BinaryOperation {
+            if let mini_gringo::Term::BinaryOperation {
                 lhs: t2, rhs: t3, ..
             } = &c.rhs
             {
@@ -205,7 +211,10 @@ fn natural_comparison(
     Some(comp_formula)
 }
 
-fn natural_b_atom(l: &asp::Atom, int_vars: &IndexSet<std::string::String>) -> Option<fol::Atom> {
+fn natural_b_atom(
+    l: &mini_gringo::Atom,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::Atom> {
     Some(fol::Atom {
         predicate_symbol: l.predicate_symbol.to_string(),
         terms: l
@@ -217,17 +226,17 @@ fn natural_b_atom(l: &asp::Atom, int_vars: &IndexSet<std::string::String>) -> Op
 }
 
 fn natural_b_literal(
-    l: &asp::Literal,
+    l: &mini_gringo::Literal,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
     let atom = natural_b_atom(&l.atom, int_vars)?;
     Some(match l.sign {
-        asp::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(atom)),
-        asp::Sign::Negation => fol::Formula::UnaryFormula {
+        mini_gringo::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(atom)),
+        mini_gringo::Sign::Negation => fol::Formula::UnaryFormula {
             connective: fol::UnaryConnective::Negation,
             formula: Box::new(fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(atom))),
         },
-        asp::Sign::DoubleNegation => fol::Formula::UnaryFormula {
+        mini_gringo::Sign::DoubleNegation => fol::Formula::UnaryFormula {
             connective: fol::UnaryConnective::Negation,
             formula: Box::new(fol::Formula::UnaryFormula {
                 connective: fol::UnaryConnective::Negation,
@@ -237,14 +246,17 @@ fn natural_b_literal(
     })
 }
 
-fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
+fn natural_body(
+    b: &mini_gringo::Body,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::Formula> {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         match f {
-            asp::AtomicFormula::Literal(l) => {
+            mini_gringo::AtomicFormula::Literal(l) => {
                 formulas.push(natural_b_literal(l, int_vars)?);
             }
-            asp::AtomicFormula::Comparison(c) => {
+            mini_gringo::AtomicFormula::Comparison(c) => {
                 formulas.push(natural_comparison(c, int_vars)?);
             }
         }
@@ -252,7 +264,7 @@ fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Opti
     Some(fol::Formula::conjoin(formulas))
 }
 
-fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
+fn fresh_variables_for_head_atom(a: &mini_gringo::Atom) -> Vec<String> {
     let mut fresh_vars = Vec::<String>::new();
     let taken_vars = a.variables();
     let terms = &a.terms;
@@ -261,7 +273,7 @@ fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
             // create a new variable with N_i if not of first kind
             let var_name = format!("N{i}");
             // check if var_name is already taken
-            if !taken_vars.contains(&asp::Variable(var_name.clone())) {
+            if !taken_vars.contains(&mini_gringo::Variable(var_name.clone())) {
                 // add var_name to fresh_vars
                 fresh_vars.push(var_name);
             } else {
@@ -270,7 +282,7 @@ fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
                 let mut j = 0;
                 loop {
                     let var_name = format!("N{i}_{j}");
-                    if !taken_vars.contains(&asp::Variable(var_name.clone())) {
+                    if !taken_vars.contains(&mini_gringo::Variable(var_name.clone())) {
                         fresh_vars.push(var_name);
                         break;
                     }
@@ -284,7 +296,7 @@ fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
 }
 
 fn natural_head_atom(
-    a: &asp::Atom,
+    a: &mini_gringo::Atom,
     int_vars: &IndexSet<std::string::String>,
     fresh_vars: &[String],
 ) -> Option<fol::Formula> {
@@ -315,7 +327,7 @@ fn natural_head_atom(
 }
 
 fn natural_head_interval(
-    a: &asp::Atom,
+    a: &mini_gringo::Atom,
     int_vars: &IndexSet<std::string::String>,
     fresh_vars: &[String],
 ) -> fol::Formula {
@@ -326,11 +338,11 @@ fn natural_head_interval(
         if is_term_regular_of_second_kind(t) {
             // term is of form t1..t2 with t1, t2 regular of first kind, or not natural rule
             let t1 = match t {
-                asp::Term::BinaryOperation { lhs, .. } => lhs,
+                mini_gringo::Term::BinaryOperation { lhs, .. } => lhs,
                 _ => unreachable!("term is not a binary operation."),
             };
             let t2 = match t {
-                asp::Term::BinaryOperation { rhs, .. } => rhs,
+                mini_gringo::Term::BinaryOperation { rhs, .. } => rhs,
                 _ => unreachable!("term is not a binary operation."),
             };
             let fresh_var = fresh_vars.next().unwrap();
@@ -364,7 +376,7 @@ fn natural_head_interval(
 }
 
 fn natural_basic_head(
-    a: &asp::Atom,
+    a: &mini_gringo::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
     let fresh_vars = fresh_variables_for_head_atom(a);
@@ -394,7 +406,7 @@ fn natural_basic_head(
 }
 
 fn natural_choice_head(
-    a: &asp::Atom,
+    a: &mini_gringo::Atom,
     int_vars: &IndexSet<std::string::String>,
 ) -> Option<fol::Formula> {
     let fresh_vars = fresh_variables_for_head_atom(a);
@@ -437,15 +449,18 @@ fn natural_constraint() -> fol::Formula {
     fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity)
 }
 
-fn natural_head(h: &asp::Head, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
+fn natural_head(
+    h: &mini_gringo::Head,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::Formula> {
     match h {
-        asp::Head::Basic(a) => natural_basic_head(a, int_vars),
-        asp::Head::Choice(a) => natural_choice_head(a, int_vars),
-        asp::Head::Falsity => Some(natural_constraint()),
+        mini_gringo::Head::Basic(a) => natural_basic_head(a, int_vars),
+        mini_gringo::Head::Choice(a) => natural_choice_head(a, int_vars),
+        mini_gringo::Head::Falsity => Some(natural_constraint()),
     }
 }
 
-pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
+pub(crate) fn natural_rule(r: &mini_gringo::Rule) -> Option<fol::Formula> {
     let int_vars = int_variables(r);
     let head = natural_head(&r.head, &int_vars)?;
     let body = natural_body(&r.body, &int_vars)?;
@@ -459,7 +474,7 @@ pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
     )
 }
 
-pub fn natural(program: asp::Program) -> Option<fol::Theory> {
+pub fn natural(program: mini_gringo::Program) -> Option<fol::Theory> {
     let mut formulas = Vec::<fol::Formula>::new();
     for r in program.rules {
         if let Some(f) = natural_rule(&r) {

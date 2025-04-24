@@ -3,7 +3,7 @@ use {
         formatting::{Associativity, Precedence},
         syntax_tree::{
             Node,
-            asp::{
+            mini_gringo::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
                 PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
                 Variable,
@@ -235,7 +235,7 @@ impl Display for Format<'_, Rule> {
 mod tests {
     use crate::{
         formatting::asp::default::Format,
-        syntax_tree::asp::{
+        syntax_tree::mini_gringo::{
             Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
             Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
         },

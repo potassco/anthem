@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::asp::Program,
+    crate::syntax_tree::mini_gringo::Program,
     petgraph::{algo::is_cyclic_directed, graph::DiGraph},
     std::collections::HashMap,
 };
@@ -36,7 +36,7 @@ impl Tightness for Program {
 
 #[cfg(test)]
 mod tests {
-    use {super::Tightness, crate::syntax_tree::asp::Program, std::str::FromStr};
+    use {super::Tightness, crate::syntax_tree::mini_gringo::Program, std::str::FromStr};
 
     #[test]
     fn test_tightness() {

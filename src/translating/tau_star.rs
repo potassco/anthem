@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{fol, mini_gringo},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -10,7 +10,7 @@ lazy_static! {
 }
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+pub(crate) fn choose_fresh_global_variables(program: &mini_gringo::Program) -> Vec<String> {
     let mut max_arity = 0;
     let mut head_arity;
     for rule in program.rules.iter() {
@@ -74,7 +74,7 @@ fn choose_fresh_variable_names(
 }
 
 // Z = t
-fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
+fn construct_equality_formula(term: mini_gringo::Term, z: fol::Variable) -> fol::Formula {
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
@@ -82,17 +82,17 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
     };
 
     let rhs = match term {
-        asp::Term::PrecomputedTerm(t) => match t {
-            asp::PrecomputedTerm::Infimum => fol::GeneralTerm::Infimum,
-            asp::PrecomputedTerm::Supremum => fol::GeneralTerm::Supremum,
-            asp::PrecomputedTerm::Numeral(i) => {
+        mini_gringo::Term::PrecomputedTerm(t) => match t {
+            mini_gringo::PrecomputedTerm::Infimum => fol::GeneralTerm::Infimum,
+            mini_gringo::PrecomputedTerm::Supremum => fol::GeneralTerm::Supremum,
+            mini_gringo::PrecomputedTerm::Numeral(i) => {
                 fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Numeral(i))
             }
-            asp::PrecomputedTerm::Symbol(s) => {
+            mini_gringo::PrecomputedTerm::Symbol(s) => {
                 fol::GeneralTerm::SymbolicTerm(fol::SymbolicTerm::Symbol(s))
             }
         },
-        asp::Term::Variable(v) => fol::GeneralTerm::Variable(v.0),
+        mini_gringo::Term::Variable(v) => fol::GeneralTerm::Variable(v.0),
         _ => unreachable!(
             "equality should be between two variables or a variable and a precomputed term"
         ),
@@ -112,7 +112,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
 fn construct_total_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
-    binop: asp::BinaryOperator,
+    binop: mini_gringo::BinaryOperator,
     i_var: fol::Variable,
     j_var: fol::Variable,
     z: fol::Variable,
@@ -131,9 +131,9 @@ fn construct_total_function_formula(
             relation: fol::Relation::Equal,
             term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::BinaryOperation {
                 op: match binop {
-                    asp::BinaryOperator::Add => fol::BinaryOperator::Add,
-                    asp::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
-                    asp::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
+                    mini_gringo::BinaryOperator::Add => fol::BinaryOperator::Add,
+                    mini_gringo::BinaryOperator::Subtract => fol::BinaryOperator::Subtract,
+                    mini_gringo::BinaryOperator::Multiply => fol::BinaryOperator::Multiply,
                     _ => unreachable!(
                         "addition, subtraction and multiplication are the only supported total functions"
                     ),
@@ -178,7 +178,7 @@ fn construct_total_function_formula(
 fn construct_partial_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
-    binop: asp::BinaryOperator,
+    binop: mini_gringo::BinaryOperator,
     i_var: fol::Variable,
     j_var: fol::Variable,
     z: fol::Variable,
@@ -286,7 +286,7 @@ fn construct_partial_function_formula(
 
     // Z = Q or Z = R
     let zequals = match binop {
-        asp::BinaryOperator::Divide => {
+        mini_gringo::BinaryOperator::Divide => {
             fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                 term: z_var_term,
                 guards: vec![fol::Guard {
@@ -295,7 +295,7 @@ fn construct_partial_function_formula(
                 }],
             }))
         }
-        asp::BinaryOperator::Modulo => {
+        mini_gringo::BinaryOperator::Modulo => {
             fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                 term: z_var_term,
                 guards: vec![fol::Guard {
@@ -403,7 +403,7 @@ fn construct_interval_formula(
 }
 
 // val_t(Z)
-fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
+fn val(t: mini_gringo::Term, z: fol::Variable) -> fol::Formula {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in t.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -431,17 +431,21 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
         sort: fol::Sort::Integer,
     };
     match t {
-        asp::Term::PrecomputedTerm(_) | asp::Term::Variable(_) => construct_equality_formula(t, z),
-        asp::Term::UnaryOperation { op, arg } => {
+        mini_gringo::Term::PrecomputedTerm(_) | mini_gringo::Term::Variable(_) => {
+            construct_equality_formula(t, z)
+        }
+        mini_gringo::Term::UnaryOperation { op, arg } => {
             match op {
-                asp::UnaryOperator::Negative => {
-                    let lhs = asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(0)); // Shorthand for 0 - t
+                mini_gringo::UnaryOperator::Negative => {
+                    let lhs = mini_gringo::Term::PrecomputedTerm(
+                        mini_gringo::PrecomputedTerm::Numeral(0),
+                    ); // Shorthand for 0 - t
                     let valti = val(lhs, var1.clone()); // val_t1(I)
                     let valtj = val(*arg, var2.clone()); // val_t2(J)
                     construct_total_function_formula(
                         valti,
                         valtj,
-                        asp::BinaryOperator::Subtract,
+                        mini_gringo::BinaryOperator::Subtract,
                         var1,
                         var2,
                         z,
@@ -449,51 +453,51 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
                 }
             }
         }
-        asp::Term::BinaryOperation { op, lhs, rhs } => {
+        mini_gringo::Term::BinaryOperation { op, lhs, rhs } => {
             let valti = val(*lhs, var1.clone()); // val_t1(I)
             let valtj = val(*rhs, var2.clone()); // val_t2(J)
             match op {
-                asp::BinaryOperator::Add => construct_total_function_formula(
+                mini_gringo::BinaryOperator::Add => construct_total_function_formula(
                     valti,
                     valtj,
-                    asp::BinaryOperator::Add,
+                    mini_gringo::BinaryOperator::Add,
                     var1,
                     var2,
                     z,
                 ),
-                asp::BinaryOperator::Subtract => construct_total_function_formula(
+                mini_gringo::BinaryOperator::Subtract => construct_total_function_formula(
                     valti,
                     valtj,
-                    asp::BinaryOperator::Subtract,
+                    mini_gringo::BinaryOperator::Subtract,
                     var1,
                     var2,
                     z,
                 ),
-                asp::BinaryOperator::Multiply => construct_total_function_formula(
+                mini_gringo::BinaryOperator::Multiply => construct_total_function_formula(
                     valti,
                     valtj,
-                    asp::BinaryOperator::Multiply,
+                    mini_gringo::BinaryOperator::Multiply,
                     var1,
                     var2,
                     z,
                 ),
-                asp::BinaryOperator::Divide => construct_partial_function_formula(
+                mini_gringo::BinaryOperator::Divide => construct_partial_function_formula(
                     valti,
                     valtj,
-                    asp::BinaryOperator::Divide,
+                    mini_gringo::BinaryOperator::Divide,
                     var1,
                     var2,
                     z,
                 ),
-                asp::BinaryOperator::Modulo => construct_partial_function_formula(
+                mini_gringo::BinaryOperator::Modulo => construct_partial_function_formula(
                     valti,
                     valtj,
-                    asp::BinaryOperator::Modulo,
+                    mini_gringo::BinaryOperator::Modulo,
                     var1,
                     var2,
                     z,
                 ),
-                asp::BinaryOperator::Interval => {
+                mini_gringo::BinaryOperator::Interval => {
                     construct_interval_formula(valti, valtj, var1, var2, var3, z)
                 }
             }
@@ -502,7 +506,7 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
 }
 
 // val_t1(Z1) & val_t2(Z2) & ... & val_tn(Zn)
-fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::Formula {
+fn valtz(mut terms: Vec<mini_gringo::Term>, mut variables: Vec<fol::Variable>) -> fol::Formula {
     fol::Formula::conjoin(
         terms
             .drain(..)
@@ -512,7 +516,10 @@ fn valtz(mut terms: Vec<asp::Term>, mut variables: Vec<fol::Variable>) -> fol::F
 }
 
 // Translate a first-order body literal
-fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable>) -> fol::Formula {
+fn tau_b_first_order_literal(
+    l: mini_gringo::Literal,
+    taken_vars: IndexSet<fol::Variable>,
+) -> fol::Formula {
     let atom = l.atom;
     let terms = atom.terms;
     let arity = terms.len();
@@ -541,7 +548,7 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable
 
     // Compute tau^b(B)
     match l.sign {
-        asp::Sign::NoSign => fol::Formula::QuantifiedFormula {
+        mini_gringo::Sign::NoSign => fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Exists,
                 variables: var_vars,
@@ -553,7 +560,7 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable
             }
             .into(),
         },
-        asp::Sign::Negation => fol::Formula::QuantifiedFormula {
+        mini_gringo::Sign::Negation => fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Exists,
                 variables: var_vars,
@@ -569,7 +576,7 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable
             }
             .into(),
         },
-        asp::Sign::DoubleNegation => fol::Formula::QuantifiedFormula {
+        mini_gringo::Sign::DoubleNegation => fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Exists,
                 variables: var_vars,
@@ -593,15 +600,17 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable
 }
 
 // Translate a propositional body literal
-fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
+fn tau_b_propositional_literal(l: mini_gringo::Literal) -> fol::Formula {
     let atom = l.atom;
     match l.sign {
-        asp::Sign::NoSign => fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
-            predicate_symbol: atom.predicate_symbol,
+        mini_gringo::Sign::NoSign => {
+            fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+                predicate_symbol: atom.predicate_symbol,
 
-            terms: vec![],
-        })),
-        asp::Sign::Negation => fol::Formula::UnaryFormula {
+                terms: vec![],
+            }))
+        }
+        mini_gringo::Sign::Negation => fol::Formula::UnaryFormula {
             connective: fol::UnaryConnective::Negation,
             formula: fol::Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
                 predicate_symbol: atom.predicate_symbol,
@@ -609,7 +618,7 @@ fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
             }))
             .into(),
         },
-        asp::Sign::DoubleNegation => fol::Formula::UnaryFormula {
+        mini_gringo::Sign::DoubleNegation => fol::Formula::UnaryFormula {
             connective: fol::UnaryConnective::Negation,
             formula: fol::Formula::UnaryFormula {
                 connective: fol::UnaryConnective::Negation,
@@ -625,7 +634,10 @@ fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
 }
 
 // Translate a body comparison
-fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> fol::Formula {
+fn tau_b_comparison(
+    c: mini_gringo::Comparison,
+    taken_vars: IndexSet<fol::Variable>,
+) -> fol::Formula {
     let varnames = choose_fresh_variable_names(&taken_vars, "Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
@@ -646,12 +658,12 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> 
         term: term_z1,
         guards: vec![fol::Guard {
             relation: match c.relation {
-                asp::Relation::Equal => fol::Relation::Equal,
-                asp::Relation::NotEqual => fol::Relation::NotEqual,
-                asp::Relation::Greater => fol::Relation::Greater,
-                asp::Relation::Less => fol::Relation::Less,
-                asp::Relation::GreaterEqual => fol::Relation::GreaterEqual,
-                asp::Relation::LessEqual => fol::Relation::LessEqual,
+                mini_gringo::Relation::Equal => fol::Relation::Equal,
+                mini_gringo::Relation::NotEqual => fol::Relation::NotEqual,
+                mini_gringo::Relation::Greater => fol::Relation::Greater,
+                mini_gringo::Relation::Less => fol::Relation::Less,
+                mini_gringo::Relation::GreaterEqual => fol::Relation::GreaterEqual,
+                mini_gringo::Relation::LessEqual => fol::Relation::LessEqual,
             },
             term: term_z2,
         }],
@@ -672,7 +684,7 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> 
 }
 
 // Translate a body literal or comparison
-fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
+fn tau_b(f: mini_gringo::AtomicFormula) -> fol::Formula {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in f.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -681,7 +693,7 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
         });
     }
     match f {
-        asp::AtomicFormula::Literal(l) => {
+        mini_gringo::AtomicFormula::Literal(l) => {
             let arity = l.atom.terms.len();
             if arity > 0 {
                 tau_b_first_order_literal(l, taken_vars)
@@ -689,12 +701,12 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
                 tau_b_propositional_literal(l)
             }
         }
-        asp::AtomicFormula::Comparison(c) => tau_b_comparison(c, taken_vars),
+        mini_gringo::AtomicFormula::Comparison(c) => tau_b_comparison(c, taken_vars),
     }
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body) -> fol::Formula {
+fn tau_body(b: mini_gringo::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone()));
@@ -703,7 +715,7 @@ fn tau_body(b: asp::Body) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+fn tau_star_fo_head_rule(r: &mini_gringo::Rule, globals: &[String]) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -743,8 +755,8 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     };
 
     let new_body = match r.head {
-        asp::Head::Basic(_) => core_lhs, // val_t(V) & tau^B(Body)
-        asp::Head::Choice(_) => fol::Formula::BinaryFormula {
+        mini_gringo::Head::Basic(_) => core_lhs, // val_t(V) & tau^B(Body)
+        mini_gringo::Head::Choice(_) => fol::Formula::BinaryFormula {
             // val_t(V) & tau^B(Body) & ~~p(V)
             connective: fol::BinaryConnective::Conjunction,
             lhs: core_lhs.into(),
@@ -782,7 +794,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
-fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_prop_head_rule(r: &mini_gringo::Rule) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -801,11 +813,11 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
     }));
     let core_lhs = tau_body(r.body.clone());
     let new_body = match &r.head {
-        asp::Head::Basic(_) => {
+        mini_gringo::Head::Basic(_) => {
             // tau^B(Body)
             core_lhs
         }
-        asp::Head::Choice(_) => {
+        mini_gringo::Head::Choice(_) => {
             // tau^B(Body) & ~~p
             fol::Formula::BinaryFormula {
                 connective: fol::BinaryConnective::Conjunction,
@@ -821,7 +833,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
                 .into(),
             }
         }
-        asp::Head::Falsity => {
+        mini_gringo::Head::Falsity => {
             unreachable!("a constraint head is not permitted in this formula constructor")
         }
     };
@@ -848,7 +860,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with an empty head
-fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_constraint_rule(r: &mini_gringo::Rule) -> fol::Formula {
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -876,7 +888,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Translate a rule using a pre-defined list of global variables
-pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+pub(crate) fn tau_star_rule(r: &mini_gringo::Rule, globals: &[String]) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
@@ -894,7 +906,7 @@ pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 // For each rule, produce a formula: forall G V ( val_t(V) & tau_body(Body) -> p(V) )
 // Where G is all variables from the original rule
 // and V is the set of fresh variables replacing t within p
-pub fn tau_star(p: asp::Program) -> fol::Theory {
+pub fn tau_star(p: mini_gringo::Program) -> fol::Theory {
     let globals = choose_fresh_global_variables(&p);
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {

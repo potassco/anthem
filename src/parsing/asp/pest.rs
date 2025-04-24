@@ -1,6 +1,6 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::asp::{
+    syntax_tree::mini_gringo::{
         Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
         Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
@@ -453,7 +453,7 @@ mod tests {
         },
         crate::{
             parsing::TestedParser,
-            syntax_tree::asp::{
+            syntax_tree::mini_gringo::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
                 PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
                 Variable,
