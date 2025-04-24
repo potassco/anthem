@@ -28,9 +28,12 @@ binary_operator_eoi = _{ binary_operator ~ EOI }
     subtract = { "-" }
     multiply = { "*" }
 
+absolute_valued_integer_term = { "|" ~ integer_term ~ "|" }
+absolute_valued_integer_term_eoi = _{ absolute_valued_integer_term ~ EOI }
+
 integer_term = { unary_operator* ~ n_primary ~ (binary_operator ~ unary_operator* ~ n_primary)* }
 integer_term_eoi = _{ integer_term ~ EOI }
-    n_primary = _{ basic_integer_term | "(" ~ integer_term ~ ")" }
+    n_primary = _{ basic_integer_term | absolute_valued_integer_term | "(" ~ integer_term ~ ")" }
 
 symbolic_term = { symbolic_function_constant | symbolic_constant | symbolic_variable }
 symbolic_term_eoi = _{ symbolic_term ~ EOI }
