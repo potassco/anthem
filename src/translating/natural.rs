@@ -259,7 +259,7 @@ fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
     for (i, term) in terms.iter().enumerate() {
         if !is_term_regular_of_first_kind(term) {
             // create a new variable with N_i if not of first kind
-            let var_name = format!("N{}", i);
+            let var_name = format!("N{i}");
             // check if var_name is already taken
             if !taken_vars.contains(&asp::Variable(var_name.clone())) {
                 // add var_name to fresh_vars
@@ -269,7 +269,7 @@ fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
                 // add a new variable with name N_i_j to fresh_vars
                 let mut j = 0;
                 loop {
-                    let var_name = format!("N{}_{}", i, j);
+                    let var_name = format!("N{i}_{j}");
                     if !taken_vars.contains(&asp::Variable(var_name.clone())) {
                         fresh_vars.push(var_name);
                         break;
