@@ -1,5 +1,5 @@
 use crate::{
-    syntax_tree::{fol, mini_gringo},
+    syntax_tree::{asp::mini_gringo, fol},
     translating::{natural, tau_star},
 };
 

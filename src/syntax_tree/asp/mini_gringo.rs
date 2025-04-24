@@ -1,148 +1,13 @@
 use {
+    super::{Atom, AtomicFormula, Predicate, Term, Variable},
     crate::{
-        formatting::asp::default::Format,
-        parsing::asp::pest::{
-            BodyParser,
-            HeadParser, ProgramParser,
-            RuleParser, UnaryOperatorParser,
-        },
+        formatting::asp::mini_gringo::default::Format,
+        parsing::asp::mini_gringo::pest::{BodyParser, HeadParser, ProgramParser, RuleParser},
         syntax_tree::{Node, impl_node},
     },
     derive_more::derive::IntoIterator,
     indexmap::IndexSet,
 };
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub enum UnaryOperator {
-    Negative,
-    AbsoluteValue,
-}
-
-impl_node!(UnaryOperator, Format, UnaryOperatorParser);
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub enum ConditionalHead {
-    AtomicFormula(AtomicFormula),
-    Falsity,
-}
-
-impl_node!(ConditionalHead, Format, ConditionalHeadParser);
-
-impl ConditionalHead {
-    pub fn variables(&self) -> IndexSet<Variable> {
-        match &self {
-            ConditionalHead::AtomicFormula(a) => a.variables(),
-            ConditionalHead::Falsity => IndexSet::new(),
-        }
-    }
-
-    pub fn function_constants(&self) -> IndexSet<String> {
-        match &self {
-            ConditionalHead::AtomicFormula(a) => a.function_constants(),
-            ConditionalHead::Falsity => IndexSet::new(),
-        }
-    }
-
-    pub fn predicates(&self) -> IndexSet<Predicate> {
-        match &self {
-            ConditionalHead::AtomicFormula(a) => a.predicates(),
-            ConditionalHead::Falsity => IndexSet::new(),
-        }
-    }
-
-    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
-        match &self {
-            ConditionalHead::AtomicFormula(a) => a.positive_predicates(),
-            ConditionalHead::Falsity => IndexSet::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ConditionalBody {
-    pub formulas: Vec<AtomicFormula>,
-}
-
-impl_node!(ConditionalBody, Format, ConditionalBodyParser);
-
-impl ConditionalBody {
-    pub fn variables(&self) -> IndexSet<Variable> {
-        let mut vars = IndexSet::new();
-        for f in self.formulas.iter() {
-            vars.extend(f.variables());
-        }
-        vars
-    }
-
-    pub fn function_constants(&self) -> IndexSet<String> {
-        let mut constants = IndexSet::new();
-        for f in self.formulas.iter() {
-            constants.extend(f.function_constants());
-        }
-        constants
-    }
-
-    pub fn predicates(&self) -> IndexSet<Predicate> {
-        let mut predicates = IndexSet::new();
-        for f in self.formulas.iter() {
-            predicates.extend(f.predicates());
-        }
-        predicates
-    }
-
-    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
-        let mut predicates = IndexSet::new();
-        for f in self.formulas.iter() {
-            predicates.extend(f.positive_predicates());
-        }
-        predicates
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ConditionalLiteral {
-    pub head: ConditionalHead,
-    pub conditions: ConditionalBody,
-}
-
-impl_node!(ConditionalLiteral, Format, ConditionalLiteralParser);
-
-impl ConditionalLiteral {
-    pub fn basic(&self) -> bool {
-        self.conditions.formulas.is_empty()
-    }
-
-    pub fn variables(&self) -> IndexSet<Variable> {
-        let mut vars = self.head.variables();
-        vars.extend(self.conditions.variables());
-        vars
-    }
-
-    pub fn function_constants(&self) -> IndexSet<String> {
-        let mut constants = self.head.function_constants();
-        constants.extend(self.conditions.function_constants());
-        constants
-    }
-
-    pub fn global_variables(&self) -> IndexSet<Variable> {
-        let mut head_vars = self.head.variables();
-        let body_vars = self.conditions.variables();
-        head_vars.retain(|v| !body_vars.contains(v));
-        head_vars
-    }
-
-    pub fn predicates(&self) -> IndexSet<Predicate> {
-        let mut predicates = self.head.predicates();
-        predicates.extend(self.conditions.predicates());
-        predicates
-    }
-
-    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
-        let mut predicates = self.head.positive_predicates();
-        predicates.extend(self.conditions.positive_predicates());
-        predicates
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Head {
@@ -198,7 +63,7 @@ impl Head {
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Body {
     #[into_iterator(owned, ref, ref_mut)]
-    pub formulas: Vec<ConditionalLiteral>,
+    pub formulas: Vec<AtomicFormula>,
 }
 
 impl_node!(Body, Format, BodyParser);
@@ -235,10 +100,18 @@ impl Body {
         }
         functions
     }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::new();
+        for formula in self.formulas.iter() {
+            terms.extend(formula.terms())
+        }
+        terms
+    }
 }
 
-impl FromIterator<ConditionalLiteral> for Body {
-    fn from_iter<T: IntoIterator<Item = ConditionalLiteral>>(iter: T) -> Self {
+impl FromIterator<AtomicFormula> for Body {
+    fn from_iter<T: IntoIterator<Item = AtomicFormula>>(iter: T) -> Self {
         Body {
             formulas: iter.into_iter().collect(),
         }
@@ -269,18 +142,21 @@ impl Rule {
         vars
     }
 
-    pub fn global_variables(&self) -> IndexSet<Variable> {
-        let mut vars = self.head.variables();
-        for formula in self.body.formulas.iter() {
-            vars.extend(formula.global_variables());
-        }
-        vars
-    }
-
     pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
         functions
+    }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::new();
+        if let Some(head_terms) = self.head.terms() {
+            head_terms.iter().for_each(|term| {
+                terms.insert(term.clone());
+            });
+        }
+        terms.extend(self.body.terms());
+        terms
     }
 }
 
@@ -333,5 +209,40 @@ impl FromIterator<Rule> for Program {
         Program {
             rules: iter.into_iter().collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        crate::syntax_tree::asp::{
+            Atom, AtomicFormula, Comparison, PrecomputedTerm, Relation, Term,
+            mini_gringo::{Body, Head, Program, Rule},
+        },
+        indexmap::IndexSet,
+    };
+
+    #[test]
+    fn test_program_function_constants() {
+        // p :- b != a.
+        let program = Program {
+            rules: vec![Rule {
+                head: Head::Basic(Atom {
+                    predicate_symbol: "p".into(),
+                    terms: vec![],
+                }),
+                body: Body {
+                    formulas: vec![AtomicFormula::Comparison(Comparison {
+                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                        relation: Relation::NotEqual,
+                    })],
+                },
+            }],
+        };
+        assert_eq!(
+            program.function_constants(),
+            IndexSet::from(["a".into(), "b".into()])
+        )
     }
 }

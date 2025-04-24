@@ -9,7 +9,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{fol, mini_gringo},
+        syntax_tree::{asp, asp::mini_gringo, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -265,7 +265,7 @@ impl ExternalEquivalenceTask {
         let private_predicates = private_predicates
             .into_iter()
             .cloned()
-            .map(mini_gringo::Predicate::from)
+            .map(asp::Predicate::from)
             .collect();
 
         if program.has_private_recursion(&private_predicates) {

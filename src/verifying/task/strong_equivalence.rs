@@ -7,7 +7,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{fol, mini_gringo},
+        syntax_tree::{asp, asp::mini_gringo, fol},
         translating::{
             gamma::{self, gamma},
             mu::mu,
@@ -37,7 +37,7 @@ pub struct StrongEquivalenceTask {
 
 impl StrongEquivalenceTask {
     fn transition_axioms(&self) -> fol::Theory {
-        fn transition(p: mini_gringo::Predicate) -> fol::Formula {
+        fn transition(p: asp::Predicate) -> fol::Formula {
             let p: fol::Predicate = p.into();
 
             let hp = gamma::here(p.clone().to_formula());
