@@ -12,6 +12,7 @@ use {
 
 pub mod fol;
 pub mod mini_gringo;
+pub mod mini_gringo_cl;
 
 pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {
     fn from_stdin() -> Result<Self>
