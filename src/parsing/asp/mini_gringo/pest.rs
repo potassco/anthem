@@ -119,6 +119,10 @@ impl PestParser for TermParser {
         internal::PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::term => TermParser::translate_pair(primary),
+                internal::Rule::absolute_valued_term => Term::UnaryOperation {
+                    op: UnaryOperator::AbsoluteValue,
+                    arg: TermParser::translate_pairs(primary.into_inner()).into(),
+                },
                 internal::Rule::precomputed_term => {
                     Term::PrecomputedTerm(PrecomputedTermParser::translate_pair(primary))
                 }
@@ -562,6 +566,47 @@ mod tests {
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
                         arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                    },
+                ),
+                (
+                    "|1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                    },
+                ),
+                (
+                    "|-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                    },
+                ),
+                (
+                    "-|-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: Term::UnaryOperation {
+                            op: UnaryOperator::AbsoluteValue,
+                            arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                        }
+                        .into(),
+                    },
+                ),
+                (
+                    "-|3*-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: Term::UnaryOperation {
+                            op: UnaryOperator::AbsoluteValue,
+                            arg: Term::BinaryOperation {
+                                op: BinaryOperator::Multiply,
+                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
+                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
                     },
                 ),
                 (
