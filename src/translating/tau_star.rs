@@ -40,7 +40,7 @@ pub(crate) fn choose_fresh_global_variables(program: &mini_gringo::Program) -> V
 }
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-fn choose_fresh_variable_names(
+pub(crate) fn choose_fresh_variable_names(
     variables: &IndexSet<fol::Variable>,
     variant: &str,
     arity: usize,
@@ -74,7 +74,7 @@ fn choose_fresh_variable_names(
 }
 
 // Z = t
-fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
+pub(crate) fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
@@ -109,7 +109,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
 
 // +,-,*
 // exists I J (Z = I op J & val_t1(I) & val_t2(J))
-fn construct_total_function_formula(
+pub(crate) fn construct_total_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     binop: asp::BinaryOperator,
@@ -175,7 +175,7 @@ fn construct_total_function_formula(
 // Follows the corrected arXiv paper (https://arxiv.org/abs/2008.02025), not the TPLP paper
 // Division: exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < J & Z = Q)
 // Modulo:   exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < J & Z = R)
-fn construct_partial_function_formula(
+pub(crate) fn construct_partial_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     binop: asp::BinaryOperator,
@@ -340,7 +340,7 @@ fn construct_partial_function_formula(
 
 // t1..t2
 // exists I J K (val_t1(I) & val_t2(J) & I <= K <= J & Z = K)
-fn construct_interval_formula(
+pub(crate) fn construct_interval_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     i_var: fol::Variable,
@@ -404,7 +404,7 @@ fn construct_interval_formula(
 
 // |t|
 // exists I$ (Z = I$ & val_t(I$))
-fn construct_absolute_value_formula(
+pub(crate) fn construct_absolute_value_formula(
     valti: fol::Formula,
     i_var: fol::Variable,
     z: fol::Variable,
@@ -731,7 +731,7 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
 }
 
 // Translate a rule body
-fn tau_body(b: mini_gringo::Body) -> fol::Formula {
+pub(crate) fn tau_body(b: mini_gringo::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone()));
