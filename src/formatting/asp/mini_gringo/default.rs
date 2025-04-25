@@ -4,9 +4,9 @@ use {
         syntax_tree::{
             Node,
             asp::{
-                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
-                Variable,
+                Atom, AtomicFormula, BinaryOperator, Comparison, Literal, PrecomputedTerm,
+                Predicate, Relation, Sign, Term, UnaryOperator, Variable,
+                mini_gringo::{Body, Head, Program, Rule},
             },
         },
     },
@@ -36,6 +36,7 @@ impl Display for Format<'_, UnaryOperator> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             UnaryOperator::Negative => write!(f, "-"),
+            UnaryOperator::AbsoluteValue => write!(f, "|"),
         }
     }
 }
@@ -57,12 +58,7 @@ impl Precedence for Format<'_, Term> {
     fn precedence(&self) -> usize {
         match self.0 {
             Term::PrecomputedTerm(PrecomputedTerm::Numeral(1..)) => 1,
-            Term::UnaryOperation {
-                op: UnaryOperator::Negative,
-                ..
-            }
-            | Term::PrecomputedTerm(_)
-            | Term::Variable(_) => 0,
+            Term::UnaryOperation { .. } | Term::PrecomputedTerm(_) | Term::Variable(_) => 0,
             Term::BinaryOperation {
                 op: BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo,
                 ..
@@ -99,7 +95,20 @@ impl Display for Format<'_, Term> {
         match self.0 {
             Term::PrecomputedTerm(c) => Format(c).fmt(f),
             Term::Variable(v) => Format(v).fmt(f),
-            Term::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
+            Term::UnaryOperation {
+                op: UnaryOperator::Negative,
+                arg,
+            } => self.fmt_unary(Format(arg.as_ref()), f),
+            Term::UnaryOperation {
+                op: UnaryOperator::AbsoluteValue,
+                arg,
+            } => write!(
+                f,
+                "{}{}{}",
+                Format(&UnaryOperator::AbsoluteValue),
+                Format(arg.as_ref()),
+                Format(&UnaryOperator::AbsoluteValue)
+            ),
             Term::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
@@ -234,10 +243,11 @@ impl Display for Format<'_, Rule> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        formatting::asp::default::Format,
+        formatting::asp::mini_gringo::default::Format,
         syntax_tree::asp::{
-            Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+            Atom, AtomicFormula, BinaryOperator, Comparison, Literal, PrecomputedTerm, Relation,
+            Sign, Term, UnaryOperator, Variable,
+            mini_gringo::{Body, Head, Program, Rule},
         },
     };
 
@@ -284,6 +294,15 @@ mod tests {
         assert_eq!(
             Format(&Term::Variable(Variable("A".into()))).to_string(),
             "A"
+        );
+
+        assert_eq!(
+            Format(&Term::UnaryOperation {
+                op: UnaryOperator::AbsoluteValue,
+                arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+            })
+            .to_string(),
+            "|1|"
         );
 
         assert_eq!(

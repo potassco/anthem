@@ -24,6 +24,7 @@ use {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Negative,
+    AbsoluteValue,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);

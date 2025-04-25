@@ -89,6 +89,10 @@ impl PestParser for IntegerTermParser {
         internal::TERM_PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
+                internal::Rule::absolute_valued_integer_term => IntegerTerm::UnaryOperation {
+                    op: UnaryOperator::AbsoluteValue,
+                    arg: IntegerTermParser::translate_pairs(primary.into_inner()).into(),
+                },
                 internal::Rule::numeral => IntegerTerm::Numeral(primary.as_str().parse().unwrap()),
                 internal::Rule::integer_function_constant => match primary.into_inner().next() {
                     Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
@@ -860,6 +864,20 @@ mod tests {
                 ("-1", IntegerTerm::Numeral(-1)),
                 ("-48", IntegerTerm::Numeral(-48)),
                 ("(-48)", IntegerTerm::Numeral(-48)),
+                (
+                    "|0|",
+                    IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: IntegerTerm::Numeral(0).into(),
+                    },
+                ),
+                (
+                    "|-32|",
+                    IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: IntegerTerm::Numeral(-32).into(),
+                    },
+                ),
                 ("a$i", IntegerTerm::FunctionConstant("a".into())),
                 ("X$i", IntegerTerm::Variable("X".into())),
                 ("Xvar$", IntegerTerm::Variable("Xvar".into())),
