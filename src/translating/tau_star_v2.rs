@@ -516,7 +516,6 @@ pub fn tau_star(p: Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
 
     use super::valtz;
 
@@ -534,6 +533,16 @@ mod tests {
                 "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)",
             ),
             (
+                "1 / 0",
+                "Z",
+                "exists I$i J$i K$i (I$i = 1 and J$i = 0 and (K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i|) and ((I$i * J$i >= 0 and Z = K$i) or (I$i * J$i < 0 and Z = -K$i)))",
+            ),
+            (
+                "1 \\ 0",
+                "Z",
+                "exists I$i J$i K$i (I$i = 1 and J$i = 0 and (K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i|) and ((I$i * J$i >= 0 and Z = (I$i - K$i * J$i)) or (I$i * J$i < 0 and Z = (I$i + K$i * J$i))))",
+            ),
+            (
                 "X..Y",
                 "Z",
                 "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)",
@@ -541,7 +550,7 @@ mod tests {
             (
                 "X+1..Y",
                 "Z1",
-                "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
+                "exists I$i J$i K$i ((exists I1$i J1$i (I$i = I1$i + J1$i and I1$i = X and J1$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
             ),
         ] {
             let left = valtz(vec![term.parse().unwrap()], vec![var.parse().unwrap()]);
