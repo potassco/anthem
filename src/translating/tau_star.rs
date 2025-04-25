@@ -402,6 +402,39 @@ fn construct_interval_formula(
     }
 }
 
+// |t|
+// exists I$ (Z = I$ & val_t(I$))
+fn construct_absolute_value_formula(
+    valti: fol::Formula,
+    i_var: fol::Variable,
+    z: fol::Variable,
+) -> fol::Formula {
+    // Z = |I|
+    let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: z.into(),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::UnaryOperation {
+                op: fol::UnaryOperator::AbsoluteValue,
+                arg: fol::IntegerTerm::Variable(i_var.name.clone()).into(),
+            }),
+        }],
+    }));
+
+    fol::Formula::QuantifiedFormula {
+        quantification: fol::Quantification {
+            quantifier: fol::Quantifier::Exists,
+            variables: vec![i_var],
+        },
+        formula: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: zequals.into(),
+            rhs: valti.into(),
+        }
+        .into(),
+    }
+}
+
 // val_t(Z)
 fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
@@ -446,6 +479,10 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
                         var2,
                         z,
                     )
+                }
+                asp::UnaryOperator::AbsoluteValue => {
+                    let valti = val(*arg, var1.clone()); // val_t1(I)
+                    construct_absolute_value_formula(valti, var1, z)
                 }
             }
         }

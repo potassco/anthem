@@ -17,7 +17,7 @@ fn contains_symbol_or_infimum_or_supremum(t: &asp::Term) -> bool {
         asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Supremum) => true,
         asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(_)) => false,
         asp::Term::UnaryOperation {
-            op: asp::UnaryOperator::Negative,
+            op: asp::UnaryOperator::Negative | asp::UnaryOperator::AbsoluteValue,
             arg,
         } => contains_symbol_or_infimum_or_supremum(arg),
         asp::Term::BinaryOperation { lhs, rhs, .. } => {
@@ -525,6 +525,8 @@ mod tests {
             ("3+5", true),
             ("3-5", true),
             ("X*5", true),
+            ("|X|", false),
+            ("3-|5|", false),
             ("3/5", false),
             ("3..5", false),
             ("X..Y", false),
@@ -994,6 +996,7 @@ mod tests {
             "p(X) :- X <= 3..5.",
             "p(X) :- X = 5*(2..3).",
             " :- X..5 = 3..5.",
+            "p(X) :- q(Y), Y = |X|.",
         ] {
             let rule = rule.parse().unwrap();
             assert!(
