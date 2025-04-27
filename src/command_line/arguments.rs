@@ -25,7 +25,7 @@ pub enum Command {
     /// Check for a counter-model to a strong equivalence claim
     Counter {
         /// The equivalence theory used to proof the claim
-        #[arg(long, value_enum)]
+        #[arg(long, value_enum, default_value_t = Equivalence::Strong)]
         equivalence: Equivalence,
 
         /// The ASP-to-target-language translation to use
