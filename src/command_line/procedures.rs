@@ -17,8 +17,9 @@ use {
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
             task::{
-                Task, external_equivalence::ExternalEquivalenceTask,
-                strong_equivalence::StrongEquivalenceTask,
+                Task,
+                external_equivalence::ExternalEquivalenceTask,
+                strong_equivalence::{StrongEquivalenceCounterModelTask, StrongEquivalenceTask},
             },
         },
     },
@@ -49,7 +50,6 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
-
         Command::Parse {
             r#as,
             output,
@@ -94,7 +94,6 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
-
         Command::Simplify {
             portfolio,
             strategy,
@@ -123,7 +122,6 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
-
         Command::Translate { with, input } => {
             match with {
                 Translation::Completion => {
@@ -165,7 +163,6 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
-
         Command::Verify {
             equivalence,
             decomposition,
@@ -325,5 +322,45 @@ pub fn main() -> Result<()> {
 
             Ok(())
         }
+
+        Command::Counter {
+            equivalence,
+            formula_representation,
+            no_simplify,
+            save_problems,
+            files,
+        } => match equivalence {
+            Equivalence::Strong => {
+                let files = Files::sort(files)
+                    .context("unable to sort the given files by their function")?;
+
+                let problems = StrongEquivalenceCounterModelTask {
+                    left: asp::Program::from_file(
+                        files
+                            .left()
+                            .ok_or(anyhow!("no left program was provided"))?,
+                    )?,
+                    right: asp::Program::from_file(
+                        files
+                            .right()
+                            .ok_or(anyhow!("no right program was provided"))?,
+                    )?,
+                    formula_representation,
+                    simplify: !no_simplify,
+                }
+                .decompose()?
+                .report_warnings();
+
+                for problem in &problems {
+                    let mut path = save_problems.clone();
+                    path.push(format!("{}.p", problem.name));
+                    problem.to_file(path)?;
+                }
+
+                Ok(())
+            }
+
+            Equivalence::External => unimplemented!("not supported for external equivalence"),
+        },
     }
 }

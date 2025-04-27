@@ -22,6 +22,124 @@ use {
     thiserror::Error,
 };
 
+impl From<fol::Theory> for fol::Formula {
+    fn from(theory: fol::Theory) -> Self {
+        fol::Formula::conjoin(theory.formulas)
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum StrongEquivalenceCounterModelTaskError {}
+
+pub struct StrongEquivalenceCounterModelTask {
+    pub left: asp::Program,
+    pub right: asp::Program,
+    pub formula_representation: FormulaRepresentation,
+    pub simplify: bool,
+}
+
+// TODO: refactor to use the same code as StrongEquivalenceTask
+impl StrongEquivalenceCounterModelTask {
+    fn transition_axioms(&self) -> fol::Theory {
+        fn transition(p: asp::Predicate) -> fol::Formula {
+            let p: fol::Predicate = p.into();
+
+            let hp = gamma::here(p.clone().to_formula());
+            let tp = gamma::there(p.to_formula());
+
+            let variables = hp.free_variables();
+
+            fol::Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                lhs: hp.into(),
+                rhs: tp.into(),
+            }
+            .quantify(fol::Quantifier::Forall, variables.into_iter().collect())
+        }
+
+        let mut predicates = self.left.predicates();
+        predicates.extend(self.right.predicates());
+
+        fol::Theory {
+            formulas: predicates.into_iter().map(transition).collect(),
+        }
+    }
+}
+
+impl Task for StrongEquivalenceCounterModelTask {
+    type Error = StrongEquivalenceTaskError;
+    type Warning = Infallible;
+
+    fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
+        let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
+
+        let mut left = match self.formula_representation {
+            FormulaRepresentation::Mu => mu(self.left),
+            FormulaRepresentation::TauStar => tau_star(self.left),
+        };
+
+        let mut right = match self.formula_representation {
+            FormulaRepresentation::Mu => mu(self.right),
+            FormulaRepresentation::TauStar => tau_star(self.right),
+        };
+
+        if self.simplify {
+            let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+            left = left
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+            right = right
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+        }
+
+        left = gamma(left);
+        right = gamma(right);
+
+        if self.simplify {
+            let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+            left = left
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+            right = right
+                .into_iter()
+                .map(|f| f.apply_fixpoint(&mut portfolio))
+                .collect();
+        }
+
+        // ( gamma(tau-star(P1)) <-> gamma(tau-star(P2)) )
+        let f: fol::Formula = fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Equivalence,
+            lhs: Box::new(left.into()),
+            rhs: Box::new(right.into()),
+        };
+
+        let conjecture = fol::Theory { formulas: vec![f] };
+
+        let mut problems = Vec::new();
+        problems.push(
+            Problem::with_name("countermodel")
+                .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
+                    name: format!("transition_axiom_{i}"),
+                    role: Role::Axiom,
+                    formula,
+                })
+                .add_theory(conjecture, |i, formula| AnnotatedFormula {
+                    name: format!("conjecture_{i}"),
+                    role: Role::Conjecture,
+                    formula,
+                })
+                .rename_conflicting_symbols()
+                .create_unique_formula_names(),
+        );
+
+        Ok(WithWarnings::flawless(problems))
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum StrongEquivalenceTaskError {}
 

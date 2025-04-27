@@ -22,6 +22,33 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Check for a counter-model to a strong equivalence claim
+    Counter {
+        /// The equivalence theory used to proof the claim
+        #[arg(long, value_enum)]
+        equivalence: Equivalence,
+
+        /// The ASP-to-target-language translation to use
+        #[arg(long, value_enum, default_value_t)]
+        formula_representation: FormulaRepresentation,
+
+        /// Omit simplifications
+        #[arg(long, action)]
+        no_simplify: bool,
+
+        /// The destination directory for the problem files
+        #[arg(long)]
+        save_problems: PathBuf,
+
+        /// A set of files from which to construct the claim, including
+        ///
+        ///   - a specification of intended behavior,
+        ///   - a program about which the claim is constructed, and
+        ///   - additional knowledge used to construct the claim (e.g., user guide, proof outline).
+        #[arg(verbatim_doc_comment)]
+        files: Vec<PathBuf>,
+    },
+
     /// Parse a file and print its debug or output representation
     Parse {
         /// What to parse the input as
