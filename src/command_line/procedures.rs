@@ -23,11 +23,34 @@ use {
             },
         },
     },
-    anyhow::{Context, Result, anyhow},
+    anyhow::{Context, Error, Result, anyhow},
     clap::Parser as _,
     either::Either,
-    std::time::Instant,
+    std::{fs, path::PathBuf, process, time::Instant},
 };
+
+fn convert_to_smt2(path: PathBuf) -> Result<(), Error> {
+    let fname = path.display().to_string();
+
+    let child = process::Command::new("./cvc5-tptp-to-smt2")
+        .args([
+            "-o",
+            "raw-benchmark",
+            "--parse-only",
+            "--lang=tptp",
+            "--output-lang=smt2",
+            &fname,
+        ])
+        .stdout(process::Stdio::piped())
+        .stderr(process::Stdio::piped())
+        .spawn()?;
+
+    let output = child.wait_with_output()?;
+
+    fs::write(path.with_extension("smt2"), output.stdout).expect("Unable to write file");
+
+    Ok(())
+}
 
 pub fn main() -> Result<()> {
     match Arguments::parse().command {
@@ -354,7 +377,8 @@ pub fn main() -> Result<()> {
                 for problem in &problems {
                     let mut path = save_problems.clone();
                     path.push(format!("{}.p", problem.name));
-                    problem.to_file(path)?;
+                    problem.to_file(path.clone())?;
+                    convert_to_smt2(path)?;
                 }
 
                 Ok(())

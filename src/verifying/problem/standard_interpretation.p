@@ -1,11 +1,11 @@
 tff(general_type, type, general: $tType).
 tff(symbol_type, type, symbol: $tType).
-tff(f__integer___decl, type, f__integer__: ($int) > general).
-tff(f__symbolic___decl, type, f__symbolic__: (symbol) > general).
+tff(f__integer___decl, type, f__integer__: $int > general).
+tff(f__symbolic___decl, type, f__symbolic__: symbol > general).
 tff(inf_type, type, c__infimum__: general).
 tff(sup_type, type, c__supremum__: general).
-tff(p__is_integer__decl, type, p__is_integer__: (general) > $o).
-tff(p__is_symbolic__decl, type, p__is_symbolic__: (general) > $o).
+tff(p__is_integer__decl, type, p__is_integer__: general > $o).
+tff(p__is_symbolic__decl, type, p__is_symbolic__: general > $o).
 tff(p__less_equal__decl, type, p__less_equal__: (general * general) > $o).
 tff(p__less__decl, type, p__less__: (general * general) > $o).
 tff(p__greater_equal__decl, type, p__greater_equal__: (general * general) > $o).
