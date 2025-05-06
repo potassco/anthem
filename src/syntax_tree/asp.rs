@@ -410,19 +410,19 @@ impl AggregateAtom {
         terms
     }
 
-    fn function_constants(&self) -> IndexSet<String> {
+    pub fn function_constants(&self) -> IndexSet<String> {
         let mut function_constants = self.guard.function_constants();
         function_constants.extend(self.aggregate.function_constants());
         function_constants
     }
 
-    fn variables(&self) -> IndexSet<Variable> {
+    pub fn variables(&self) -> IndexSet<Variable> {
         let mut variables = self.guard.variables();
         variables.extend(self.aggregate.variables());
         variables
     }
 
-    fn predicates(&self) -> IndexSet<Predicate> {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
         let mut predicates = IndexSet::new();
         for formula in self.aggregate.conditions.iter() {
             predicates.extend(formula.predicates());
@@ -430,7 +430,7 @@ impl AggregateAtom {
         predicates
     }
 
-    fn positive_predicates(&self) -> IndexSet<Predicate> {
+    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
         let mut positive_predicates = IndexSet::new();
         for formula in self.aggregate.conditions.iter() {
             positive_predicates.extend(formula.positive_predicates());

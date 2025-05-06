@@ -1,4 +1,5 @@
 use {
+    super::counting::{TargetTheory, tau_b_counting_atom},
     crate::syntax_tree::{asp, fol},
     indexmap::IndexSet,
     lazy_static::lazy_static,
@@ -40,7 +41,7 @@ pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<Strin
 }
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-fn choose_fresh_variable_names(
+pub(crate) fn choose_fresh_variable_names(
     variables: &IndexSet<fol::Variable>,
     variant: &str,
     arity: usize,
@@ -403,7 +404,7 @@ fn construct_interval_formula(
 }
 
 // val_t(Z)
-fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
+pub(crate) fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in t.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -672,7 +673,7 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> 
 }
 
 // Translate a body literal or comparison
-fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
+fn tau_b(f: asp::AtomicFormula) -> TargetTheory {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in f.variables().iter() {
         taken_vars.insert(fol::Variable {
@@ -680,37 +681,46 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
             sort: fol::Sort::General,
         });
     }
-    match f {
-        asp::AtomicFormula::Literal(l) => {
-            let arity = l.atom.terms.len();
-            if arity > 0 {
-                tau_b_first_order_literal(l, taken_vars)
-            } else {
-                tau_b_propositional_literal(l)
+
+    TargetTheory {
+        formulas: vec![match f {
+            asp::AtomicFormula::Literal(l) => {
+                let arity = l.atom.terms.len();
+                if arity > 0 {
+                    tau_b_first_order_literal(l, taken_vars)
+                } else {
+                    tau_b_propositional_literal(l)
+                }
             }
-        }
-        asp::AtomicFormula::Comparison(c) => tau_b_comparison(c, taken_vars),
+            asp::AtomicFormula::Comparison(c) => tau_b_comparison(c, taken_vars),
+        }],
+        axioms: vec![],
     }
 }
 
-fn tau_b_body_literal(l: asp::BodyLiteral) -> fol::Formula {
+fn tau_b_body_literal(l: asp::BodyLiteral, globals: &IndexSet<asp::Variable>) -> TargetTheory {
     match l {
         asp::BodyLiteral::AtomicFormula(formula) => tau_b(formula),
-        asp::BodyLiteral::AggregateAtom(_) => todo!(),
+        asp::BodyLiteral::AggregateAtom(atom) => tau_b_counting_atom(atom, globals),
     }
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body) -> fol::Formula {
-    let mut formulas = Vec::<fol::Formula>::new();
+fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>) -> TargetTheory {
+    let mut formulas = Vec::new();
+    let mut axioms = Vec::new();
+
     for l in b.literals.iter() {
-        formulas.push(tau_b_body_literal(l.clone()));
+        let mut literal_theory = tau_b_body_literal(l.clone(), &globals);
+        formulas.append(&mut literal_theory.formulas);
+        axioms.append(&mut literal_theory.axioms);
     }
-    fol::Formula::conjoin(formulas)
+
+    TargetTheory { formulas, axioms }
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> TargetTheory {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -743,10 +753,13 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
         predicate_symbol: fol_head_predicate.symbol,
         terms: new_terms,
     })); // p(V)
+
+    let body_theory = tau_body(r.body.clone(), r.global_variables());
+
     let core_lhs = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Conjunction,
         lhs: valtz.into(),
-        rhs: tau_body(r.body.clone()).into(),
+        rhs: fol::Formula::conjoin(body_theory.formulas).into(),
     };
 
     let new_body = match r.head {
@@ -779,17 +792,22 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
         });
     }
     gvars.sort(); // TODO
-    fol::Formula::QuantifiedFormula {
+    let formula = fol::Formula::QuantifiedFormula {
         quantification: fol::Quantification {
             quantifier: fol::Quantifier::Forall,
             variables: gvars,
         },
         formula: imp.into(),
-    } // forall G V ( val_t(V) & tau^B(Body) -> p(V) ) OR forall G V ( val_t(V) & tau^B(Body) -> p(V) )
+    }; // forall G V ( val_t(V) & tau^B(Body) -> p(V) ) OR forall G V ( val_t(V) & tau^B(Body) -> p(V) )
+
+    TargetTheory {
+        formulas: vec![formula],
+        axioms: body_theory.axioms,
+    }
 }
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
-fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_prop_head_rule(r: &asp::Rule) -> TargetTheory {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -806,7 +824,10 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
         predicate_symbol: fol_head_predicate.symbol,
         terms: vec![],
     }));
-    let core_lhs = tau_body(r.body.clone());
+
+    let body_theory = tau_body(r.body.clone(), r.global_variables());
+    let core_lhs = fol::Formula::conjoin(body_theory.formulas);
+
     let new_body = match &r.head {
         asp::Head::Basic(_) => {
             // tau^B(Body)
@@ -840,22 +861,28 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
         rhs: new_head.into(),
     };
     gvars.sort(); // TODO
-    if !gvars.is_empty() {
+
+    let formula = match gvars.is_empty() {
+        // tau^B(Body) -> p  OR tau^B(Body) & ~~p -> p
+        true => imp,
         // forall G ( tau^B(Body) -> p ) OR forall G ( tau^B(Body) & ~~p -> p )
-        fol::Formula::QuantifiedFormula {
+        false => fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Forall,
                 variables: gvars,
             },
             formula: imp.into(),
-        }
-    } else {
-        imp // tau^B(Body) -> p  OR tau^B(Body) & ~~p -> p
+        },
+    };
+
+    TargetTheory {
+        formulas: vec![formula],
+        axioms: body_theory.axioms,
     }
 }
 
 // Handles the case when we have a rule with an empty head
-fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_constraint_rule(r: &asp::Rule) -> TargetTheory {
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -863,38 +890,54 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
             name: var.to_string(),
         });
     }
+
+    let body_theory = tau_body(r.body.clone(), r.global_variables());
+
     let imp = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Implication,
-        lhs: tau_body(r.body.clone()).into(),
+        lhs: fol::Formula::conjoin(body_theory.formulas).into(),
         rhs: fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity).into(),
     }; // tau^B(Body) -> \bot
     gvars.sort(); // TODO
-    if !gvars.is_empty() {
-        fol::Formula::QuantifiedFormula {
+
+    let formula = match gvars.is_empty() {
+        // tau^B(Body) -> \bot
+        true => imp,
+        // forall G ( tau^B(Body) -> \bot )
+        false => fol::Formula::QuantifiedFormula {
             quantification: fol::Quantification {
                 quantifier: fol::Quantifier::Forall,
                 variables: gvars,
             },
             formula: imp.into(),
-        } // forall G ( tau^B(Body) -> \bot )
-    } else {
-        imp
-    } // tau^B(Body) -> \bot
+        },
+    };
+
+    TargetTheory {
+        formulas: vec![formula],
+        axioms: body_theory.axioms,
+    }
 }
 
+// TODO: handle axioms
 // Translate a rule using a pre-defined list of global variables
 pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
                 // First-order head
-                tau_star_fo_head_rule(r, globals)
+                let theory = tau_star_fo_head_rule(r, globals);
+                fol::Formula::conjoin(theory.formulas)
             } else {
                 // Propositional head
-                tau_star_prop_head_rule(r)
+                let theory = tau_star_prop_head_rule(r);
+                fol::Formula::conjoin(theory.formulas)
             }
         }
-        None => tau_star_constraint_rule(r),
+        None => {
+            let theory = tau_star_constraint_rule(r);
+            fol::Formula::conjoin(theory.formulas)
+        }
     }
 }
 
@@ -912,6 +955,8 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
+    use crate::syntax_tree::fol;
+
     use super::{tau_b, tau_star, val};
 
     #[test]
@@ -986,7 +1031,8 @@ mod tests {
                 "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))",
             ),
         ] {
-            let left = tau_b(src.parse().unwrap());
+            let theory = tau_b(src.parse().unwrap());
+            let left = fol::Formula::conjoin(theory.formulas);
             let right = target.parse().unwrap();
 
             assert!(
