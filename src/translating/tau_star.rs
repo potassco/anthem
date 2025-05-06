@@ -673,7 +673,7 @@ fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> 
 }
 
 // Translate a body literal or comparison
-fn tau_b(f: asp::AtomicFormula) -> TargetTheory {
+pub(crate) fn tau_b(f: asp::AtomicFormula) -> TargetTheory {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
     for var in f.variables().iter() {
         taken_vars.insert(fol::Variable {

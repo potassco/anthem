@@ -346,6 +346,14 @@ impl Aggregate {
         }
         variables
     }
+
+    pub(crate) fn condition_variables(&self) -> IndexSet<Variable> {
+        let mut variables = IndexSet::new();
+        for formula in self.conditions.iter() {
+            variables.extend(formula.variables());
+        }
+        variables
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
