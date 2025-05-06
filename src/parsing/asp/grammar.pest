@@ -58,6 +58,14 @@ comparison_eoi = _{ comparison ~ EOI }
 atomic_formula = { comparison | literal }
 atomic_formula_eoi = _{ atomic_formula ~ EOI }
 
+aggregate = { "#count" ~ "{" ~ (variable ~ (("," ~ variable)*)?) ~ ":" ~ (atomic_formula ~ (("," ~ atomic_formula)*)?) ~ "}" }
+aggregate_eoi = _{ aggregate ~ EOI }
+
+aggregate_atom = { left_aggregate | right_aggregate }
+aggregate_atom_eoi = _{ aggregate_atom ~ EOI }
+    left_aggregate = { aggregate ~ relation ~ term }
+    right_aggregate = { term ~ relation ~ aggregate }
+
 head = { basic_head | choice_head | falsity }
 head_eoi = _{ head ~ EOI }
     basic_head = { atom }

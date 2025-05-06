@@ -4,9 +4,9 @@ use {
         syntax_tree::{
             Node,
             asp::{
-                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
-                Variable,
+                Aggregate, AggregateAtom, Atom, AtomicFormula, BinaryOperator, Body, Comparison,
+                Head, Literal, PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term,
+                UnaryOperator, Variable,
             },
         },
     },
@@ -194,6 +194,55 @@ impl Display for Format<'_, AtomicFormula> {
         match self.0 {
             AtomicFormula::Literal(l) => write!(f, "{}", Format(l)),
             AtomicFormula::Comparison(c) => write!(f, "{}", Format(c)),
+        }
+    }
+}
+
+impl Display for Format<'_, Aggregate> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "#count{{ ")?;
+
+        let mut vars = self.0.variable_list.iter().map(Format);
+        if let Some(variable) = vars.next() {
+            write!(f, "{variable}")?;
+            for variable in vars {
+                write!(f, ", {variable}")?;
+            }
+        }
+
+        write!(f, ":")?;
+
+        let mut conditions = self.0.conditions.iter().map(Format);
+        if let Some(condition) = conditions.next() {
+            write!(f, "{condition}")?;
+            for condition in conditions {
+                write!(f, ", {condition}")?;
+            }
+        }
+
+        write!(f, "}}")?;
+
+        Ok(())
+    }
+}
+
+impl Display for Format<'_, AggregateAtom> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0.order {
+            crate::syntax_tree::asp::AggregateOrder::Left => write!(
+                f,
+                "{} {} {}",
+                Format(&self.0.aggregate),
+                Format(&self.0.relation),
+                Format(&self.0.guard)
+            ),
+            crate::syntax_tree::asp::AggregateOrder::Right => write!(
+                f,
+                "{} {} {}",
+                Format(&self.0.guard),
+                Format(&self.0.relation),
+                Format(&self.0.aggregate)
+            ),
         }
     }
 }

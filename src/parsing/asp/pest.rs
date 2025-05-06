@@ -1,8 +1,9 @@
 use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-        Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        Aggregate, AggregateAtom, AggregateOperation, AggregateOrder, Atom, AtomicFormula,
+        BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm, Predicate, Program,
+        Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -343,6 +344,118 @@ impl PestParser for AtomicFormulaParser {
     }
 }
 
+pub struct AggregateParser;
+
+impl PestParser for AggregateParser {
+    type Node = Aggregate;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::aggregate_eoi;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::aggregate {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner().peekable();
+
+        let mut variable_list = Vec::new();
+        let mut conditions = Vec::new();
+
+        let leading_variable = pairs
+            .next()
+            .map(VariableParser::translate_pair)
+            .unwrap_or_else(|| Self::report_missing_pair());
+
+        variable_list.push(leading_variable);
+
+        while pairs.peek().is_some() {
+            let pair = pairs.next().unwrap();
+            match pair.as_rule() {
+                internal::Rule::variable => {
+                    //variable_list.push(VariableParser::translate_pairs(pair.into_inner()));
+                    variable_list.push(VariableParser::translate_pair(pair));
+                }
+                internal::Rule::atomic_formula => {
+                    //conditions.push(AtomicFormulaParser::translate_pairs(pair.into_inner()));
+                    conditions.push(AtomicFormulaParser::translate_pair(pair));
+                }
+                _ => Self::report_unexpected_pair(pair),
+            }
+        }
+
+        Aggregate {
+            operation: AggregateOperation::Count,
+            variable_list,
+            conditions,
+        }
+    }
+}
+
+pub struct AggregateAtomParser;
+
+impl PestParser for AggregateAtomParser {
+    type Node = AggregateAtom;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: internal::Rule = internal::Rule::aggregate_atom_eoi;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::aggregate_atom => {
+                AggregateAtomParser::translate_pairs(pair.into_inner())
+            }
+            internal::Rule::left_aggregate => {
+                let mut pairs = pair.into_inner();
+
+                let aggregate = AggregateParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                let relation = RelationParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                let guard = TermParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                AggregateAtom {
+                    aggregate,
+                    relation,
+                    guard,
+                    order: AggregateOrder::Left,
+                }
+            }
+            internal::Rule::right_aggregate => {
+                let mut pairs = pair.into_inner();
+
+                let guard = TermParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                let relation = RelationParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                let aggregate = AggregateParser::translate_pair(
+                    pairs.next().unwrap_or_else(|| Self::report_missing_pair()),
+                );
+
+                AggregateAtom {
+                    aggregate,
+                    relation,
+                    guard,
+                    order: AggregateOrder::Right,
+                }
+            }
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 pub struct HeadParser;
 
 impl PestParser for HeadParser {
@@ -446,17 +559,17 @@ impl PestParser for ProgramParser {
 mod tests {
     use {
         super::{
-            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
-            RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
-            VariableParser,
+            AggregateAtomParser, AggregateParser, AtomParser, AtomicFormulaParser,
+            BinaryOperatorParser, BodyParser, ComparisonParser, HeadParser, LiteralParser,
+            PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser, RuleParser,
+            SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         crate::{
             parsing::TestedParser,
             syntax_tree::asp::{
-                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
-                Variable,
+                Aggregate, AggregateAtom, AggregateOperation, AggregateOrder, Atom, AtomicFormula,
+                BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm, Predicate,
+                Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
             },
         },
     };
@@ -950,6 +1063,98 @@ mod tests {
                         terms: vec![],
                     },
                 }),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn parse_aggregate() {
+        AggregateParser.should_parse_into([
+            (
+                "#count{ X : p(X) }",
+                Aggregate {
+                    operation: AggregateOperation::Count,
+                    variable_list: vec![Variable("X".to_string())],
+                    conditions: vec![AtomicFormula::Literal(Literal {
+                        sign: Sign::NoSign,
+                        atom: Atom {
+                            predicate_symbol: "p".into(),
+                            terms: vec![Term::Variable(Variable("X".to_string()))],
+                        },
+                    })],
+                },
+            ),
+            (
+                "#count{ X, Y : p(X), X < Y }",
+                Aggregate {
+                    operation: AggregateOperation::Count,
+                    variable_list: vec![Variable("X".to_string()), Variable("Y".to_string())],
+                    conditions: vec![
+                        AtomicFormula::Literal(Literal {
+                            sign: Sign::NoSign,
+                            atom: Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![Term::Variable(Variable("X".to_string()))],
+                            },
+                        }),
+                        AtomicFormula::Comparison(Comparison {
+                            relation: Relation::Less,
+                            lhs: Term::Variable(Variable("X".to_string())),
+                            rhs: Term::Variable(Variable("Y".to_string())),
+                        }),
+                    ],
+                },
+            ),
+        ]);
+    }
+
+    #[test]
+    fn parse_aggregate_atom() {
+        AggregateAtomParser.should_parse_into([
+            (
+                "#count{ X : p(X) } <= 5",
+                AggregateAtom {
+                    aggregate: Aggregate {
+                        operation: AggregateOperation::Count,
+                        variable_list: vec![Variable("X".to_string())],
+                        conditions: vec![AtomicFormula::Literal(Literal {
+                            sign: Sign::NoSign,
+                            atom: Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![Term::Variable(Variable("X".to_string()))],
+                            },
+                        })],
+                    },
+                    relation: Relation::LessEqual,
+                    guard: Term::PrecomputedTerm(PrecomputedTerm::Numeral(5)),
+                    order: AggregateOrder::Left,
+                },
+            ),
+            (
+                "0 <= #count{ X, Y : p(X), X < Y }",
+                AggregateAtom {
+                    aggregate: Aggregate {
+                        operation: AggregateOperation::Count,
+                        variable_list: vec![Variable("X".to_string()), Variable("Y".to_string())],
+                        conditions: vec![
+                            AtomicFormula::Literal(Literal {
+                                sign: Sign::NoSign,
+                                atom: Atom {
+                                    predicate_symbol: "p".into(),
+                                    terms: vec![Term::Variable(Variable("X".to_string()))],
+                                },
+                            }),
+                            AtomicFormula::Comparison(Comparison {
+                                relation: Relation::Less,
+                                lhs: Term::Variable(Variable("X".to_string())),
+                                rhs: Term::Variable(Variable("Y".to_string())),
+                            }),
+                        ],
+                    },
+                    relation: Relation::LessEqual,
+                    guard: Term::PrecomputedTerm(PrecomputedTerm::Numeral(0)),
+                    order: AggregateOrder::Right,
+                },
             ),
         ]);
     }

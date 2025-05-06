@@ -2,10 +2,10 @@ use {
     crate::{
         formatting::asp::default::Format,
         parsing::asp::pest::{
-            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
-            RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
-            VariableParser,
+            AggregateAtomParser, AggregateParser, AtomParser, AtomicFormulaParser,
+            BinaryOperatorParser, BodyParser, ComparisonParser, HeadParser, LiteralParser,
+            PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser, RuleParser,
+            SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{Node, impl_node},
     },
@@ -266,6 +266,38 @@ impl AtomicFormula {
         }
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum AggregateOperation {
+    Count,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Aggregate {
+    pub operation: AggregateOperation,
+    pub variable_list: Vec<Variable>,
+    pub conditions: Vec<AtomicFormula>,
+}
+
+impl_node!(Aggregate, Format, AggregateParser);
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[non_exhaustive]
+pub enum AggregateOrder {
+    Left,
+    Right,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct AggregateAtom {
+    pub aggregate: Aggregate,
+    pub relation: Relation,
+    pub guard: Term,
+    pub order: AggregateOrder,
+}
+
+impl_node!(AggregateAtom, Format, AggregateAtomParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Head {
