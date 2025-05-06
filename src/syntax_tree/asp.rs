@@ -3,9 +3,9 @@ use {
         formatting::asp::default::Format,
         parsing::asp::pest::{
             AggregateAtomParser, AggregateParser, AtomParser, AtomicFormulaParser,
-            BinaryOperatorParser, BodyParser, ComparisonParser, HeadParser, LiteralParser,
-            PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser, RuleParser,
-            SignParser, TermParser, UnaryOperatorParser, VariableParser,
+            BinaryOperatorParser, BodyLiteralParser, BodyParser, ComparisonParser, HeadParser,
+            LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser,
+            RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
         syntax_tree::{Node, impl_node},
     },
@@ -350,10 +350,40 @@ impl Head {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum BodyLiteral {
+    AtomicFormula(AtomicFormula),
+    AggregateAtom(AggregateAtom),
+}
+
+impl_node!(BodyLiteral, Format, BodyLiteralParser);
+
+impl BodyLiteral {
+    pub fn predicates(&self) -> IndexSet<Predicate> {
+        todo!()
+    }
+
+    pub fn positive_predicates(&self) -> IndexSet<Predicate> {
+        todo!()
+    }
+
+    pub fn variables(&self) -> IndexSet<Variable> {
+        todo!()
+    }
+
+    pub fn function_constants(&self) -> IndexSet<String> {
+        todo!()
+    }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        todo!()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
 pub struct Body {
     #[into_iterator(owned, ref, ref_mut)]
-    pub formulas: Vec<AtomicFormula>,
+    pub literals: Vec<BodyLiteral>,
 }
 
 impl_node!(Body, Format, BodyParser);
@@ -361,7 +391,7 @@ impl_node!(Body, Format, BodyParser);
 impl Body {
     pub fn predicates(&self) -> IndexSet<Predicate> {
         let mut predicates = IndexSet::new();
-        for formula in self.formulas.iter() {
+        for formula in self.literals.iter() {
             predicates.extend(formula.predicates())
         }
         predicates
@@ -369,7 +399,7 @@ impl Body {
 
     pub fn positive_predicates(&self) -> IndexSet<Predicate> {
         let mut predicates = IndexSet::new();
-        for formula in self.formulas.iter() {
+        for formula in self.literals.iter() {
             predicates.extend(formula.positive_predicates())
         }
         predicates
@@ -377,7 +407,7 @@ impl Body {
 
     pub fn variables(&self) -> IndexSet<Variable> {
         let mut vars = IndexSet::new();
-        for formula in self.formulas.iter() {
+        for formula in self.literals.iter() {
             vars.extend(formula.variables())
         }
         vars
@@ -385,7 +415,7 @@ impl Body {
 
     pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = IndexSet::new();
-        for formula in self.formulas.iter() {
+        for formula in self.literals.iter() {
             functions.extend(formula.function_constants())
         }
         functions
@@ -393,17 +423,17 @@ impl Body {
 
     pub fn terms(&self) -> IndexSet<Term> {
         let mut terms = IndexSet::new();
-        for formula in self.formulas.iter() {
+        for formula in self.literals.iter() {
             terms.extend(formula.terms())
         }
         terms
     }
 }
 
-impl FromIterator<AtomicFormula> for Body {
-    fn from_iter<T: IntoIterator<Item = AtomicFormula>>(iter: T) -> Self {
+impl FromIterator<BodyLiteral> for Body {
+    fn from_iter<T: IntoIterator<Item = BodyLiteral>>(iter: T) -> Self {
         Body {
-            formulas: iter.into_iter().collect(),
+            literals: iter.into_iter().collect(),
         }
     }
 }
@@ -509,6 +539,7 @@ mod tests {
             Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
             Term,
         },
+        crate::syntax_tree::asp::BodyLiteral,
         indexmap::IndexSet,
     };
 
@@ -522,11 +553,13 @@ mod tests {
                     terms: vec![],
                 }),
                 body: Body {
-                    formulas: vec![AtomicFormula::Comparison(Comparison {
-                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
-                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
-                        relation: Relation::NotEqual,
-                    })],
+                    literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Comparison(
+                        Comparison {
+                            lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                            rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                            relation: Relation::NotEqual,
+                        },
+                    ))],
                 },
             }],
         };

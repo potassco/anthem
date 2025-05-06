@@ -72,7 +72,10 @@ head_eoi = _{ head ~ EOI }
     choice_head = { "{" ~ atom ~ "}" }
     falsity = { "#false"? }
 
-body = { (atomic_formula ~ (("," | ";") ~ atomic_formula)*)? }
+body_literal = { atomic_formula | aggregate_atom }
+body_literal_eoi = { body_literal ~ EOI }
+
+body = { (body_literal ~ (("," | ";") ~ body_literal)*)? }
 body_eoi = _{ body ~ EOI }
 
 rule = { (!"." ~ head ~ (":-" ~ body)?) ~ "." }

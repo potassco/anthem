@@ -693,11 +693,18 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
     }
 }
 
+fn tau_b_body_literal(l: asp::BodyLiteral) -> fol::Formula {
+    match l {
+        asp::BodyLiteral::AtomicFormula(formula) => tau_b(formula),
+        asp::BodyLiteral::AggregateAtom(_) => todo!(),
+    }
+}
+
 // Translate a rule body
 fn tau_body(b: asp::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
-    for f in b.formulas.iter() {
-        formulas.push(tau_b(f.clone()));
+    for l in b.literals.iter() {
+        formulas.push(tau_b_body_literal(l.clone()));
     }
     fol::Formula::conjoin(formulas)
 }

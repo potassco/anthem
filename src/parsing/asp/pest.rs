@@ -2,8 +2,8 @@ use crate::{
     parsing::PestParser,
     syntax_tree::asp::{
         Aggregate, AggregateAtom, AggregateOperation, AggregateOrder, Atom, AtomicFormula,
-        BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm, Predicate, Program,
-        Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        BinaryOperator, Body, BodyLiteral, Comparison, Head, Literal, PrecomputedTerm, Predicate,
+        Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -480,6 +480,29 @@ impl PestParser for HeadParser {
     }
 }
 
+pub struct BodyLiteralParser;
+
+impl PestParser for BodyLiteralParser {
+    type Node = BodyLiteral;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::body_literal_eoi;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        match pair.as_rule() {
+            internal::Rule::body_literal => BodyLiteralParser::translate_pairs(pair.into_inner()),
+            internal::Rule::atomic_formula => {
+                BodyLiteral::AtomicFormula(AtomicFormulaParser::translate_pairs(pair.into_inner()))
+            }
+            internal::Rule::aggregate_atom => {
+                BodyLiteral::AggregateAtom(AggregateAtomParser::translate_pairs(pair.into_inner()))
+            }
+            _ => Self::report_unexpected_pair(pair),
+        }
+    }
+}
+
 pub struct BodyParser;
 
 impl PestParser for BodyParser {
@@ -495,9 +518,9 @@ impl PestParser for BodyParser {
         }
 
         Body {
-            formulas: pair
+            literals: pair
                 .into_inner()
-                .map(AtomicFormulaParser::translate_pair)
+                .map(BodyLiteralParser::translate_pair)
                 .collect(),
         }
     }
@@ -526,7 +549,7 @@ impl PestParser for RuleParser {
         let body = pairs
             .next()
             .map(BodyParser::translate_pair)
-            .unwrap_or_else(|| Body { formulas: vec![] });
+            .unwrap_or_else(|| Body { literals: vec![] });
 
         if let Some(pair) = pairs.next() {
             Self::report_unexpected_pair(pair)
@@ -568,8 +591,8 @@ mod tests {
             parsing::TestedParser,
             syntax_tree::asp::{
                 Aggregate, AggregateAtom, AggregateOperation, AggregateOrder, Atom, AtomicFormula,
-                BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm, Predicate,
-                Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+                BinaryOperator, Body, BodyLiteral, Comparison, Head, Literal, PrecomputedTerm,
+                Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
             },
         },
     };
@@ -1183,35 +1206,37 @@ mod tests {
     #[test]
     fn parse_body() {
         BodyParser.should_parse_into([
-            ("", Body { formulas: vec![] }),
+            ("", Body { literals: vec![] }),
             (
                 "p",
                 Body {
-                    formulas: vec![AtomicFormula::Literal(Literal {
-                        sign: Sign::NoSign,
-                        atom: Atom {
-                            predicate_symbol: "p".into(),
-                            terms: vec![],
-                        },
-                    })],
-                },
-            ),
-            (
-                "p, N < 1",
-                Body {
-                    formulas: vec![
-                        AtomicFormula::Literal(Literal {
+                    literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Literal(
+                        Literal {
                             sign: Sign::NoSign,
                             atom: Atom {
                                 predicate_symbol: "p".into(),
                                 terms: vec![],
                             },
-                        }),
-                        AtomicFormula::Comparison(Comparison {
+                        },
+                    ))],
+                },
+            ),
+            (
+                "p, N < 1",
+                Body {
+                    literals: vec![
+                        BodyLiteral::AtomicFormula(AtomicFormula::Literal(Literal {
+                            sign: Sign::NoSign,
+                            atom: Atom {
+                                predicate_symbol: "p".into(),
+                                terms: vec![],
+                            },
+                        })),
+                        BodyLiteral::AtomicFormula(AtomicFormula::Comparison(Comparison {
                             relation: Relation::Less,
                             lhs: Term::Variable(Variable("N".into())),
                             rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)),
-                        }),
+                        })),
                     ],
                 },
             ),
@@ -1226,7 +1251,7 @@ mod tests {
                     ":-.",
                     Rule {
                         head: Head::Falsity,
-                        body: Body { formulas: vec![] },
+                        body: Body { literals: vec![] },
                     },
                 ),
                 (
@@ -1237,13 +1262,15 @@ mod tests {
                             terms: vec![],
                         }),
                         body: Body {
-                            formulas: vec![AtomicFormula::Literal(Literal {
-                                sign: Sign::NoSign,
-                                atom: Atom {
-                                    predicate_symbol: "b".into(),
-                                    terms: vec![],
+                            literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Literal(
+                                Literal {
+                                    sign: Sign::NoSign,
+                                    atom: Atom {
+                                        predicate_symbol: "b".into(),
+                                        terms: vec![],
+                                    },
                                 },
-                            })],
+                            ))],
                         },
                     },
                 ),
@@ -1255,11 +1282,13 @@ mod tests {
                             terms: vec![],
                         }),
                         body: Body {
-                            formulas: vec![AtomicFormula::Comparison(Comparison {
-                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
-                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
-                                relation: Relation::NotEqual,
-                            })],
+                            literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Comparison(
+                                Comparison {
+                                    lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
+                                    rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                                    relation: Relation::NotEqual,
+                                },
+                            ))],
                         },
                     },
                 ),
@@ -1270,7 +1299,7 @@ mod tests {
                             predicate_symbol: "a".into(),
                             terms: vec![],
                         }),
-                        body: Body { formulas: vec![] },
+                        body: Body { literals: vec![] },
                     },
                 ),
                 (
@@ -1280,7 +1309,7 @@ mod tests {
                             predicate_symbol: "a".into(),
                             terms: vec![],
                         }),
-                        body: Body { formulas: vec![] },
+                        body: Body { literals: vec![] },
                     },
                 ),
             ])
@@ -1300,7 +1329,7 @@ mod tests {
                                 predicate_symbol: "a".into(),
                                 terms: vec![],
                             }),
-                            body: Body { formulas: vec![] },
+                            body: Body { literals: vec![] },
                         },
                         Rule {
                             head: Head::Basic(Atom {
@@ -1308,13 +1337,15 @@ mod tests {
                                 terms: vec![],
                             }),
                             body: Body {
-                                formulas: vec![AtomicFormula::Literal(Literal {
-                                    sign: Sign::NoSign,
-                                    atom: Atom {
-                                        predicate_symbol: "a".into(),
-                                        terms: vec![],
+                                literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Literal(
+                                    Literal {
+                                        sign: Sign::NoSign,
+                                        atom: Atom {
+                                            predicate_symbol: "a".into(),
+                                            terms: vec![],
+                                        },
                                     },
-                                })],
+                                ))],
                             },
                         },
                     ],
@@ -1328,7 +1359,7 @@ mod tests {
                             predicate_symbol: "a".into(),
                             terms: vec![],
                         }),
-                        body: Body { formulas: vec![] },
+                        body: Body { literals: vec![] },
                     }],
                 },
             ),
@@ -1340,7 +1371,7 @@ mod tests {
                             predicate_symbol: "a".into(),
                             terms: vec![],
                         }),
-                        body: Body { formulas: vec![] },
+                        body: Body { literals: vec![] },
                     }],
                 },
             ),

@@ -4,9 +4,9 @@ use {
         syntax_tree::{
             Node,
             asp::{
-                Aggregate, AggregateAtom, Atom, AtomicFormula, BinaryOperator, Body, Comparison,
-                Head, Literal, PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term,
-                UnaryOperator, Variable,
+                Aggregate, AggregateAtom, Atom, AtomicFormula, BinaryOperator, Body, BodyLiteral,
+                Comparison, Head, Literal, PrecomputedTerm, Predicate, Program, Relation, Rule,
+                Sign, Term, UnaryOperator, Variable,
             },
         },
     },
@@ -257,9 +257,18 @@ impl Display for Format<'_, Head> {
     }
 }
 
+impl Display for Format<'_, BodyLiteral> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            BodyLiteral::AtomicFormula(a) => write!(f, "{}", Format(a)),
+            BodyLiteral::AggregateAtom(a) => write!(f, "{}", Format(a)),
+        }
+    }
+}
+
 impl Display for Format<'_, Body> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut iter = self.0.formulas.iter().map(Format);
+        let mut iter = self.0.literals.iter().map(Format);
         if let Some(formula) = iter.next() {
             write!(f, "{formula}")?;
             for formula in iter {
@@ -273,7 +282,7 @@ impl Display for Format<'_, Body> {
 impl Display for Format<'_, Rule> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", Format(&self.0.head))?;
-        if self.0.head == Head::Falsity || !self.0.body.formulas.is_empty() {
+        if self.0.head == Head::Falsity || !self.0.body.literals.is_empty() {
             write!(f, " :- ")?;
         }
         write!(f, "{}.", Format(&self.0.body))
@@ -285,8 +294,8 @@ mod tests {
     use crate::{
         formatting::asp::default::Format,
         syntax_tree::asp::{
-            Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-            Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+            Atom, AtomicFormula, BinaryOperator, Body, BodyLiteral, Comparison, Head, Literal,
+            PrecomputedTerm, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
         },
     };
 
@@ -524,23 +533,23 @@ mod tests {
 
     #[test]
     fn format_body() {
-        assert_eq!(Format(&Body { formulas: vec![] }).to_string(), "");
+        assert_eq!(Format(&Body { literals: vec![] }).to_string(), "");
 
         assert_eq!(
             Format(&Body {
-                formulas: vec![
-                    AtomicFormula::Literal(Literal {
+                literals: vec![
+                    BodyLiteral::AtomicFormula(AtomicFormula::Literal(Literal {
                         sign: Sign::NoSign,
                         atom: Atom {
                             predicate_symbol: "p".into(),
                             terms: vec![Term::Variable(Variable("X".into()))]
                         }
-                    }),
-                    AtomicFormula::Comparison(Comparison {
+                    })),
+                    BodyLiteral::AtomicFormula(AtomicFormula::Comparison(Comparison {
                         relation: Relation::Less,
                         lhs: Term::Variable(Variable("X".into())),
                         rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(10))
-                    })
+                    }))
                 ]
             })
             .to_string(),
@@ -563,7 +572,7 @@ mod tests {
                             predicate_symbol: "a".into(),
                             terms: vec![]
                         }),
-                        body: Body { formulas: vec![] }
+                        body: Body { literals: vec![] }
                     },
                     Rule {
                         head: Head::Basic(Atom {
@@ -571,13 +580,15 @@ mod tests {
                             terms: vec![]
                         }),
                         body: Body {
-                            formulas: vec![AtomicFormula::Literal(Literal {
-                                sign: Sign::Negation,
-                                atom: Atom {
-                                    predicate_symbol: "a".into(),
-                                    terms: vec![]
+                            literals: vec![BodyLiteral::AtomicFormula(AtomicFormula::Literal(
+                                Literal {
+                                    sign: Sign::Negation,
+                                    atom: Atom {
+                                        predicate_symbol: "a".into(),
+                                        terms: vec![]
+                                    }
                                 }
-                            })]
+                            ))]
                         }
                     }
                 ]

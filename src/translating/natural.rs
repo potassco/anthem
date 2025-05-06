@@ -5,7 +5,7 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp, asp::BodyLiteral, fol},
     indexmap::IndexSet,
 };
 
@@ -148,8 +148,8 @@ fn int_variables(r: &asp::Rule) -> IndexSet<String> {
         }
     }
     // iterate over all comparisons in the body
-    for f in r.body.formulas.iter() {
-        if let asp::AtomicFormula::Comparison(c) = f {
+    for f in r.body.literals.iter() {
+        if let BodyLiteral::AtomicFormula(asp::AtomicFormula::Comparison(c)) = f {
             if c.relation == asp::Relation::Equal && is_term_regular_of_second_kind(&c.rhs) {
                 vars.extend(c.lhs.variables().into_iter().map(|v| v.0));
             }
@@ -239,14 +239,17 @@ fn natural_b_literal(
 
 fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
     let mut formulas = Vec::<fol::Formula>::new();
-    for f in b.formulas.iter() {
-        match f {
-            asp::AtomicFormula::Literal(l) => {
-                formulas.push(natural_b_literal(l, int_vars)?);
-            }
-            asp::AtomicFormula::Comparison(c) => {
-                formulas.push(natural_comparison(c, int_vars)?);
-            }
+    for literal in b.literals.iter() {
+        match literal {
+            asp::BodyLiteral::AtomicFormula(formula) => match formula {
+                asp::AtomicFormula::Literal(l) => {
+                    formulas.push(natural_b_literal(l, int_vars)?);
+                }
+                asp::AtomicFormula::Comparison(c) => {
+                    formulas.push(natural_comparison(c, int_vars)?);
+                }
+            },
+            asp::BodyLiteral::AggregateAtom(_) => return None,
         }
     }
     Some(fol::Formula::conjoin(formulas))
