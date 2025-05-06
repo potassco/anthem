@@ -4,6 +4,8 @@ pub trait Regularity {
     fn is_regular(&self) -> bool;
 }
 
+// TODO: Revisit definitions of supporting functions like terms() now that language
+// has been extended with counting aggregates
 impl Regularity for Program {
     fn is_regular(&self) -> bool {
         natural(self.clone()).is_some()

@@ -316,6 +316,11 @@ impl Aggregate {
 
         valid
     }
+
+    fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::from_iter(self.variable_list.into_iter().map(|v| Term::from(v)));
+        terms
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -371,6 +376,13 @@ impl AggregateAtom {
         }
 
         all_local
+    }
+
+    pub fn terms(&self) -> IndexSet<Term> {
+        let mut terms = IndexSet::new();
+        terms.insert(self.guard.clone());
+        terms.extend(self.aggregate.terms());
+        terms
     }
 }
 
@@ -451,7 +463,10 @@ impl BodyLiteral {
     }
 
     pub fn terms(&self) -> IndexSet<Term> {
-        todo!()
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.terms(),
+            BodyLiteral::AggregateAtom(atom) => atom.terms(),
+        }
     }
 
     fn global_variables(&self) -> IndexSet<Variable> {
