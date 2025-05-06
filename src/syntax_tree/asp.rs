@@ -101,6 +101,17 @@ impl Term {
             }
         }
     }
+
+    pub fn contains_interval(&self) -> bool {
+        match self {
+            Term::PrecomputedTerm(_) | Term::Variable(_) => false,
+            Term::UnaryOperation { arg, .. } => arg.contains_interval(),
+            Term::BinaryOperation { op, lhs, rhs } => match op {
+                BinaryOperator::Interval => true,
+                _ => lhs.contains_interval() || rhs.contains_interval(),
+            },
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -282,7 +293,32 @@ pub struct Aggregate {
 
 impl_node!(Aggregate, Format, AggregateParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+impl Aggregate {
+    pub fn is_valid_counting_aggregate(&self) -> bool {
+        let mut valid = true;
+
+        // X is a distinct tuple of variables
+        let unique_vars: IndexSet<Variable> = IndexSet::from_iter(self.variable_list.clone());
+        if unique_vars.len() < self.variable_list.len() {
+            valid = false;
+        }
+
+        // Every member of X must occur in L for aggregate element X : L
+        let mut condition_vars = IndexSet::new();
+        for formula in &self.conditions {
+            for var in formula.variables() {
+                condition_vars.insert(var);
+            }
+        }
+        if unique_vars.difference(&condition_vars).next().is_some() {
+            valid = false;
+        }
+
+        valid
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[non_exhaustive]
 pub enum AggregateOrder {
     Left,
@@ -298,6 +334,45 @@ pub struct AggregateAtom {
 }
 
 impl_node!(AggregateAtom, Format, AggregateAtomParser);
+
+impl AggregateAtom {
+    pub fn is_valid_counting_atom(&self) -> bool {
+        let mut valid = true;
+
+        if !self.aggregate.is_valid_counting_aggregate() {
+            valid = false
+        }
+
+        // Only leq and geq are allowed in agg atoms
+        match (self.relation, self.order) {
+            (Relation::LessEqual, AggregateOrder::Left)
+            | (Relation::GreaterEqual, AggregateOrder::Left) => (),
+            _ => {
+                valid = false;
+            }
+        }
+
+        // count{E} prec t requires that t is interval-free
+        if self.guard.contains_interval() {
+            valid = false;
+        }
+
+        valid
+    }
+
+    // all variables in the tuple X are local for aggregate element X : L
+    pub fn all_local(&self, globals: &IndexSet<Variable>) -> bool {
+        let mut all_local = true;
+
+        for var in &self.aggregate.variable_list {
+            if globals.contains(var) {
+                all_local = false;
+            }
+        }
+
+        all_local
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Head {
@@ -378,6 +453,13 @@ impl BodyLiteral {
     pub fn terms(&self) -> IndexSet<Term> {
         todo!()
     }
+
+    fn global_variables(&self) -> IndexSet<Variable> {
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.variables(),
+            BodyLiteral::AggregateAtom(atom) => atom.guard.variables(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -428,6 +510,14 @@ impl Body {
         }
         terms
     }
+
+    fn global_variables(&self) -> IndexSet<Variable> {
+        let mut globals = IndexSet::new();
+        for literal in self.literals.iter() {
+            globals.extend(literal.global_variables());
+        }
+        globals
+    }
 }
 
 impl FromIterator<BodyLiteral> for Body {
@@ -447,6 +537,12 @@ pub struct Rule {
 impl_node!(Rule, Format, RuleParser);
 
 impl Rule {
+    pub fn global_variables(&self) -> IndexSet<Variable> {
+        let mut globals = self.head.variables();
+        globals.extend(self.body.global_variables());
+        globals
+    }
+
     pub fn predicates(&self) -> IndexSet<Predicate> {
         let mut predicates = IndexSet::new();
         if let Some(predicate) = self.head.predicate() {
