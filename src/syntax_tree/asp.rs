@@ -75,6 +75,12 @@ pub enum Term {
 
 impl_node!(Term, Format, TermParser);
 
+impl From<Variable> for Term {
+    fn from(value: Variable) -> Self {
+        Term::Variable(value)
+    }
+}
+
 impl Term {
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
@@ -318,8 +324,27 @@ impl Aggregate {
     }
 
     fn terms(&self) -> IndexSet<Term> {
-        let mut terms = IndexSet::from_iter(self.variable_list.into_iter().map(|v| Term::from(v)));
+        let mut terms = IndexSet::from_iter(self.variable_list.iter().cloned().map(|v| v.into()));
+        for formula in self.conditions.iter() {
+            terms.extend(formula.terms());
+        }
         terms
+    }
+
+    fn function_constants(&self) -> IndexSet<String> {
+        let mut function_constants = IndexSet::new();
+        for formula in self.conditions.iter() {
+            function_constants.extend(formula.function_constants());
+        }
+        function_constants
+    }
+
+    fn variables(&self) -> IndexSet<Variable> {
+        let mut variables = IndexSet::from_iter(self.variable_list.iter().cloned());
+        for formula in self.conditions.iter() {
+            variables.extend(formula.variables());
+        }
+        variables
     }
 }
 
@@ -384,6 +409,34 @@ impl AggregateAtom {
         terms.extend(self.aggregate.terms());
         terms
     }
+
+    fn function_constants(&self) -> IndexSet<String> {
+        let mut function_constants = self.guard.function_constants();
+        function_constants.extend(self.aggregate.function_constants());
+        function_constants
+    }
+
+    fn variables(&self) -> IndexSet<Variable> {
+        let mut variables = self.guard.variables();
+        variables.extend(self.aggregate.variables());
+        variables
+    }
+
+    fn predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        for formula in self.aggregate.conditions.iter() {
+            predicates.extend(formula.predicates());
+        }
+        predicates
+    }
+
+    fn positive_predicates(&self) -> IndexSet<Predicate> {
+        let mut positive_predicates = IndexSet::new();
+        for formula in self.aggregate.conditions.iter() {
+            positive_predicates.extend(formula.positive_predicates());
+        }
+        positive_predicates
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -447,19 +500,31 @@ impl_node!(BodyLiteral, Format, BodyLiteralParser);
 
 impl BodyLiteral {
     pub fn predicates(&self) -> IndexSet<Predicate> {
-        todo!()
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.predicates(),
+            BodyLiteral::AggregateAtom(atom) => atom.predicates(),
+        }
     }
 
     pub fn positive_predicates(&self) -> IndexSet<Predicate> {
-        todo!()
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.positive_predicates(),
+            BodyLiteral::AggregateAtom(atom) => atom.positive_predicates(),
+        }
     }
 
     pub fn variables(&self) -> IndexSet<Variable> {
-        todo!()
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.variables(),
+            BodyLiteral::AggregateAtom(atom) => atom.variables(),
+        }
     }
 
     pub fn function_constants(&self) -> IndexSet<String> {
-        todo!()
+        match self {
+            BodyLiteral::AtomicFormula(formula) => formula.function_constants(),
+            BodyLiteral::AggregateAtom(atom) => atom.function_constants(),
+        }
     }
 
     pub fn terms(&self) -> IndexSet<Term> {
