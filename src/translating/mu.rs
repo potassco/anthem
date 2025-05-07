@@ -6,11 +6,12 @@ use crate::{
 pub fn mu(p: asp::Program) -> fol::Theory {
     let mut formulas: Vec<fol::Formula> = vec![];
     let globals = tau_star::choose_fresh_global_variables(&p);
+    let aggregate_names = p.aggregate_names();
 
     for r in p.rules {
         match natural::natural_rule(&r) {
             Some(f) => formulas.push(f),
-            None => formulas.push(tau_star::tau_star_rule(&r, &globals)),
+            None => formulas.push(tau_star::tau_star_rule(&r, &globals, &aggregate_names)),
         }
     }
 

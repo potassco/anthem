@@ -1,6 +1,6 @@
 use {
-    super::counting::{TargetTheory, tau_b_counting_atom},
-    crate::syntax_tree::{asp, fol},
+    super::counting::{tau_b_counting_atom, TargetTheory},
+    crate::syntax_tree::{asp::{self, AggregateFormulaKey, AggregateNameMap}, fol},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -698,20 +698,20 @@ pub(crate) fn tau_b(f: asp::AtomicFormula) -> TargetTheory {
     }
 }
 
-fn tau_b_body_literal(l: asp::BodyLiteral, globals: &IndexSet<asp::Variable>) -> TargetTheory {
+fn tau_b_body_literal(l: asp::BodyLiteral, globals: &IndexSet<asp::Variable>, aggregate_names: &AggregateNameMap) -> TargetTheory {
     match l {
         asp::BodyLiteral::AtomicFormula(formula) => tau_b(formula),
-        asp::BodyLiteral::AggregateAtom(atom) => tau_b_counting_atom(atom, globals),
+        asp::BodyLiteral::AggregateAtom(atom) => tau_b_counting_atom(atom, globals, aggregate_names),
     }
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>) -> TargetTheory {
+fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>, aggregate_names: &AggregateNameMap) -> TargetTheory {
     let mut formulas = Vec::new();
     let mut axioms = Vec::new();
 
     for l in b.literals.iter() {
-        let mut literal_theory = tau_b_body_literal(l.clone(), &globals);
+        let mut literal_theory = tau_b_body_literal(l.clone(), &globals, aggregate_names);
         formulas.append(&mut literal_theory.formulas);
         axioms.append(&mut literal_theory.axioms);
     }
@@ -720,7 +720,7 @@ fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>) -> TargetTheory {
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> TargetTheory {
+fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String], aggregate_names: &AggregateNameMap) -> TargetTheory {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -754,7 +754,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> TargetTheory {
         terms: new_terms,
     })); // p(V)
 
-    let body_theory = tau_body(r.body.clone(), r.global_variables());
+    let body_theory = tau_body(r.body.clone(), r.global_variables(), aggregate_names);
 
     let core_lhs = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Conjunction,
@@ -807,7 +807,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> TargetTheory {
 }
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
-fn tau_star_prop_head_rule(r: &asp::Rule) -> TargetTheory {
+fn tau_star_prop_head_rule(r: &asp::Rule, aggregate_names: &AggregateNameMap) -> TargetTheory {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -825,7 +825,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> TargetTheory {
         terms: vec![],
     }));
 
-    let body_theory = tau_body(r.body.clone(), r.global_variables());
+    let body_theory = tau_body(r.body.clone(), r.global_variables(), aggregate_names);
     let core_lhs = fol::Formula::conjoin(body_theory.formulas);
 
     let new_body = match &r.head {
@@ -882,7 +882,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> TargetTheory {
 }
 
 // Handles the case when we have a rule with an empty head
-fn tau_star_constraint_rule(r: &asp::Rule) -> TargetTheory {
+fn tau_star_constraint_rule(r: &asp::Rule, aggregate_names: &AggregateNameMap) -> TargetTheory {
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -891,7 +891,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> TargetTheory {
         });
     }
 
-    let body_theory = tau_body(r.body.clone(), r.global_variables());
+    let body_theory = tau_body(r.body.clone(), r.global_variables(), aggregate_names);
 
     let imp = fol::Formula::BinaryFormula {
         connective: fol::BinaryConnective::Implication,
@@ -921,21 +921,21 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> TargetTheory {
 
 // TODO: handle axioms
 // Translate a rule using a pre-defined list of global variables
-pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String], aggregate_names: &AggregateNameMap) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
                 // First-order head
-                let theory = tau_star_fo_head_rule(r, globals);
+                let theory = tau_star_fo_head_rule(r, globals, aggregate_names);
                 fol::Formula::conjoin(theory.formulas)
             } else {
                 // Propositional head
-                let theory = tau_star_prop_head_rule(r);
+                let theory = tau_star_prop_head_rule(r, aggregate_names);
                 fol::Formula::conjoin(theory.formulas)
             }
         }
         None => {
-            let theory = tau_star_constraint_rule(r);
+            let theory = tau_star_constraint_rule(r, aggregate_names);
             fol::Formula::conjoin(theory.formulas)
         }
     }
@@ -946,9 +946,10 @@ pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 // and V is the set of fresh variables replacing t within p
 pub fn tau_star(p: asp::Program) -> fol::Theory {
     let globals = choose_fresh_global_variables(&p);
+    let aggregate_names = p.aggregate_names();
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {
-        formulas.push(tau_star_rule(r, &globals));
+        formulas.push(tau_star_rule(r, &globals, &aggregate_names));
     }
     fol::Theory { formulas }
 }

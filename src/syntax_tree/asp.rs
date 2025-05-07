@@ -7,10 +7,10 @@ use {
             LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser,
             RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
-        syntax_tree::{Node, impl_node},
+        syntax_tree::{impl_node, Node},
     },
     derive_more::derive::IntoIterator,
-    indexmap::IndexSet,
+    indexmap::IndexSet, std::collections::HashMap,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -662,6 +662,24 @@ impl Rule {
         terms.extend(self.body.terms());
         terms
     }
+
+    // An occurrence of an aggregate atom is uniquely identified by
+    // the atom itself and the list of global variables in the rule
+    fn aggregate_formula_keys(&self) -> Vec<AggregateFormulaKey> {
+        let mut keys = Vec::new();
+        for literal in self.body.literals.iter() {
+            if let BodyLiteral::AggregateAtom(atom) = literal {
+                let globals = Vec::from_iter(self.global_variables());
+                keys.push(
+                    AggregateFormulaKey {
+                        atom: atom.clone(),
+                        globals,
+                    }
+                );
+            }
+        }
+        keys
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -706,6 +724,21 @@ impl Program {
         }
         functions
     }
+
+    // Map every aggregate atom occurring in the program to a unique id
+    // used for naming Start, Atleast, Atmost formulas.
+    // If two aggregate atoms + global variables lists are identical they are mapped to the same name - TODO: check this for accuracy
+    pub(crate) fn aggregate_names(&self) -> AggregateNameMap {
+        let mut program_map = HashMap::new();
+        for rule in self.rules.iter() {
+            for agg_key in rule.aggregate_formula_keys() {
+                if !program_map.contains_key(&agg_key) {
+                    program_map.insert(agg_key, max_value(&program_map) + 1);
+                }
+            }
+        }
+        program_map
+    }
 }
 
 impl FromIterator<Rule> for Program {
@@ -714,6 +747,26 @@ impl FromIterator<Rule> for Program {
             rules: iter.into_iter().collect(),
         }
     }
+}
+
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub(crate) struct AggregateFormulaKey {
+    pub(crate) atom: AggregateAtom,
+    pub(crate) globals: Vec<Variable>,
+}
+
+pub(crate) type AggregateNameMap = HashMap<AggregateFormulaKey, usize>;
+
+fn max_value(map: &AggregateNameMap) -> usize {
+    let mut max_val = 1;
+    for (_, value) in map {
+        let val = value.clone();
+        if val > max_val {
+            max_val = val;
+        }
+    }
+    max_val
 }
 
 #[cfg(test)]

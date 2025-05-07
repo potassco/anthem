@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 
 use crate::{
     syntax_tree::{
-        asp::{self, AggregateAtom},
+        asp::{self, AggregateAtom, AggregateFormulaKey, AggregateNameMap},
         fol::{self, BinaryConnective, Formula, Quantification, Quantifier},
     },
     translating::tau_star::{choose_fresh_variable_names, tau_b, val},
@@ -24,6 +24,7 @@ fn at_least(
     v: IndexSet<asp::Variable>,
     f: fol::Formula,
     z: fol::Variable,
+    id: usize,
 ) -> TargetTheory {
     todo!()
 }
@@ -35,6 +36,7 @@ fn at_most(
     v: IndexSet<asp::Variable>,
     f: fol::Formula,
     z: fol::Variable,
+    id: usize,
 ) -> TargetTheory {
     todo!()
 }
@@ -42,7 +44,14 @@ fn at_most(
 pub(crate) fn tau_b_counting_atom(
     atom: AggregateAtom,
     globals: &IndexSet<asp::Variable>,
+    aggregate_names: &AggregateNameMap,
 ) -> TargetTheory {
+    let global_vars = Vec::from_iter(globals.iter().cloned());
+    let formula_id = aggregate_names.get(&AggregateFormulaKey {
+        atom: atom.clone(),
+        globals: global_vars,
+    }).unwrap().clone();
+
     let mut taken_vars = IndexSet::from_iter(globals.iter().cloned().map(|v| fol::Variable {
         name: v.0,
         sort: fol::Sort::General,
@@ -97,8 +106,8 @@ pub(crate) fn tau_b_counting_atom(
     };
 
     let count_theory = match atom.relation {
-        asp::Relation::LessEqual => at_most(x, v, f, z.clone()),
-        asp::Relation::GreaterEqual => at_least(x, v, f, z.clone()),
+        asp::Relation::LessEqual => at_most(x, v, f, z.clone(), formula_id),
+        asp::Relation::GreaterEqual => at_least(x, v, f, z.clone(), formula_id),
         _ => unreachable!(
             "cannot apply tau-star to an aggregate atom with relation {}",
             atom.relation
