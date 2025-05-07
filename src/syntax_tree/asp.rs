@@ -7,10 +7,11 @@ use {
             LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser, RelationParser,
             RuleParser, SignParser, TermParser, UnaryOperatorParser, VariableParser,
         },
-        syntax_tree::{impl_node, Node},
+        syntax_tree::{Node, impl_node},
     },
     derive_more::derive::IntoIterator,
-    indexmap::IndexSet, std::collections::HashMap,
+    indexmap::IndexSet,
+    std::collections::HashMap,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -670,12 +671,10 @@ impl Rule {
         for literal in self.body.literals.iter() {
             if let BodyLiteral::AggregateAtom(atom) = literal {
                 let globals = Vec::from_iter(self.global_variables());
-                keys.push(
-                    AggregateFormulaKey {
-                        atom: atom.clone(),
-                        globals,
-                    }
-                );
+                keys.push(AggregateFormulaKey {
+                    atom: atom.clone(),
+                    globals,
+                });
             }
         }
         keys
@@ -748,7 +747,6 @@ impl FromIterator<Rule> for Program {
         }
     }
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub(crate) struct AggregateFormulaKey {

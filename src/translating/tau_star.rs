@@ -1,6 +1,9 @@
 use {
-    super::counting::{tau_b_counting_atom, TargetTheory},
-    crate::syntax_tree::{asp::{self, AggregateFormulaKey, AggregateNameMap}, fol},
+    super::counting::{TargetTheory, tau_b_counting_atom},
+    crate::syntax_tree::{
+        asp::{self, AggregateFormulaKey, AggregateNameMap},
+        fol,
+    },
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -698,15 +701,25 @@ pub(crate) fn tau_b(f: asp::AtomicFormula) -> TargetTheory {
     }
 }
 
-fn tau_b_body_literal(l: asp::BodyLiteral, globals: &IndexSet<asp::Variable>, aggregate_names: &AggregateNameMap) -> TargetTheory {
+fn tau_b_body_literal(
+    l: asp::BodyLiteral,
+    globals: &IndexSet<asp::Variable>,
+    aggregate_names: &AggregateNameMap,
+) -> TargetTheory {
     match l {
         asp::BodyLiteral::AtomicFormula(formula) => tau_b(formula),
-        asp::BodyLiteral::AggregateAtom(atom) => tau_b_counting_atom(atom, globals, aggregate_names),
+        asp::BodyLiteral::AggregateAtom(atom) => {
+            tau_b_counting_atom(atom, globals, aggregate_names)
+        }
     }
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>, aggregate_names: &AggregateNameMap) -> TargetTheory {
+fn tau_body(
+    b: asp::Body,
+    globals: IndexSet<asp::Variable>,
+    aggregate_names: &AggregateNameMap,
+) -> TargetTheory {
     let mut formulas = Vec::new();
     let mut axioms = Vec::new();
 
@@ -720,7 +733,11 @@ fn tau_body(b: asp::Body, globals: IndexSet<asp::Variable>, aggregate_names: &Ag
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String], aggregate_names: &AggregateNameMap) -> TargetTheory {
+fn tau_star_fo_head_rule(
+    r: &asp::Rule,
+    globals: &[String],
+    aggregate_names: &AggregateNameMap,
+) -> TargetTheory {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -921,7 +938,11 @@ fn tau_star_constraint_rule(r: &asp::Rule, aggregate_names: &AggregateNameMap) -
 
 // TODO: handle axioms
 // Translate a rule using a pre-defined list of global variables
-pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String], aggregate_names: &AggregateNameMap) -> fol::Formula {
+pub(crate) fn tau_star_rule(
+    r: &asp::Rule,
+    globals: &[String],
+    aggregate_names: &AggregateNameMap,
+) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
