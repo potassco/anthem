@@ -31,6 +31,11 @@ pub struct TargetTheory {
     pub axioms: Vec<Formula>,
 }
 
+enum At {
+    Most,
+    Least,
+}
+
 // Conjoins all formulas up to but excluding formula[bound]
 // bigwedge_{k=0}^{bound-1}( Xk = Uk )
 fn conjunction_function(formulas: &[Formula], bound: usize) -> Formula {
@@ -334,14 +339,18 @@ fn start(
 
 // Produces formula corresponding to atom Atmost_F^{X;V}(V,Z)
 // and supporting axioms for Start and definitions of Atmost_F^{X;V}(V,Z)
-fn at_most(
+fn at_most_at_least(
     x: IndexSet<asp::Variable>,
     v: IndexSet<asp::Variable>,
     f: fol::Formula,
     z: fol::Variable,
     id: usize,
+    at: At,
 ) -> TargetTheory {
-    let predicate_symbol = format!("at_most_f{id}");
+    let predicate_symbol = match at {
+        At::Most => format!("at_most_f{id}"),
+        At::Least => format!("at_least_f{id}"),
+    };
 
     let mut atom_terms: Vec<GeneralTerm> = v
         .clone()
@@ -353,7 +362,8 @@ fn at_most(
     atom_terms.push(z_term.clone());
 
     // Atmost_F^{X;V}(V,Z)
-    let at_most_atom = Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
+    // Atleast_F^{X;V}(V,Z)
+    let at_atom = Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom {
         predicate_symbol,
         terms: atom_terms,
     }));
@@ -400,19 +410,29 @@ fn at_most(
 
     let n_term: GeneralTerm = n.into();
 
-    // forall X N ( Start_F^{X;V}(X,V,N) -> N <= Z )
-    let forall_start = Formula::QuantifiedFormula {
+    // Atmost:  forall X N ( Start_F^{X;V}(X,V,N) -> N <= Z )
+    // Atleast: exists X N ( Start_F^{X;V}(X,V,N) &  N >= Z )
+    let at_definition_rhs = Formula::QuantifiedFormula {
         quantification: Quantification {
-            quantifier: Quantifier::Forall,
+            quantifier: match at {
+                At::Most => Quantifier::Forall,
+                At::Least => Quantifier::Exists,
+            },
             variables: x_n,
         },
         formula: Formula::BinaryFormula {
-            connective: BinaryConnective::Implication,
+            connective: match at {
+                At::Most => BinaryConnective::Implication,
+                At::Least => BinaryConnective::Conjunction,
+            },
             lhs: start_atom.into(),
             rhs: Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                 term: n_term,
                 guards: vec![fol::Guard {
-                    relation: fol::Relation::LessEqual,
+                    relation: match at {
+                        At::Most => fol::Relation::LessEqual,
+                        At::Least => fol::Relation::GreaterEqual,
+                    },
                     term: z_term,
                 }],
             }))
@@ -421,25 +441,26 @@ fn at_most(
         .into(),
     };
 
-    // forall V Z ( Atmost_F^{X;V}(V,Z) <-> forall X N ( Start_F^{X;V}(X,V,N) -> N <= Z ) )
-    let at_most_definition = Formula::QuantifiedFormula {
+    // Atmost:  forall V Z ( Atmost_F^{X;V}(V,Z)  <-> at_definition_rhs )
+    // Atleast: forall V Z ( Atleast_F^{X;V}(V,Z) <-> at_definition_rhs )
+    let at_definition = Formula::QuantifiedFormula {
         quantification: Quantification {
             quantifier: Quantifier::Forall,
             variables,
         },
         formula: Formula::BinaryFormula {
             connective: BinaryConnective::Equivalence,
-            lhs: at_most_atom.clone().into(),
-            rhs: forall_start.into(),
+            lhs: at_atom.clone().into(),
+            rhs: at_definition_rhs.into(),
         }
         .into(),
     };
 
-    let mut axioms = vec![at_most_definition];
+    let mut axioms = vec![at_definition];
     axioms.append(&mut start_theory.axioms);
 
     TargetTheory {
-        formulas: vec![at_most_atom],
+        formulas: vec![at_atom],
         axioms,
     }
 }
@@ -511,8 +532,12 @@ pub(crate) fn tau_b_counting_atom(
     };
 
     let count_theory = match atom.relation {
-        asp::Relation::LessEqual => at_most(x, v, f.clone(), z.clone(), formula_id),
-        //asp::Relation::GreaterEqual => at_least(x, v, f.clone(), z.clone(), formula_id),      TODO
+        asp::Relation::LessEqual => {
+            at_most_at_least(x, v, f.clone(), z.clone(), formula_id, At::Most)
+        }
+        asp::Relation::GreaterEqual => {
+            at_most_at_least(x, v, f.clone(), z.clone(), formula_id, At::Least)
+        }
         _ => unreachable!(
             "cannot apply tau-star to an aggregate atom with relation {}",
             atom.relation
@@ -548,7 +573,7 @@ mod tests {
 
     use crate::syntax_tree::{asp, fol};
 
-    use super::{at_most, start};
+    use super::{At, at_most_at_least, start};
 
     // #[test]
     // fn test_choose_fresh_variable_for_formula() {
@@ -626,7 +651,9 @@ mod tests {
             "Z",
             3,
             "at_most_f3(V1, Z)",
-            ["forall V1 Z ( at_most_f3(V1,Z) <-> forall S T N$i (start_f3(S,T,V1,N$i) -> N$i <= Z) )"],
+            [
+                "forall V1 Z ( at_most_f3(V1,Z) <-> forall S T N$i (start_f3(S,T,V1,N$i) -> N$i <= Z) )",
+            ],
         )] {
             let x: IndexSet<asp::Variable> =
                 IndexSet::from_iter(x.into_iter().map(|v| v.parse().unwrap()));
@@ -636,7 +663,7 @@ mod tests {
             let z: fol::Variable = z.parse().unwrap();
             let right_atom: fol::Formula = target_atom.parse().unwrap();
 
-            let mut target_theory = at_most(x, v, f, z, id);
+            let mut target_theory = at_most_at_least(x, v, f, z, id, At::Most);
 
             let left_atom = target_theory.formulas.pop().unwrap();
 
