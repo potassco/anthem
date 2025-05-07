@@ -779,7 +779,14 @@ impl Formula {
                 vars.extend(rhs.variables());
                 vars
             }
-            Formula::QuantifiedFormula { formula, .. } => formula.variables(),
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => {
+                let mut vars = formula.variables();
+                vars.extend(quantification.variables.clone());
+                vars
+            }
         }
     }
 

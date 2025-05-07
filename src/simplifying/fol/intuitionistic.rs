@@ -6,6 +6,14 @@ use crate::{
     },
 };
 
+pub(crate) const BASIC: &[fn(Formula) -> Formula] = &[
+    remove_identities,
+    remove_annihilations,
+    remove_idempotences,
+    remove_orphaned_variables,
+    remove_empty_quantifications,
+];
+
 pub const INTUITIONISTIC: &[fn(Formula) -> Formula] = &[
     evaluate_comparisons,
     apply_negation_definition_inverse,

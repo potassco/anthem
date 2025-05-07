@@ -1,7 +1,7 @@
 use {
     super::counting::{TargetTheory, tau_b_counting_atom},
     crate::syntax_tree::{
-        asp::{self, AggregateFormulaKey, AggregateNameMap},
+        asp::{self, AggregateNameMap},
         fol,
     },
     indexmap::IndexSet,
