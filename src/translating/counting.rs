@@ -316,26 +316,82 @@ fn start(
     }
 }
 
-// Produces formula corresponding to atom Atleast_F^{X;V}(V,Z)
-// and supporting axioms for Start and definitions of Atleast_F^{X;V}(V,Z)
-// fn at_least(
-//     x: IndexSet<asp::Variable>,
-//     v: IndexSet<asp::Variable>,
-//     f: fol::Formula,
-//     z: fol::Variable,
-//     id: usize,
-// ) -> TargetTheory {
-//     let predicate_name = format!("at_least_f{id}");
+// corresponds to Ind schema for f
+pub(crate) fn induction_schema(f: Formula) -> Formula {
+    //let taken_variables = f.variables();
 
-//     let start_theory = start(x, v, f, id);
+    // TODO: ask VL
+    let n = fol::Variable {
+        name: "N".to_string(),
+        sort: fol::Sort::Integer,
+    };
 
-//     todo!()
-// }
+    let f_zero = f
+        .clone()
+        .substitute(n.clone(), GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)));
 
-// // corresponds to Ind schemas
-// fn induction(f: fol::Formula) -> Vec<Formula> {
-//     todo!()
-// }
+    let f_n_plus_1 = f.clone().substitute(
+        n.clone(),
+        GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+            op: fol::BinaryOperator::Add,
+            lhs: IntegerTerm::Variable(n.name.clone()).into(),
+            rhs: IntegerTerm::Numeral(1).into(),
+        }),
+    );
+
+    // forall N
+    let forall_n = Quantification {
+        quantifier: Quantifier::Forall,
+        variables: vec![n.clone()],
+    };
+
+    // N >= 0
+    let n_geq_zero = Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(n.name)),
+        guards: vec![Guard {
+            relation: fol::Relation::GreaterEqual,
+            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
+        }],
+    }));
+
+    // F_0^N & forall N ( N >= 0 & F -> F_{N+1}^N )
+    let induction_antecedent = Formula::BinaryFormula {
+        connective: BinaryConnective::Conjunction,
+        lhs: f_zero.into(),
+        rhs: Formula::QuantifiedFormula {
+            quantification: forall_n.clone(),
+            formula: Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                lhs: Formula::BinaryFormula {
+                    connective: fol::BinaryConnective::Conjunction,
+                    lhs: n_geq_zero.clone().into(),
+                    rhs: f.clone().into(),
+                }
+                .into(),
+                rhs: f_n_plus_1.into(),
+            }
+            .into(),
+        }
+        .into(),
+    };
+
+    // forall N (N >= 0 -> F)
+    let induction_consequent = Formula::QuantifiedFormula {
+        quantification: forall_n,
+        formula: Formula::BinaryFormula {
+            connective: BinaryConnective::Implication,
+            lhs: n_geq_zero.into(),
+            rhs: f.clone().into(),
+        }
+        .into(),
+    };
+
+    Formula::BinaryFormula {
+        connective: fol::BinaryConnective::Implication,
+        lhs: induction_antecedent.into(),
+        rhs: induction_consequent.into(),
+    }
+}
 
 // Produces formula corresponding to atom Atmost_F^{X;V}(V,Z)
 // and supporting axioms for Start and definitions of Atmost_F^{X;V}(V,Z)
@@ -531,7 +587,7 @@ pub(crate) fn tau_b_counting_atom(
         formula: Formula::conjoin(translated_conditions).into(),
     };
 
-    let count_theory = match atom.relation {
+    let mut count_theory = match atom.relation {
         asp::Relation::LessEqual => {
             at_most_at_least(x, v, f.clone(), z.clone(), formula_id, At::Most)
         }
@@ -544,8 +600,8 @@ pub(crate) fn tau_b_counting_atom(
         ),
     };
 
-    // TODO
-    //count_theory.axioms.append(&mut induction(f));
+    // TODO: which formulas do we need to generate induction schema for?
+    count_theory.axioms.push(induction_schema(f));
 
     TargetTheory {
         formulas: vec![Formula::QuantifiedFormula {
@@ -566,14 +622,28 @@ pub(crate) fn tau_b_counting_atom(
 
 #[cfg(test)]
 mod tests {
+    use {
+        super::{At, at_most_at_least, induction_schema, start},
+        crate::syntax_tree::{asp, fol},
+        indexmap::IndexSet,
+        std::iter::zip,
+    };
 
-    use std::iter::zip;
+    #[test]
+    fn test_induction() {
+        for (src, target) in [(
+            "start_f1(X, V, N$i)",
+            "start_f1(X, V, 0) and forall N$i (N$i >= 0 and start_f1(X, V, N$i) -> start_f1(X, V, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, V, N$i))",
+        )] {
+            let left: fol::Formula = induction_schema(src.parse().unwrap());
+            let right: fol::Formula = target.parse().unwrap();
 
-    use indexmap::IndexSet;
-
-    use crate::syntax_tree::{asp, fol};
-
-    use super::{At, at_most_at_least, start};
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
 
     // #[test]
     // fn test_choose_fresh_variable_for_formula() {
