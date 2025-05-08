@@ -12,6 +12,7 @@ use {
 
 pub mod asp;
 pub mod fol;
+pub mod superasp;
 
 pub trait Node: Clone + Debug + Eq + PartialEq + FromStr + Display + Hash {
     fn from_stdin() -> Result<Self>

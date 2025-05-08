@@ -2,6 +2,7 @@ use std::fmt::{self, Display, Formatter};
 
 pub mod asp;
 pub mod fol;
+pub mod superasp;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Associativity {

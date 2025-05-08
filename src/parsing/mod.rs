@@ -2,6 +2,7 @@ use std::any::type_name;
 
 pub mod asp;
 pub mod fol;
+pub mod superasp;
 
 pub trait Parser {
     type Node: crate::syntax_tree::Node;
