@@ -317,79 +317,86 @@ fn start(
 }
 
 // corresponds to Ind schema for f
+// Creates an induction shema using the first free integer variable of f
 pub(crate) fn induction_schema(f: Formula) -> Formula {
-    //let taken_variables = f.variables();
+    let free_vars = f.free_variables();
 
-    // TODO: ask VL
-    let n = fol::Variable {
-        name: "N".to_string(),
-        sort: fol::Sort::Integer,
-    };
+    let mut int_vars_of_f = free_vars
+        .iter()
+        .filter(|&v| matches!(v.sort, fol::Sort::Integer));
 
-    let f_zero = f
-        .clone()
-        .substitute(n.clone(), GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)));
+    match int_vars_of_f.next() {
+        Some(var) => {
+            let n = var.clone();
+            let f_zero = f
+                .clone()
+                .substitute(n.clone(), GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)));
 
-    let f_n_plus_1 = f.clone().substitute(
-        n.clone(),
-        GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-            op: fol::BinaryOperator::Add,
-            lhs: IntegerTerm::Variable(n.name.clone()).into(),
-            rhs: IntegerTerm::Numeral(1).into(),
-        }),
-    );
+            let f_n_plus_1 = f.clone().substitute(
+                n.clone(),
+                GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
+                    op: fol::BinaryOperator::Add,
+                    lhs: IntegerTerm::Variable(n.name.clone()).into(),
+                    rhs: IntegerTerm::Numeral(1).into(),
+                }),
+            );
 
-    // forall N
-    let forall_n = Quantification {
-        quantifier: Quantifier::Forall,
-        variables: vec![n.clone()],
-    };
+            // forall N
+            let forall_n = Quantification {
+                quantifier: Quantifier::Forall,
+                variables: vec![n.clone()],
+            };
 
-    // N >= 0
-    let n_geq_zero = Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
-        term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(n.name)),
-        guards: vec![Guard {
-            relation: fol::Relation::GreaterEqual,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-        }],
-    }));
+            // N >= 0
+            let n_geq_zero =
+                Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+                    term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(n.name)),
+                    guards: vec![Guard {
+                        relation: fol::Relation::GreaterEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
+                    }],
+                }));
 
-    // F_0^N & forall N ( N >= 0 & F -> F_{N+1}^N )
-    let induction_antecedent = Formula::BinaryFormula {
-        connective: BinaryConnective::Conjunction,
-        lhs: f_zero.into(),
-        rhs: Formula::QuantifiedFormula {
-            quantification: forall_n.clone(),
-            formula: Formula::BinaryFormula {
-                connective: fol::BinaryConnective::Implication,
-                lhs: Formula::BinaryFormula {
-                    connective: fol::BinaryConnective::Conjunction,
-                    lhs: n_geq_zero.clone().into(),
+            // F_0^N & forall N ( N >= 0 & F -> F_{N+1}^N )
+            let induction_antecedent = Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs: f_zero.into(),
+                rhs: Formula::QuantifiedFormula {
+                    quantification: forall_n.clone(),
+                    formula: Formula::BinaryFormula {
+                        connective: fol::BinaryConnective::Implication,
+                        lhs: Formula::BinaryFormula {
+                            connective: fol::BinaryConnective::Conjunction,
+                            lhs: n_geq_zero.clone().into(),
+                            rhs: f.clone().into(),
+                        }
+                        .into(),
+                        rhs: f_n_plus_1.into(),
+                    }
+                    .into(),
+                }
+                .into(),
+            };
+
+            // forall N (N >= 0 -> F)
+            let induction_consequent = Formula::QuantifiedFormula {
+                quantification: forall_n,
+                formula: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: n_geq_zero.into(),
                     rhs: f.clone().into(),
                 }
                 .into(),
-                rhs: f_n_plus_1.into(),
+            };
+
+            Formula::BinaryFormula {
+                connective: fol::BinaryConnective::Implication,
+                lhs: induction_antecedent.into(),
+                rhs: induction_consequent.into(),
             }
-            .into(),
         }
-        .into(),
-    };
 
-    // forall N (N >= 0 -> F)
-    let induction_consequent = Formula::QuantifiedFormula {
-        quantification: forall_n,
-        formula: Formula::BinaryFormula {
-            connective: BinaryConnective::Implication,
-            lhs: n_geq_zero.into(),
-            rhs: f.clone().into(),
-        }
-        .into(),
-    };
-
-    Formula::BinaryFormula {
-        connective: fol::BinaryConnective::Implication,
-        lhs: induction_antecedent.into(),
-        rhs: induction_consequent.into(),
+        None => f,
     }
 }
 
@@ -439,6 +446,9 @@ fn at_most_at_least(
 
     // Start_F^{X;V}(X,V,N)
     let start_atom = start_theory.formulas.pop().unwrap();
+
+    // Ind for Start_F^{X;V}(X,V,N)
+    let mut axioms = vec![induction_schema(start_atom.clone())];
 
     // N
     let n = match start_atom.clone() {
@@ -512,7 +522,7 @@ fn at_most_at_least(
         .into(),
     };
 
-    let mut axioms = vec![at_definition];
+    axioms.push(at_definition);
     axioms.append(&mut start_theory.axioms);
 
     TargetTheory {
@@ -579,7 +589,7 @@ pub(crate) fn tau_b_counting_atom(
         })
         .collect();
 
-    let f = if w.len() > 0 {
+    let f = if !w.is_empty() {
         Formula::QuantifiedFormula {
             quantification: Quantification {
                 quantifier: Quantifier::Exists,
@@ -588,10 +598,10 @@ pub(crate) fn tau_b_counting_atom(
             formula: Formula::conjoin(translated_conditions).into(),
         }
     } else {
-        Formula::conjoin(translated_conditions).into()
+        Formula::conjoin(translated_conditions)
     };
 
-    let mut count_theory = match atom.relation {
+    let count_theory = match atom.relation {
         asp::Relation::LessEqual => {
             at_most_at_least(x, v, f.clone(), z.clone(), formula_id, At::Most)
         }
@@ -604,8 +614,12 @@ pub(crate) fn tau_b_counting_atom(
         ),
     };
 
+    let count_theory_formula = Formula::conjoin(count_theory.formulas);
+
     // TODO: which formulas do we need to generate induction schema for?
-    count_theory.axioms.push(induction_schema(f));
+    // count_theory
+    //     .axioms
+    //     .push(induction_schema(count_theory_formula.clone()));
 
     TargetTheory {
         formulas: vec![Formula::QuantifiedFormula {
@@ -616,7 +630,7 @@ pub(crate) fn tau_b_counting_atom(
             formula: Formula::BinaryFormula {
                 connective: BinaryConnective::Conjunction,
                 lhs: val(atom.guard, z).into(),
-                rhs: Formula::conjoin(count_theory.formulas).into(),
+                rhs: count_theory_formula.into(),
             }
             .into(),
         }],
@@ -638,10 +652,16 @@ mod tests {
 
     #[test]
     fn test_induction() {
-        for (src, target) in [(
-            "start_f1(X, V, N$i)",
-            "start_f1(X, V, 0) and forall N$i (N$i >= 0 and start_f1(X, V, N$i) -> start_f1(X, V, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, V, N$i))",
-        )] {
+        for (src, target) in [
+            (
+                "start_f1(X, V, N$i)",
+                "start_f1(X, V, 0) and forall N$i (N$i >= 0 and start_f1(X, V, N$i) -> start_f1(X, V, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, V, N$i))",
+            ),
+            (
+                "start_f1(X, V, N) and exists N$i p(N$i)",
+                "start_f1(X, V, N) and exists N$i p(N$i)",
+            ),
+        ] {
             let left: fol::Formula = induction_schema(src.parse().unwrap());
             let right: fol::Formula = target.parse().unwrap();
 
@@ -729,6 +749,7 @@ mod tests {
             3,
             "at_most_f3(V1, Z)",
             [
+                "start_f3(S, T, V1, 0) and forall N$i (N$i >= 0 and start_f3(S, T, V1, N$i) -> start_f3(S, T, V1, N$i + 1)) -> forall N$i (N$i >= 0 -> start_f3(S, T, V1, N$i))",
                 "forall V1 Z ( at_most_f3(V1,Z) <-> forall S T N$i (start_f3(S,T,V1,N$i) -> N$i <= Z) )",
             ],
         )] {

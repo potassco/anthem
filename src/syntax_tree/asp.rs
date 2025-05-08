@@ -757,7 +757,7 @@ pub(crate) struct AggregateFormulaKey {
 pub(crate) type AggregateNameMap = HashMap<AggregateFormulaKey, usize>;
 
 fn max_value(map: &AggregateNameMap) -> usize {
-    let mut max_val = 1;
+    let mut max_val = 0;
     for value in map.values() {
         let val = *value;
         if val > max_val {

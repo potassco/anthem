@@ -2,7 +2,7 @@ use {
     super::counting::{TargetTheory, tau_b_counting_atom},
     crate::syntax_tree::{
         asp::{self, AggregateNameMap},
-        fol,
+        fol::{self, Formula},
     },
     indexmap::IndexSet,
     lazy_static::lazy_static,
@@ -942,23 +942,18 @@ pub(crate) fn tau_star_rule(
     r: &asp::Rule,
     globals: &[String],
     aggregate_names: &AggregateNameMap,
-) -> fol::Formula {
+) -> TargetTheory {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
                 // First-order head
-                let theory = tau_star_fo_head_rule(r, globals, aggregate_names);
-                fol::Formula::conjoin(theory.formulas)
+                tau_star_fo_head_rule(r, globals, aggregate_names)
             } else {
                 // Propositional head
-                let theory = tau_star_prop_head_rule(r, aggregate_names);
-                fol::Formula::conjoin(theory.formulas)
+                tau_star_prop_head_rule(r, aggregate_names)
             }
         }
-        None => {
-            let theory = tau_star_constraint_rule(r, aggregate_names);
-            fol::Formula::conjoin(theory.formulas)
-        }
+        None => tau_star_constraint_rule(r, aggregate_names),
     }
 }
 
@@ -970,9 +965,27 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
     let aggregate_names = p.aggregate_names();
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {
-        formulas.push(tau_star_rule(r, &globals, &aggregate_names));
+        let f = Formula::conjoin(tau_star_rule(r, &globals, &aggregate_names).formulas);
+        formulas.push(f);
     }
     fol::Theory { formulas }
+}
+
+pub fn tau_star_with_axioms(p: asp::Program) -> TargetTheory {
+    let mut theory = TargetTheory {
+        formulas: vec![],
+        axioms: vec![],
+    };
+
+    let globals = choose_fresh_global_variables(&p);
+    let aggregate_names = p.aggregate_names();
+    for r in p.rules.iter() {
+        let rule_theory = tau_star_rule(r, &globals, &aggregate_names);
+        theory.formulas.extend(rule_theory.formulas);
+        theory.axioms.extend(rule_theory.axioms);
+    }
+
+    theory
 }
 
 #[cfg(test)]
@@ -1105,6 +1118,14 @@ mod tests {
             (
                 "p(X/2) :- X=4.",
                 "forall V1 X (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and exists Z Z1 (Z = X and Z1 = 4 and Z = Z1) -> p(V1)).",
+            ),
+            (
+                "q(Y-1) :- #count{X : p(X)} >= Y.",
+                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and exists C (C = Y and at_least_f1(C)) ) -> q(V1) )."
+            ),
+            (
+                "q(Y-1) :- #count{X : p(X)} >= Y, #count{X : p(X)} <= Y.",
+                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and (exists C (C = Y and at_least_f1(C)) and exists C (C = Y and at_most_f2(C))) ) -> q(V1) )."
             ),
         ] {
             let left = tau_star(src.parse().unwrap());

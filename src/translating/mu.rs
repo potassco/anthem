@@ -1,5 +1,8 @@
 use crate::{
-    syntax_tree::{asp, fol},
+    syntax_tree::{
+        asp,
+        fol::{self, Formula},
+    },
     translating::{natural, tau_star},
 };
 
@@ -11,7 +14,12 @@ pub fn mu(p: asp::Program) -> fol::Theory {
     for r in p.rules {
         match natural::natural_rule(&r) {
             Some(f) => formulas.push(f),
-            None => formulas.push(tau_star::tau_star_rule(&r, &globals, &aggregate_names)),
+            None => {
+                let f = Formula::conjoin(
+                    tau_star::tau_star_rule(&r, &globals, &aggregate_names).formulas,
+                );
+                formulas.push(f);
+            }
         }
     }
 
