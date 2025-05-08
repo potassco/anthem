@@ -10,9 +10,13 @@ use {
         },
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{Node as _, asp, fol},
+        syntax_tree::{
+            Node as _, asp,
+            fol::{self, Theory},
+        },
         translating::{
-            completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+            completion::completion, gamma::gamma, mu::mu, natural::natural,
+            tau_star::tau_star_with_axioms,
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -124,7 +128,11 @@ pub fn main() -> Result<()> {
             Ok(())
         }
 
-        Command::Translate { with, input } => {
+        Command::Translate {
+            with,
+            include_axioms,
+            input,
+        } => {
             match with {
                 Translation::Completion => {
                     let theory =
@@ -158,8 +166,17 @@ pub fn main() -> Result<()> {
                 Translation::TauStar => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = tau_star(program);
-                    print!("{theory}")
+                    let theory = tau_star_with_axioms(program);
+                    let taustar = Theory::from_iter(theory.formulas);
+
+                    if include_axioms {
+                        println!("\tSupporting Axioms:");
+                        let axioms = Theory::from_iter(theory.axioms);
+                        print!("{axioms}");
+                        println!("\ttau-star:");
+                    }
+
+                    print!("{taustar}");
                 }
             }
 

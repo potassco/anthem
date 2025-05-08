@@ -1121,11 +1121,11 @@ mod tests {
             ),
             (
                 "q(Y-1) :- #count{X : p(X)} >= Y.",
-                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and exists C (C = Y and at_least_f1(C)) ) -> q(V1) )."
+                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and exists C (C = Y and at_least_f1(C)) ) -> q(V1) ).",
             ),
             (
                 "q(Y-1) :- #count{X : p(X)} >= Y, #count{X : p(X)} <= Y.",
-                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and (exists C (C = Y and at_least_f1(C)) and exists C (C = Y and at_most_f2(C))) ) -> q(V1) )."
+                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and (exists C (C = Y and at_least_f1(C)) and exists C (C = Y and at_most_f2(C))) ) -> q(V1) ).",
             ),
         ] {
             let left = tau_star(src.parse().unwrap());

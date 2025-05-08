@@ -56,6 +56,10 @@ pub enum Command {
         #[arg(long, value_enum)]
         with: Translation,
 
+        /// Display supporting axioms for count aggregates
+        #[arg(long, action, default_value_t = false)]
+        include_axioms: bool,
+
         /// The file to translate
         input: Option<PathBuf>,
     },
