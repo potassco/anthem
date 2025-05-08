@@ -21,14 +21,14 @@ use {
     std::hash::Hash,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum UnaryOperator {
     Negative,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum BinaryOperator {
     Add,
     Subtract,
@@ -37,7 +37,7 @@ pub enum BinaryOperator {
 
 impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum IntegerTerm {
     Numeral(isize),
     FunctionConstant(String),
@@ -107,7 +107,7 @@ impl IntegerTerm {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum SymbolicTerm {
     Symbol(String),
     FunctionConstant(String),
@@ -152,7 +152,7 @@ impl SymbolicTerm {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum GeneralTerm {
     Infimum,
     Supremum,
@@ -269,7 +269,7 @@ impl From<Variable> for GeneralTerm {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Predicate {
     pub symbol: String,
     pub arity: usize,
@@ -297,7 +297,7 @@ impl From<crate::syntax_tree::asp::Predicate> for Predicate {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Atom {
     pub predicate_symbol: String,
     pub terms: Vec<GeneralTerm>,
@@ -352,7 +352,7 @@ impl Atom {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Relation {
     Equal,
     NotEqual,
@@ -377,7 +377,7 @@ impl From<crate::syntax_tree::asp::Relation> for Relation {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Guard {
     pub relation: Relation,
     pub term: GeneralTerm,
@@ -406,7 +406,7 @@ impl Guard {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Comparison {
     pub term: GeneralTerm,
     pub guards: Vec<Guard>,
@@ -489,7 +489,7 @@ impl Comparison {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum AtomicFormula {
     Truth,
     Falsity,
@@ -600,14 +600,14 @@ impl AtomicFormula {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum UnaryConnective {
     Negation,
 }
 
 impl_node!(UnaryConnective, Format, UnaryConnectiveParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Quantifier {
     Forall,
     Exists,
@@ -615,7 +615,7 @@ pub enum Quantifier {
 
 impl_node!(Quantifier, Format, QuantifierParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Quantification {
     pub quantifier: Quantifier,
     pub variables: Vec<Variable>,
@@ -688,7 +688,7 @@ impl TryFrom<GeneralTerm> for Variable {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum BinaryConnective {
     Conjunction,
     Disjunction,
@@ -699,7 +699,7 @@ pub enum BinaryConnective {
 
 impl_node!(BinaryConnective, Format, BinaryConnectiveParser);
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Formula {
     AtomicFormula(AtomicFormula),
     UnaryFormula {

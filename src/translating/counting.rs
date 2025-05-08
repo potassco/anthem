@@ -579,12 +579,16 @@ pub(crate) fn tau_b_counting_atom(
         })
         .collect();
 
-    let f = Formula::QuantifiedFormula {
-        quantification: Quantification {
-            quantifier: Quantifier::Exists,
-            variables: w,
-        },
-        formula: Formula::conjoin(translated_conditions).into(),
+    let f = if w.len() > 0 {
+        Formula::QuantifiedFormula {
+            quantification: Quantification {
+                quantifier: Quantifier::Exists,
+                variables: w,
+            },
+            formula: Formula::conjoin(translated_conditions).into(),
+        }
+    } else {
+        Formula::conjoin(translated_conditions).into()
     };
 
     let mut count_theory = match atom.relation {
@@ -623,8 +627,11 @@ pub(crate) fn tau_b_counting_atom(
 #[cfg(test)]
 mod tests {
     use {
-        super::{At, at_most_at_least, induction_schema, start},
-        crate::syntax_tree::{asp, fol},
+        super::{At, at_most_at_least, induction_schema, start, tau_b_counting_atom},
+        crate::syntax_tree::{
+            asp::{self, AggregateAtom, AggregateFormulaKey, AggregateNameMap},
+            fol,
+        },
         indexmap::IndexSet,
         std::iter::zip,
     };
@@ -756,6 +763,111 @@ mod tests {
                     "assertion `left == right` failed:\n left:\n{left_axiom}\n right:\n{right_axiom}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn test_tau_b_formula() {
+        let agg1 = AggregateFormulaKey {
+            atom: "#count{ X : p(X,Y) } <= 2".parse().unwrap(),
+            globals: vec!["Y".parse().unwrap()],
+        };
+
+        let agg2 = AggregateFormulaKey {
+            atom: "#count{ X : p(X,Y) } <= 2".parse().unwrap(),
+            globals: vec![],
+        };
+
+        let agg3 = AggregateFormulaKey {
+            atom: "#count{ X : p(X) } >= Y".parse().unwrap(),
+            globals: vec!["Y".parse().unwrap()],
+        };
+
+        let mut map = AggregateNameMap::new();
+        map.insert(agg1, 1);
+        map.insert(agg2, 2);
+        map.insert(agg3, 3);
+
+        for (atom, globals, target) in [
+            (
+                "#count{ X : p(X,Y) } <= 2",
+                Some(["Y"]),
+                "exists C (C = 2 and at_most_f1(Y,C))",
+            ),
+            (
+                "#count{ X : p(X,Y) } <= 2",
+                None,
+                "exists C (C = 2 and at_most_f2(C))",
+            ),
+            (
+                "#count{ X : p(X) } >= Y",
+                Some(["Y"]),
+                "exists C (C = Y and at_least_f3(C))",
+            ),
+        ] {
+            let atom: AggregateAtom = atom.parse().unwrap();
+            let globals: IndexSet<asp::Variable> = match globals {
+                Some(vars) => IndexSet::from_iter(vars.into_iter().map(|v| v.parse().unwrap())),
+                None => IndexSet::new(),
+            };
+
+            let left = tau_b_counting_atom(atom, &globals, &map)
+                .formulas
+                .pop()
+                .unwrap();
+            let right: fol::Formula = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_tau_b_axioms() {
+        let agg1 = AggregateFormulaKey {
+            atom: "#count{ X : p(X,Y) } <= 2".parse().unwrap(),
+            globals: vec!["Y".parse().unwrap()],
+        };
+
+        let mut map = AggregateNameMap::new();
+        map.insert(agg1, 1);
+
+        for (atom, globals, target) in [
+            (
+                "#count{ X : p(X,Y) } <= 2",
+                Some(["Y"]),
+                "forall X Y N$i (N$i <= 0 -> start_f1(X, Y, N$i)).
+                forall X Y (start_f1(X, Y, 1) <-> exists Z Z1 (Z = X and Z1 = Y and p(Z,Z1)) ).
+                forall X Y N$i ( N$i > 0 -> (start_f1(X, Y, N$i+1) <-> exists Z Z1 (Z = X and Z1 = Y and p(Z,Z1)) and exists U (X < U and start_f1(U,Y,N$i)) ) ).
+                forall Y C ( at_most_f1(Y,C) <-> forall X N$i (start_f1(X,Y,N$i) -> N$i <= C) ).
+                start_f1(X, Y, 0) and forall N$i (N$i >= 0 and start_f1(X, Y, N$i) -> start_f1(X, Y, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, Y, N$i)).",
+            ),
+        ] {
+            let atom: AggregateAtom = atom.parse().unwrap();
+            let globals: IndexSet<asp::Variable> = match globals {
+                Some(vars) => IndexSet::from_iter(vars.into_iter().map(|v| v.parse().unwrap())),
+                None => IndexSet::new(),
+            };
+
+            let mut left_formulas = tau_b_counting_atom(atom, &globals, &map).axioms;
+            left_formulas.sort();
+
+            let right_theory: fol::Theory = target.parse().unwrap();
+            let mut right_formulas = right_theory.formulas;
+            right_formulas.sort();
+
+            let left = fol::Theory {
+                formulas: left_formulas,
+            };
+            let right = fol::Theory {
+                formulas: right_formulas,
+            };
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
         }
     }
 }
