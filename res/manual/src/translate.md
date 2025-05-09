@@ -57,11 +57,13 @@ For instance, the command
 ```
     anthem translate program.lp --with tau-star --include-axioms
 ```
-displays both the axioms defining `start`, `atmost`, and `atleast` as they are used within the theory, and the theory itself.
+displays both the axioms defining `start`, `atmost`, and `atleast` as they are used within the theory `tau*(Π)`, and `Π` itself.
 
 These axioms include the 3 axioms defining `start` for each `start` atom used within the theory, 
 an induction axiom for each `start` atom used within the theory, 
 and an axiom defining `atmost` or `atleast` for each counting aggregate occurring in the program.
+
+For a program `Π`, we call this set of axioms `C(Π)` - the counting axioms of `Π`.
 
 
 

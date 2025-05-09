@@ -14,6 +14,12 @@ The property can be automatically verified with the command
     anthem verify --equivalence strong p1.lp p2.lp
 ```
 
+### Strong Equivalence with Counting
+To verify that `Π1` and `Π2` are strongly equivalent, 
+we attempt to derive the classical equivalence `τ*Π1 <-> τ*Π2` from `A` and `γC(Π1 U Π2)`,
+where `A` are the ht-ordering sentences and `C(Π1 U Π2)` are the counting axioms associated with `τ*Π1 <-> τ*Π2`.
+
+
 
 ## External Equivalence
 Strong equivalence is sometimes too strong of a condition.
