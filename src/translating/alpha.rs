@@ -7,85 +7,73 @@ use thiserror::Error;
 
 impl From<superasp::PrecomputedTerm> for asp::PrecomputedTerm {
     fn from(value: superasp::PrecomputedTerm) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Variable> for asp::Variable {
     fn from(value: superasp::Variable) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::UnaryOperator> for asp::UnaryOperator {
     fn from(value: superasp::UnaryOperator) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::BinaryOperator> for asp::BinaryOperator {
     fn from(value: superasp::BinaryOperator) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Term> for asp::Term {
     fn from(value: superasp::Term) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Predicate> for asp::Predicate {
     fn from(value: superasp::Predicate) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Atom> for asp::Atom {
     fn from(value: superasp::Atom) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Sign> for asp::Sign {
     fn from(value: superasp::Sign) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Literal> for asp::Literal {
     fn from(value: superasp::Literal) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Relation> for asp::Relation {
     fn from(value: superasp::Relation) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::Comparison> for asp::Comparison {
     fn from(value: superasp::Comparison) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
 impl From<superasp::AtomicFormula> for asp::AtomicFormula {
     fn from(value: superasp::AtomicFormula) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
@@ -99,8 +87,7 @@ impl From<superasp::AggregateOperation> for asp::AggregateOperation {
 
 impl From<superasp::Aggregate> for asp::Aggregate {
     fn from(value: superasp::Aggregate) -> Self {
-        let result = format!("{value}").parse().unwrap();
-        result
+        format!("{value}").parse().unwrap()
     }
 }
 
