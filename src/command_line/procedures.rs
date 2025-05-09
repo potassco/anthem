@@ -170,7 +170,7 @@ pub fn main() -> Result<()> {
 
                     let reduced_program = alpha(program)?;
 
-                    let theory = tau_star_with_axioms(reduced_program);
+                    let theory = tau_star_with_axioms(reduced_program, None);
                     let taustar = Theory::from_iter(theory.formulas);
 
                     if include_axioms {
@@ -209,25 +209,31 @@ pub fn main() -> Result<()> {
                 Files::sort(files).context("unable to sort the given files by their function")?;
 
             let problems = match equivalence {
-                Equivalence::Strong => StrongEquivalenceTask {
-                    left: asp::Program::from_file(
+                Equivalence::Strong => {
+                    let left_program = superasp::Program::from_file(
                         files
                             .left()
                             .ok_or(anyhow!("no left program was provided"))?,
-                    )?,
-                    right: asp::Program::from_file(
+                    )?;
+
+                    let right_program = superasp::Program::from_file(
                         files
                             .right()
                             .ok_or(anyhow!("no right program was provided"))?,
-                    )?,
-                    decomposition,
-                    formula_representation,
-                    direction,
-                    simplify: !no_simplify,
-                    break_equivalences: !no_eq_break,
+                    )?;
+
+                    StrongEquivalenceTask {
+                        left: alpha(left_program)?,
+                        right: alpha(right_program)?,
+                        decomposition,
+                        formula_representation,
+                        direction,
+                        simplify: !no_simplify,
+                        break_equivalences: !no_eq_break,
+                    }
+                    .decompose()?
+                    .report_warnings()
                 }
-                .decompose()?
-                .report_warnings(),
 
                 Equivalence::External => ExternalEquivalenceTask {
                     specification: match files

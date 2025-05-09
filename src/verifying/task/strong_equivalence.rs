@@ -11,7 +11,7 @@ use {
         translating::{
             gamma::{self, gamma},
             mu::mu,
-            tau_star::tau_star,
+            tau_star::tau_star_with_axioms,
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
@@ -69,47 +69,79 @@ impl Task for StrongEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
-        let mut left = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.left),
-            FormulaRepresentation::TauStar => tau_star(self.left),
+        let mut combined_program = self.left.clone();
+        combined_program.rules.extend(self.right.rules.clone());
+        let aggregate_names = combined_program.aggregate_names();
+
+        let (mut left_formulas, left_axioms) = match self.formula_representation {
+            FormulaRepresentation::Mu => {
+                let formulas = mu(self.left).formulas;
+                (formulas, vec![])
+            }
+            FormulaRepresentation::TauStar => {
+                let theory = tau_star_with_axioms(self.left, Some(aggregate_names.clone()));
+                (theory.formulas, theory.axioms)
+            }
         };
 
-        let mut right = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.right),
-            FormulaRepresentation::TauStar => tau_star(self.right),
+        let (mut right_formulas, right_axioms) = match self.formula_representation {
+            FormulaRepresentation::Mu => {
+                let formulas = mu(self.right).formulas;
+                (formulas, vec![])
+            }
+            FormulaRepresentation::TauStar => {
+                let theory = tau_star_with_axioms(self.right, Some(aggregate_names));
+                (theory.formulas, theory.axioms)
+            }
         };
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
-            left = left
+            left_formulas = left_formulas
                 .into_iter()
                 .map(|f| f.apply_fixpoint(&mut portfolio))
                 .collect();
-            right = right
+            right_formulas = right_formulas
                 .into_iter()
                 .map(|f| f.apply_fixpoint(&mut portfolio))
                 .collect();
         }
 
-        left = gamma(left);
-        right = gamma(right);
+        left_formulas = gamma(fol::Theory::from_iter(left_formulas)).formulas;
+        right_formulas = gamma(fol::Theory::from_iter(right_formulas)).formulas;
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-            left = left
+            left_formulas = left_formulas
                 .into_iter()
                 .map(|f| f.apply_fixpoint(&mut portfolio))
                 .collect();
-            right = right
+            right_formulas = right_formulas
                 .into_iter()
                 .map(|f| f.apply_fixpoint(&mut portfolio))
                 .collect();
         }
 
-        if self.break_equivalences {
-            left = crate::breaking::fol::ht::break_equivalences_theory(left);
-            right = crate::breaking::fol::ht::break_equivalences_theory(right);
-        }
+        let (left, right) = if self.break_equivalences {
+            (
+                crate::breaking::fol::ht::break_equivalences_theory(fol::Theory::from_iter(
+                    left_formulas,
+                )),
+                crate::breaking::fol::ht::break_equivalences_theory(fol::Theory::from_iter(
+                    right_formulas,
+                )),
+            )
+        } else {
+            (
+                fol::Theory::from_iter(left_formulas),
+                fol::Theory::from_iter(right_formulas),
+            )
+        };
+
+        let mut counting_axioms_formulas = gamma(fol::Theory::from_iter(left_axioms)).formulas;
+        counting_axioms_formulas.extend(gamma(fol::Theory::from_iter(right_axioms)).formulas);
+
+        let counting_axioms = fol::Theory::from_iter(counting_axioms_formulas);
 
         let mut problems = Vec::new();
         if matches!(
@@ -120,6 +152,11 @@ impl Task for StrongEquivalenceTask {
                 Problem::with_name("forward")
                     .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
+                    .add_theory(counting_axioms.clone(), |i, formula| AnnotatedFormula {
+                        name: format!("counting_axiom_{i}"),
                         role: Role::Axiom,
                         formula,
                     })
@@ -145,6 +182,11 @@ impl Task for StrongEquivalenceTask {
                 Problem::with_name("backward")
                     .add_theory(transition_axioms, |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
+                    .add_theory(counting_axioms, |i, formula| AnnotatedFormula {
+                        name: format!("counting_axiom_{i}"),
                         role: Role::Axiom,
                         formula,
                     })

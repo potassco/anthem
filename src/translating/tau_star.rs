@@ -971,14 +971,17 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
     fol::Theory { formulas }
 }
 
-pub fn tau_star_with_axioms(p: asp::Program) -> TargetTheory {
+pub fn tau_star_with_axioms(p: asp::Program, names: Option<AggregateNameMap>) -> TargetTheory {
     let mut theory = TargetTheory {
         formulas: vec![],
         axioms: vec![],
     };
 
     let globals = choose_fresh_global_variables(&p);
-    let aggregate_names = p.aggregate_names();
+    let aggregate_names = match names {
+        Some(map) => map,
+        None => p.aggregate_names(),
+    };
     for r in p.rules.iter() {
         let rule_theory = tau_star_rule(r, &globals, &aggregate_names);
         theory.formulas.extend(rule_theory.formulas);

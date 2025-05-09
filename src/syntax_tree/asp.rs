@@ -749,12 +749,12 @@ impl FromIterator<Rule> for Program {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct AggregateFormulaKey {
+pub struct AggregateFormulaKey {
     pub(crate) atom: AggregateAtom,
     pub(crate) globals: Vec<Variable>,
 }
 
-pub(crate) type AggregateNameMap = HashMap<AggregateFormulaKey, usize>;
+pub type AggregateNameMap = HashMap<AggregateFormulaKey, usize>;
 
 fn max_value(map: &AggregateNameMap) -> usize {
     let mut max_val = 0;

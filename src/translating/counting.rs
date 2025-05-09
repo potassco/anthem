@@ -394,6 +394,7 @@ pub(crate) fn induction_schema(f: Formula) -> Formula {
                 lhs: induction_antecedent.into(),
                 rhs: induction_consequent.into(),
             }
+            .universal_closure()
         }
 
         None => f,
@@ -655,7 +656,7 @@ mod tests {
         for (src, target) in [
             (
                 "start_f1(X, V, N$i)",
-                "start_f1(X, V, 0) and forall N$i (N$i >= 0 and start_f1(X, V, N$i) -> start_f1(X, V, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, V, N$i))",
+                "forall X V (start_f1(X, V, 0) and forall N$i (N$i >= 0 and start_f1(X, V, N$i) -> start_f1(X, V, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, V, N$i)))",
             ),
             (
                 "start_f1(X, V, N) and exists N$i p(N$i)",
@@ -749,7 +750,7 @@ mod tests {
             3,
             "at_most_f3(V1, Z)",
             [
-                "start_f3(S, T, V1, 0) and forall N$i (N$i >= 0 and start_f3(S, T, V1, N$i) -> start_f3(S, T, V1, N$i + 1)) -> forall N$i (N$i >= 0 -> start_f3(S, T, V1, N$i))",
+                "forall S T V1 (start_f3(S, T, V1, 0) and forall N$i (N$i >= 0 and start_f3(S, T, V1, N$i) -> start_f3(S, T, V1, N$i + 1)) -> forall N$i (N$i >= 0 -> start_f3(S, T, V1, N$i)))",
                 "forall V1 Z ( at_most_f3(V1,Z) <-> forall S T N$i (start_f3(S,T,V1,N$i) -> N$i <= Z) )",
             ],
         )] {
@@ -863,7 +864,7 @@ mod tests {
                 forall X Y (start_f1(X, Y, 1) <-> exists Z Z1 (Z = X and Z1 = Y and p(Z,Z1)) ).
                 forall X Y N$i ( N$i > 0 -> (start_f1(X, Y, N$i+1) <-> exists Z Z1 (Z = X and Z1 = Y and p(Z,Z1)) and exists U (X < U and start_f1(U,Y,N$i)) ) ).
                 forall Y C ( at_most_f1(Y,C) <-> forall X N$i (start_f1(X,Y,N$i) -> N$i <= C) ).
-                start_f1(X, Y, 0) and forall N$i (N$i >= 0 and start_f1(X, Y, N$i) -> start_f1(X, Y, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, Y, N$i)).",
+                forall X Y (start_f1(X, Y, 0) and forall N$i (N$i >= 0 and start_f1(X, Y, N$i) -> start_f1(X, Y, N$i+1)) -> forall N$i (N$i >= 0 -> start_f1(X, Y, N$i))).",
             ),
         ] {
             let atom: AggregateAtom = atom.parse().unwrap();
