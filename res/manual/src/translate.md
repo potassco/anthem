@@ -50,6 +50,22 @@ Access the `τ*` transformation via the `translate` command, e.g.
     anthem translate program.lp --with tau-star
 ```
 
+## Tau* with Counting Aggregates
+
+If the program contains counting aggregates, it is also necessary to generate a set of supporting axioms for any theory produced by `tau*`.
+For instance, the command
+```
+    anthem translate program.lp --with tau-star --include-axioms
+```
+displays both the axioms defining `start`, `atmost`, and `atleast` as they are used within the theory, and the theory itself.
+
+These axioms include the 3 axioms defining `start` for each `start` atom used within the theory, 
+an induction axiom for each `start` atom used within the theory, 
+and an axiom defining `atmost` or `atleast` for each counting aggregate occurring in the program.
+
+
+
+
 ## Transformations Within the Target Language
 
 The following transformations translate theories (typically) obtained from applying the `τ*` transformation to a mini-gringo program `Π` into theories whose classical models coincide with the stable models of `Π`.
