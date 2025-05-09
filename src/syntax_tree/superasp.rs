@@ -14,7 +14,6 @@ use {
     },
     derive_more::derive::IntoIterator,
     indexmap::IndexSet,
-    std::collections::HashMap,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -351,13 +350,13 @@ impl Aggregate {
         variables
     }
 
-    pub(crate) fn condition_variables(&self) -> IndexSet<Variable> {
-        let mut variables = IndexSet::new();
-        for formula in self.conditions.iter() {
-            variables.extend(formula.variables());
-        }
-        variables
-    }
+    // pub(crate) fn condition_variables(&self) -> IndexSet<Variable> {
+    //     let mut variables = IndexSet::new();
+    //     for formula in self.conditions.iter() {
+    //         variables.extend(formula.variables());
+    //     }
+    //     variables
+    // }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -452,9 +451,18 @@ impl AggregateAtom {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct BoundedHead {
+    pub lower: Option<isize>,
+    pub upper: Option<isize>,
+    pub variables: Vec<Variable>,
+    pub atom: Atom,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Head {
     Basic(Atom),
     Choice(Atom),
+    ChoiceWithBounds(BoundedHead),
     Falsity,
 }
 
@@ -465,6 +473,7 @@ impl Head {
         match self {
             Head::Basic(a) => Some(a.predicate()),
             Head::Choice(a) => Some(a.predicate()),
+            Head::ChoiceWithBounds(head) => Some(head.atom.predicate()),
             Head::Falsity => None,
         }
     }
@@ -475,6 +484,7 @@ impl Head {
         match self {
             Head::Basic(a) => Some(&a.terms),
             Head::Choice(a) => Some(&a.terms),
+            Head::ChoiceWithBounds(_) => todo!(),
             Head::Falsity => None,
         }
     }
@@ -483,6 +493,7 @@ impl Head {
         match self {
             Head::Basic(a) => a.terms.len(),
             Head::Choice(a) => a.terms.len(),
+            Head::ChoiceWithBounds(head) => head.atom.terms.len(),
             Head::Falsity => 0,
         }
     }
@@ -490,6 +501,7 @@ impl Head {
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             Head::Basic(a) | Head::Choice(a) => a.variables(),
+            Head::ChoiceWithBounds(_) => todo!(),
             Head::Falsity => IndexSet::new(),
         }
     }
@@ -497,6 +509,7 @@ impl Head {
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             Head::Basic(a) | Head::Choice(a) => a.function_constants(),
+            Head::ChoiceWithBounds(_) => todo!(),
             Head::Falsity => IndexSet::new(),
         }
     }
@@ -666,22 +679,6 @@ impl Rule {
         terms.extend(self.body.terms());
         terms
     }
-
-    // An occurrence of an aggregate atom is uniquely identified by
-    // the atom itself and the list of global variables in the rule
-    fn aggregate_formula_keys(&self) -> Vec<AggregateFormulaKey> {
-        let mut keys = Vec::new();
-        for literal in self.body.literals.iter() {
-            if let BodyLiteral::AggregateAtom(atom) = literal {
-                let globals = Vec::from_iter(self.global_variables());
-                keys.push(AggregateFormulaKey {
-                    atom: atom.clone(),
-                    globals,
-                });
-            }
-        }
-        keys
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -726,21 +723,6 @@ impl Program {
         }
         functions
     }
-
-    // Map every aggregate atom occurring in the program to a unique id
-    // used for naming Start, Atleast, Atmost formulas.
-    // If two aggregate atoms + global variables lists are identical they are mapped to the same name - TODO: check this for accuracy
-    pub(crate) fn aggregate_names(&self) -> AggregateNameMap {
-        let mut program_map = HashMap::new();
-        for rule in self.rules.iter() {
-            for agg_key in rule.aggregate_formula_keys() {
-                if !program_map.contains_key(&agg_key) {
-                    program_map.insert(agg_key, max_value(&program_map) + 1);
-                }
-            }
-        }
-        program_map
-    }
 }
 
 impl FromIterator<Rule> for Program {
@@ -749,25 +731,6 @@ impl FromIterator<Rule> for Program {
             rules: iter.into_iter().collect(),
         }
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct AggregateFormulaKey {
-    pub(crate) atom: AggregateAtom,
-    pub(crate) globals: Vec<Variable>,
-}
-
-pub(crate) type AggregateNameMap = HashMap<AggregateFormulaKey, usize>;
-
-fn max_value(map: &AggregateNameMap) -> usize {
-    let mut max_val = 0;
-    for value in map.values() {
-        let val = *value;
-        if val > max_val {
-            max_val = val;
-        }
-    }
-    max_val
 }
 
 // #[cfg(test)]

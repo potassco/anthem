@@ -66,8 +66,9 @@ aggregate_atom_eoi = _{ aggregate_atom ~ EOI }
     left_aggregate = { aggregate ~ relation ~ term }
     right_aggregate = { term ~ relation ~ aggregate }
 
-head = { basic_head | choice_head | falsity }
+head = { choice_with_bounds | basic_head | choice_head | falsity }
 head_eoi = _{ head ~ EOI }
+    choice_with_bounds = { integer? ~ "{" ~ (variable ~ (("," ~ variable)*)?) ~ ":" ~ atom ~ "}" ~ integer? }
     basic_head = { atom }
     choice_head = { "{" ~ atom ~ "}" }
     falsity = { "#false"? }

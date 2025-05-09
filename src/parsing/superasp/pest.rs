@@ -2,8 +2,8 @@ use crate::{
     parsing::PestParser,
     syntax_tree::superasp::{
         Aggregate, AggregateAtom, AggregateOperation, AggregateOrder, Atom, AtomicFormula,
-        BinaryOperator, Body, BodyLiteral, Comparison, Head, Literal, PrecomputedTerm, Predicate,
-        Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        BinaryOperator, Body, BodyLiteral, BoundedHead, Comparison, Head, Literal, PrecomputedTerm,
+        Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -468,6 +468,111 @@ impl PestParser for HeadParser {
     fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
         match pair.as_rule() {
             internal::Rule::head => HeadParser::translate_pairs(pair.into_inner()),
+            internal::Rule::choice_with_bounds => {
+                let mut lower = None;
+                let mut upper = None;
+                let mut variable_list = Vec::new();
+                // default value, it is either overwritten or not returned
+                let mut head_atom = Atom {
+                    predicate_symbol: "default".to_string(),
+                    terms: vec![],
+                };
+                let mut atom_flag = false;
+
+                let mut pairs = pair.clone().into_inner().peekable();
+
+                let first = pairs.next().unwrap_or_else(|| Self::report_missing_pair());
+                match first.as_rule() {
+                    internal::Rule::integer => match PrecomputedTermParser::translate_pair(first) {
+                        PrecomputedTerm::Numeral(m) => {
+                            lower = Some(m);
+
+                            let leading_variable = pairs
+                                .next()
+                                .map(VariableParser::translate_pair)
+                                .unwrap_or_else(|| Self::report_missing_pair());
+
+                            variable_list.push(leading_variable);
+
+                            while pairs.peek().is_some() {
+                                let pair = pairs.next().unwrap();
+                                match pair.as_rule() {
+                                    internal::Rule::variable => {
+                                        variable_list.push(VariableParser::translate_pair(pair));
+                                    }
+                                    internal::Rule::atom => {
+                                        atom_flag = true;
+                                        head_atom = AtomParser::translate_pair(pair);
+                                    }
+                                    internal::Rule::integer => {
+                                        match PrecomputedTermParser::translate_pair(pair.clone()) {
+                                            PrecomputedTerm::Numeral(n) => {
+                                                upper = Some(n);
+                                            }
+                                            _ => Self::report_unexpected_pair(pair),
+                                        }
+                                    }
+                                    _ => Self::report_unexpected_pair(pair),
+                                }
+                            }
+
+                            if atom_flag {
+                                Head::ChoiceWithBounds(BoundedHead {
+                                    lower,
+                                    upper,
+                                    variables: variable_list,
+                                    atom: head_atom,
+                                })
+                            } else {
+                                Self::report_missing_pair()
+                            }
+                        }
+                        _ => Self::report_unexpected_pair(pair),
+                    },
+                    internal::Rule::variable => {
+                        let leading_variable = pairs
+                            .next()
+                            .map(VariableParser::translate_pair)
+                            .unwrap_or_else(|| Self::report_missing_pair());
+
+                        variable_list.push(leading_variable);
+
+                        while pairs.peek().is_some() {
+                            let pair = pairs.next().unwrap();
+                            match pair.as_rule() {
+                                internal::Rule::variable => {
+                                    variable_list.push(VariableParser::translate_pair(pair));
+                                }
+                                internal::Rule::atom => {
+                                    atom_flag = true;
+                                    head_atom = AtomParser::translate_pair(pair);
+                                }
+                                internal::Rule::integer => {
+                                    match PrecomputedTermParser::translate_pair(pair.clone()) {
+                                        PrecomputedTerm::Numeral(n) => {
+                                            upper = Some(n);
+                                        }
+                                        _ => Self::report_unexpected_pair(pair),
+                                    }
+                                }
+                                _ => Self::report_unexpected_pair(pair),
+                            }
+                        }
+
+                        if atom_flag {
+                            Head::ChoiceWithBounds(BoundedHead {
+                                lower,
+                                upper,
+                                variables: variable_list,
+                                atom: head_atom,
+                            })
+                        } else {
+                            Self::report_missing_pair()
+                        }
+                    }
+                    _ => Self::report_unexpected_pair(pair),
+                }
+            }
             internal::Rule::basic_head => {
                 Head::Basic(AtomParser::translate_pairs(pair.into_inner()))
             }

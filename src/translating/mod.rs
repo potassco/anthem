@@ -1,3 +1,4 @@
+pub mod alpha;
 pub mod completion;
 pub mod counting;
 pub mod gamma;

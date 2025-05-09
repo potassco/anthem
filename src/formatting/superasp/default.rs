@@ -252,6 +252,29 @@ impl Display for Format<'_, Head> {
         match self.0 {
             Head::Basic(a) => write!(f, "{}", Format(a)),
             Head::Choice(a) => write!(f, "{{{}}}", Format(a)),
+            Head::ChoiceWithBounds(head) => {
+                if let Some(m) = head.lower {
+                    write!(f, "{m}")?;
+                }
+
+                write!(f, "{{")?;
+
+                let mut vars = head.variables.iter().map(Format);
+                if let Some(variable) = vars.next() {
+                    write!(f, "{variable}")?;
+                    for variable in vars {
+                        write!(f, ", {variable}")?;
+                    }
+                }
+
+                write!(f, ":{}}}", Format(&head.atom))?;
+
+                if let Some(n) = head.upper {
+                    write!(f, "{n}")?;
+                }
+
+                Ok(())
+            }
             Head::Falsity => write!(f, ""),
         }
     }

@@ -13,9 +13,10 @@ use {
         syntax_tree::{
             Node as _, asp,
             fol::{self, Theory},
+            superasp,
         },
         translating::{
-            completion::completion, gamma::gamma, mu::mu, natural::natural,
+            alpha::alpha, completion::completion, gamma::gamma, mu::mu, natural::natural,
             tau_star::tau_star_with_axioms,
         },
         verifying::{
@@ -164,9 +165,12 @@ pub fn main() -> Result<()> {
                 }
 
                 Translation::TauStar => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = tau_star_with_axioms(program);
+                    let program = input
+                        .map_or_else(superasp::Program::from_stdin, superasp::Program::from_file)?;
+
+                    let reduced_program = alpha(program)?;
+
+                    let theory = tau_star_with_axioms(reduced_program);
                     let taustar = Theory::from_iter(theory.formulas);
 
                     if include_axioms {
