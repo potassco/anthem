@@ -132,35 +132,67 @@ pub fn main() -> Result<()> {
         Command::Translate {
             with,
             include_axioms,
+            no_simplify,
             input,
         } => {
             match with {
                 Translation::Completion => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let completed_theory =
+                    let mut completed_theory =
                         completion(theory).context("the given theory is not completable")?;
+                    if !no_simplify {
+                        let mut portfolio =
+                            [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                        completed_theory = completed_theory
+                            .into_iter()
+                            .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                            .collect();
+                    }
                     print!("{completed_theory}")
                 }
 
                 Translation::Gamma => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let gamma_theory = gamma(theory);
+                    let mut gamma_theory = gamma(theory);
+                    if !no_simplify {
+                        let mut portfolio =
+                            [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+                        gamma_theory = gamma_theory
+                            .into_iter()
+                            .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                            .collect();
+                    }
                     print!("{gamma_theory}")
                 }
 
                 Translation::Mu => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = mu(program);
+                    let mut theory = mu(program);
+                    if !no_simplify {
+                        let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                        theory = theory
+                            .into_iter()
+                            .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                            .collect();
+                    }
                     print!("{theory}")
                 }
 
                 Translation::Natural => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = natural(program).context("the given program is not regular")?;
+                    let mut theory =
+                        natural(program).context("the given program is not regular")?;
+                    if !no_simplify {
+                        let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                        theory = theory
+                            .into_iter()
+                            .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                            .collect();
+                    }
                     print!("{theory}")
                 }
 
@@ -171,11 +203,27 @@ pub fn main() -> Result<()> {
                     let reduced_program = alpha(program)?;
 
                     let theory = tau_star_with_axioms(reduced_program, None);
-                    let taustar = Theory::from_iter(theory.formulas);
+                    let mut taustar = Theory::from_iter(theory.formulas);
+
+                    if !no_simplify {
+                        println!("simplifying");
+                        let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                        taustar = taustar
+                            .into_iter()
+                            .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                            .collect();
+                    }
 
                     if include_axioms {
                         println!("\tSupporting Axioms:");
-                        let axioms = Theory::from_iter(theory.axioms);
+                        let mut axioms = Theory::from_iter(theory.axioms);
+                        if !no_simplify {
+                            let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                            axioms = axioms
+                                .into_iter()
+                                .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                                .collect();
+                        }
                         print!("{axioms}");
                         println!("\ttau-star:");
                     }

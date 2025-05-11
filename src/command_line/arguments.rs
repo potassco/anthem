@@ -57,8 +57,12 @@ pub enum Command {
         with: Translation,
 
         /// Display supporting axioms for count aggregates
-        #[arg(long, action, default_value_t = false)]
+        #[arg(long, action)]
         include_axioms: bool,
+
+        /// Omit simplifications
+        #[arg(long, action)]
+        no_simplify: bool,
 
         /// The file to translate
         input: Option<PathBuf>,
