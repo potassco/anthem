@@ -665,14 +665,15 @@ impl Rule {
     }
 
     // An occurrence of an aggregate atom is uniquely identified by
-    // the atom itself and the list of global variables in the rule
+    // the variables and conditions of the atom and the list of global variables in the rule
     fn aggregate_formula_keys(&self) -> Vec<AggregateFormulaKey> {
         let mut keys = Vec::new();
         for literal in self.body.literals.iter() {
             if let BodyLiteral::AggregateAtom(atom) = literal {
                 let globals = Vec::from_iter(self.global_variables());
                 keys.push(AggregateFormulaKey {
-                    atom: atom.clone(),
+                    variables: atom.aggregate.variable_list.clone(),
+                    conditions: atom.aggregate.conditions.clone(),
                     globals,
                 });
             }
@@ -726,7 +727,8 @@ impl Program {
 
     // Map every aggregate atom occurring in the program to a unique id
     // used for naming Start, Atleast, Atmost formulas.
-    // If two aggregate atoms + global variables lists are identical they are mapped to the same name - TODO: check this for accuracy
+    // If two aggregate atoms have the same variable lists, conditions, and global variables,
+    // then they are mapped to the same name - TODO: check this for accuracy
     pub(crate) fn aggregate_names(&self) -> AggregateNameMap {
         let mut program_map = HashMap::new();
         for rule in self.rules.iter() {
@@ -750,7 +752,8 @@ impl FromIterator<Rule> for Program {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AggregateFormulaKey {
-    pub(crate) atom: AggregateAtom,
+    pub(crate) variables: Vec<Variable>,
+    pub(crate) conditions: Vec<AtomicFormula>,
     pub(crate) globals: Vec<Variable>,
 }
 

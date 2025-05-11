@@ -1,9 +1,9 @@
 use {
-    super::counting::{TargetTheory, tau_b_counting_atom},
-    crate::syntax_tree::{
+    super::counting::{tau_b_counting_atom, TargetTheory},
+    crate::{convenience::{apply::Apply, compose::Compose as _}, simplifying::fol::{ht::{exactly_axioms, COUNT, HT}, intuitionistic::INTUITIONISTIC}, syntax_tree::{
         asp::{self, AggregateNameMap},
-        fol::{self, Formula},
-    },
+        fol::{self, Formula, Theory},
+    }},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -972,23 +972,35 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
 }
 
 pub fn tau_star_with_axioms(p: asp::Program, names: Option<AggregateNameMap>) -> TargetTheory {
-    let mut theory = TargetTheory {
-        formulas: vec![],
-        axioms: vec![],
-    };
+   let mut formulas = IndexSet::new();
+   let mut axioms = IndexSet::new();
 
-    let globals = choose_fresh_global_variables(&p);
+   let mut portfolio = [INTUITIONISTIC, HT, COUNT].concat().into_iter().compose();
+
+   let globals = choose_fresh_global_variables(&p);
     let aggregate_names = match names {
         Some(map) => map,
         None => p.aggregate_names(),
     };
     for r in p.rules.iter() {
         let rule_theory = tau_star_rule(r, &globals, &aggregate_names);
-        theory.formulas.extend(rule_theory.formulas);
-        theory.axioms.extend(rule_theory.axioms);
+        for formula in rule_theory.formulas {
+            formulas.insert(formula.apply_fixpoint(&mut portfolio));
+        }
+        for formula in rule_theory.axioms {
+            axioms.insert(formula);
+        }
     }
 
-    theory
+    let exactly_axioms = exactly_axioms(Theory::from_iter(formulas.clone()));
+    for formula in exactly_axioms.formulas {
+        axioms.insert(formula);
+    }
+
+    TargetTheory {
+        formulas: Vec::from_iter(formulas),
+        axioms: Vec::from_iter(axioms),
+    }
 }
 
 #[cfg(test)]

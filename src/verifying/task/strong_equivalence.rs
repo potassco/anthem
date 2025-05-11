@@ -142,13 +142,13 @@ impl Task for StrongEquivalenceTask {
             )
         };
 
-        let mut combined_theory = left.formulas.clone();
-        combined_theory.extend(right.formulas.clone());
-        let exactly_axioms = exactly_axioms(fol::Theory::from_iter(combined_theory));
+        // let mut combined_theory = left.formulas.clone();
+        // combined_theory.extend(right.formulas.clone());
+        // let exactly_axioms = exactly_axioms(fol::Theory::from_iter(combined_theory));
 
         let mut counting_axioms_formulas = gamma(fol::Theory::from_iter(left_axioms)).formulas;
         counting_axioms_formulas.extend(gamma(fol::Theory::from_iter(right_axioms)).formulas);
-        counting_axioms_formulas.extend(gamma(exactly_axioms).formulas);
+        //counting_axioms_formulas.extend(gamma(exactly_axioms).formulas);
 
         let counting_axioms = fol::Theory::from_iter(counting_axioms_formulas);
 

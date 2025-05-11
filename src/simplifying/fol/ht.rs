@@ -24,8 +24,12 @@ pub const HT: &[fn(Formula) -> Formula] = &[
     unstable::restrict_quantifier_domain,
     unstable::extend_quantifier_scope,
     unstable::simplify_transitive_equality,
+];
+
+pub const COUNT: &[fn(Formula) -> Formula] = &[
     exactly,
 ];
+
 
 pub fn substitute_defined_variables(formula: Formula) -> Formula {
     // Substitute defined variables in existential quantifications
