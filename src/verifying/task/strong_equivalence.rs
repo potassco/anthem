@@ -6,11 +6,7 @@ use {
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{
-            classic::CLASSIC,
-            ht::{HT, exactly_axioms},
-            intuitionistic::INTUITIONISTIC,
-        },
+        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
         translating::{
             gamma::{self, gamma},

@@ -26,10 +26,7 @@ pub const HT: &[fn(Formula) -> Formula] = &[
     unstable::simplify_transitive_equality,
 ];
 
-pub const COUNT: &[fn(Formula) -> Formula] = &[
-    exactly,
-];
-
+pub const COUNT: &[fn(Formula) -> Formula] = &[exactly];
 
 pub fn substitute_defined_variables(formula: Formula) -> Formula {
     // Substitute defined variables in existential quantifications
@@ -235,7 +232,7 @@ pub fn exactly_axioms(theory: Theory) -> Theory {
                     connective: BinaryConnective::Equivalence,
                     lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
                         predicate_symbol: p.symbol.clone(),
-                        terms,
+                        terms: terms.clone(),
                     }))
                     .into(),
                     rhs: Formula::BinaryFormula {
@@ -256,31 +253,42 @@ pub fn exactly_axioms(theory: Theory) -> Theory {
                     quantifier: Quantifier::Forall,
                     variables: variables.clone(),
                 },
-                formula: Formula::QuantifiedFormula {
-                    quantification: Quantification {
-                        quantifier: Quantifier::Exists,
-                        variables: vec![fol::Variable {
-                            name: "N".into(),
-                            sort: Sort::Integer,
-                        }],
-                    },
-                    formula: Formula::BinaryFormula {
-                        connective: BinaryConnective::Conjunction,
-                        lhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-                            term: GeneralTerm::Variable(y.name),
-                            guards: vec![Guard {
-                                relation: fol::Relation::Equal,
+                formula: Formula::BinaryFormula {
+                    connective: BinaryConnective::Implication,
+                    lhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                        predicate_symbol: p.symbol.clone(),
+                        terms,
+                    }))
+                    .into(),
+                    rhs: Formula::QuantifiedFormula {
+                        quantification: Quantification {
+                            quantifier: Quantifier::Exists,
+                            variables: vec![fol::Variable {
+                                name: "N".into(),
+                                sort: Sort::Integer,
+                            }],
+                        },
+                        formula: Formula::BinaryFormula {
+                            connective: BinaryConnective::Conjunction,
+                            lhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
+                                term: GeneralTerm::Variable(y.name),
+                                guards: vec![Guard {
+                                    relation: fol::Relation::Equal,
+                                    term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(
+                                        "N".into(),
+                                    )),
+                                }],
+                            }))
+                            .into(),
+                            rhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
                                 term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into())),
-                            }],
-                        }))
-                        .into(),
-                        rhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-                            term: GeneralTerm::IntegerTerm(IntegerTerm::Variable("N".into())),
-                            guards: vec![Guard {
-                                relation: fol::Relation::Equal,
-                                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-                            }],
-                        }))
+                                guards: vec![Guard {
+                                    relation: fol::Relation::GreaterEqual,
+                                    term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
+                                }],
+                            }))
+                            .into(),
+                        }
                         .into(),
                     }
                     .into(),
@@ -430,7 +438,9 @@ mod tests {
     fn test_exactly_axioms() {
         for (src, target) in [(
             "forall X ( q or exactly_f1(X,t,5) ).",
-            "forall V V1 V2 (exactly_f1(V,V1,V2) <-> at_least_f1(V,V1,V2) and at_most_f1(V,V1,V2)).",
+            "forall V V1 V2 (exactly_f1(V,V1,V2) <-> at_least_f1(V,V1,V2) and at_most_f1(V,V1,V2)).
+            forall V V1 V2 (exactly_f1(V, V1, V2) -> exists N$i (V2 = N$i and N$i >= 0)).
+            forall V V1 N$ (exactly_f1(V,V1,N$) <-> at_least_f1(V,V1,N$) and not at_least_f1(V,V1,N$+1)).",
         )] {
             let left = exactly_axioms(src.parse().unwrap());
             let right: Theory = target.parse().unwrap();

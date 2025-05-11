@@ -643,11 +643,8 @@ pub(crate) fn tau_b_counting_atom(
 #[cfg(test)]
 mod tests {
     use {
-        super::{At, at_most_at_least, induction_schema, start, tau_b_counting_atom},
-        crate::syntax_tree::{
-            asp::{self, AggregateAtom, AggregateFormulaKey, AggregateNameMap},
-            fol,
-        },
+        super::{At, at_most_at_least, induction_schema, start},
+        crate::syntax_tree::{asp, fol},
         indexmap::IndexSet,
         std::iter::zip,
     };

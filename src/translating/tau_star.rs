@@ -1,9 +1,16 @@
 use {
-    super::counting::{tau_b_counting_atom, TargetTheory},
-    crate::{convenience::{apply::Apply, compose::Compose as _}, simplifying::fol::{ht::{exactly_axioms, COUNT, HT}, intuitionistic::INTUITIONISTIC}, syntax_tree::{
-        asp::{self, AggregateNameMap},
-        fol::{self, Formula, Theory},
-    }},
+    super::counting::{TargetTheory, tau_b_counting_atom},
+    crate::{
+        convenience::{apply::Apply, compose::Compose as _},
+        simplifying::fol::{
+            ht::{COUNT, HT, exactly_axioms},
+            intuitionistic::INTUITIONISTIC,
+        },
+        syntax_tree::{
+            asp::{self, AggregateNameMap},
+            fol::{self, Formula, Theory},
+        },
+    },
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -972,12 +979,12 @@ pub fn tau_star(p: asp::Program) -> fol::Theory {
 }
 
 pub fn tau_star_with_axioms(p: asp::Program, names: Option<AggregateNameMap>) -> TargetTheory {
-   let mut formulas = IndexSet::new();
-   let mut axioms = IndexSet::new();
+    let mut formulas = IndexSet::new();
+    let mut axioms = IndexSet::new();
 
-   let mut portfolio = [INTUITIONISTIC, HT, COUNT].concat().into_iter().compose();
+    let mut portfolio = [INTUITIONISTIC, HT, COUNT].concat().into_iter().compose();
 
-   let globals = choose_fresh_global_variables(&p);
+    let globals = choose_fresh_global_variables(&p);
     let aggregate_names = match names {
         Some(map) => map,
         None => p.aggregate_names(),
@@ -1140,7 +1147,7 @@ mod tests {
             ),
             (
                 "q(Y-1) :- #count{X : p(X)} >= Y, #count{X : p(X)} <= Y.",
-                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and (exists C (C = Y and at_least_f1(C)) and exists C (C = Y and at_most_f2(C))) ) -> q(V1) ).",
+                "forall V1 X Y ( (exists I$ J$ (V1 = I$ - J$ and I$ = Y and J$ = 1) and (exists C (C = Y and at_least_f1(C)) and exists C (C = Y and at_most_f1(C))) ) -> q(V1) ).",
             ),
         ] {
             let left = tau_star(src.parse().unwrap());
