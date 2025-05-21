@@ -206,7 +206,6 @@ pub fn main() -> Result<()> {
                     let mut taustar = Theory::from_iter(theory.formulas);
 
                     if !no_simplify {
-                        println!("simplifying");
                         let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
                         taustar = taustar
                             .into_iter()
