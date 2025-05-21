@@ -448,8 +448,11 @@ fn at_most_at_least(
     // Start_F^{X;V}(X,V,N)
     let start_atom = start_theory.formulas.pop().unwrap();
 
+    let mut axioms = vec![];
+
     // Ind for Start_F^{X;V}(X,V,N)
-    let mut axioms = vec![induction_schema(start_atom.clone())];
+    let _start_ind = induction_schema(start_atom.clone());
+    //axioms.push(_start_ind);
 
     // N
     let n = match start_atom.clone() {
