@@ -7,7 +7,10 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol::{self, Theory}},
+        syntax_tree::{
+            asp,
+            fol::{self, Theory},
+        },
         translating::{
             gamma::{self, gamma_formula},
             mu::mu,
@@ -66,7 +69,10 @@ fn transition(p: fol::Predicate) -> fol::Formula {
     .quantify(fol::Quantifier::Forall, variables.into_iter().collect())
 }
 
-fn add_transition_axioms(mut axioms: Vec<fol::Formula>, formulas: &Vec<fol::Formula>) -> Vec<fol::Formula> {
+fn add_transition_axioms(
+    mut axioms: Vec<fol::Formula>,
+    formulas: &Vec<fol::Formula>,
+) -> Vec<fol::Formula> {
     let mut transition_axioms: IndexSet<fol::Formula> = IndexSet::from_iter(axioms.drain(..));
     for formula in formulas {
         for predicate in formula.predicates() {
@@ -173,8 +179,8 @@ impl Task for StrongEquivalenceTask {
         }
 
         // Apply gamma to formula representations of programs
-        left_formulas = left_formulas.into_iter().map(gamma_formula).collect(); 
-        right_formulas = right_formulas.into_iter().map(gamma_formula).collect(); 
+        left_formulas = left_formulas.into_iter().map(gamma_formula).collect();
+        right_formulas = right_formulas.into_iter().map(gamma_formula).collect();
 
         // Apply classical simplifications
         if self.simplify {
@@ -189,8 +195,12 @@ impl Task for StrongEquivalenceTask {
                 .collect();
         }
 
-        let left_theory = Theory {formulas: left_formulas};
-        let right_theory = Theory {formulas: right_formulas};
+        let left_theory = Theory {
+            formulas: left_formulas,
+        };
+        let right_theory = Theory {
+            formulas: right_formulas,
+        };
 
         if self.break_equivalences {
             // equivalence breaking should only be applied to conjectures, not axioms
@@ -200,11 +210,14 @@ impl Task for StrongEquivalenceTask {
         }
 
         // Apply gamma to supporting counting axioms
-        let mut counting_axioms_formulas: Vec<fol::Formula> = left_axioms.into_iter().map(gamma_formula).collect();
+        let mut counting_axioms_formulas: Vec<fol::Formula> =
+            left_axioms.into_iter().map(gamma_formula).collect();
         counting_axioms_formulas.extend(right_axioms.into_iter().map(gamma_formula));
 
-        // Extend transition axioms and taken_predicates with newly generated predicate symbols    
-        let transition_axioms = Theory { formulas: add_transition_axioms(base_transition_axioms, &counting_axioms_formulas) };
+        // Extend transition axioms and taken_predicates with newly generated predicate symbols
+        let transition_axioms = Theory {
+            formulas: add_transition_axioms(base_transition_axioms, &counting_axioms_formulas),
+        };
         for formula in counting_axioms_formulas.iter() {
             taken_predicates.extend(formula.predicates());
         }
@@ -224,7 +237,9 @@ impl Task for StrongEquivalenceTask {
             transition_axioms,
             left: left_theory,
             right: right_theory,
-            counting_axioms: Theory { formulas: counting_axioms_formulas },
+            counting_axioms: Theory {
+                formulas: counting_axioms_formulas,
+            },
             proof_outline: proof_outline_construction.data,
             decomposition: self.decomposition,
             direction: self.direction,
@@ -274,10 +289,12 @@ impl Task for AssembledStrongEquivalenceTask {
                                     formula,
                                 }
                             })
-                            .add_theory(self.counting_axioms.clone(), |i, formula| AnnotatedFormula {
-                                name: format!("counting_axiom_{i}"),
-                                role: Role::Axiom,
-                                formula,
+                            .add_theory(self.counting_axioms.clone(), |i, formula| {
+                                AnnotatedFormula {
+                                    name: format!("counting_axiom_{i}"),
+                                    role: Role::Axiom,
+                                    formula,
+                                }
                             })
                             .add_annotated_formulas(forward_axioms.clone())
                             .add_theory(self.left.clone(), |i, formula| AnnotatedFormula {
@@ -302,10 +319,12 @@ impl Task for AssembledStrongEquivalenceTask {
                             formula,
                         }
                     })
-                    .add_theory(self.counting_axioms.clone(), |i, formula| AnnotatedFormula {
-                        name: format!("counting_axiom_{i}"),
-                        role: Role::Axiom,
-                        formula,
+                    .add_theory(self.counting_axioms.clone(), |i, formula| {
+                        AnnotatedFormula {
+                            name: format!("counting_axiom_{i}"),
+                            role: Role::Axiom,
+                            formula,
+                        }
                     })
                     .add_annotated_formulas(
                         proof_outline
@@ -349,10 +368,12 @@ impl Task for AssembledStrongEquivalenceTask {
                                     formula,
                                 }
                             })
-                            .add_theory(self.counting_axioms.clone(), |i, formula| AnnotatedFormula {
-                                name: format!("counting_axiom_{i}"),
-                                role: Role::Axiom,
-                                formula,
+                            .add_theory(self.counting_axioms.clone(), |i, formula| {
+                                AnnotatedFormula {
+                                    name: format!("counting_axiom_{i}"),
+                                    role: Role::Axiom,
+                                    formula,
+                                }
                             })
                             .add_annotated_formulas(backward_axioms.clone())
                             .add_theory(self.right.clone(), |i, formula| AnnotatedFormula {
@@ -377,10 +398,12 @@ impl Task for AssembledStrongEquivalenceTask {
                             formula,
                         }
                     })
-                    .add_theory(self.counting_axioms.clone(), |i, formula| AnnotatedFormula {
-                        name: format!("counting_axiom_{i}"),
-                        role: Role::Axiom,
-                        formula,
+                    .add_theory(self.counting_axioms.clone(), |i, formula| {
+                        AnnotatedFormula {
+                            name: format!("counting_axiom_{i}"),
+                            role: Role::Axiom,
+                            formula,
+                        }
                     })
                     .add_annotated_formulas(
                         proof_outline
