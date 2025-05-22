@@ -272,6 +272,10 @@ pub fn main() -> Result<()> {
                     StrongEquivalenceTask {
                         left: alpha(left_program)?,
                         right: alpha(right_program)?,
+                    proof_outline: files
+                        .proof_outline()
+                        .map(fol::Specification::from_file)
+                        .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
                         decomposition,
                         formula_representation,
                         direction,

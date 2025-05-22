@@ -13,6 +13,7 @@ use {
         },
         simplifying::fol::intuitionistic::join_nested_quantifiers,
         syntax_tree::{Node, impl_node},
+        translating::gamma::gamma_formula,
         verifying::problem,
     },
     clap::ValueEnum,
@@ -1077,6 +1078,15 @@ impl AnnotatedFormula {
     pub fn replace_placeholders(mut self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
         self.formula = self.formula.replace_placeholders(mapping);
         self
+    }
+
+    pub fn apply_gamma_reduction(self) -> Self {
+        AnnotatedFormula {
+            role: self.role,
+            direction: self.direction,
+            name: self.name,
+            formula: gamma_formula(self.formula),
+        }
     }
 }
 

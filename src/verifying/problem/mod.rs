@@ -2,6 +2,7 @@ use {
     crate::{
         command_line::arguments::Decomposition,
         syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+        translating::gamma::gamma_formula,
     },
     anyhow::{Context as _, Result},
     indexmap::IndexSet,
@@ -60,6 +61,14 @@ impl AnnotatedFormula {
             name: self.name,
             role: self.role,
             formula: self.formula.rename_conflicting_symbols(possible_conflicts),
+        }
+    }
+
+    pub fn apply_gamma_reduction(self) -> Self {
+        AnnotatedFormula {
+            name: self.name,
+            role: self.role,
+            formula: gamma_formula(self.formula),
         }
     }
 }
