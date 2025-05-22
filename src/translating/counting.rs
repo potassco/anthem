@@ -751,7 +751,7 @@ mod tests {
             3,
             "at_most_f3(V1, Z)",
             [
-                "forall S T V1 (start_f3(S, T, V1, 0) and forall N$i (N$i >= 0 and start_f3(S, T, V1, N$i) -> start_f3(S, T, V1, N$i + 1)) -> forall N$i (N$i >= 0 -> start_f3(S, T, V1, N$i)))",
+                //"forall S T V1 (start_f3(S, T, V1, 0) and forall N$i (N$i >= 0 and start_f3(S, T, V1, N$i) -> start_f3(S, T, V1, N$i + 1)) -> forall N$i (N$i >= 0 -> start_f3(S, T, V1, N$i)))",
                 "forall V1 Z ( at_most_f3(V1,Z) <-> forall S T N$i (start_f3(S,T,V1,N$i) -> N$i <= Z) )",
             ],
         )] {

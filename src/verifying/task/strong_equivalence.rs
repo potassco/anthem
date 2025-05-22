@@ -165,6 +165,17 @@ impl Task for StrongEquivalenceTask {
             taken_predicates.extend(formula.predicates());
         }
 
+        // Extend transition axioms and taken_predicates with newly generated predicate symbols
+        let mut counting_axioms_formulas = left_axioms;
+        counting_axioms_formulas.extend(right_axioms);
+
+        let transition_axioms = Theory {
+            formulas: add_transition_axioms(base_transition_axioms, &counting_axioms_formulas),
+        };
+        for formula in counting_axioms_formulas.iter() {
+            taken_predicates.extend(formula.predicates());
+        }
+
         // Apply HT-equivalent simplifications
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
@@ -210,17 +221,10 @@ impl Task for StrongEquivalenceTask {
         }
 
         // Apply gamma to supporting counting axioms
-        let mut counting_axioms_formulas: Vec<fol::Formula> =
-            left_axioms.into_iter().map(gamma_formula).collect();
-        counting_axioms_formulas.extend(right_axioms.into_iter().map(gamma_formula));
-
-        // Extend transition axioms and taken_predicates with newly generated predicate symbols
-        let transition_axioms = Theory {
-            formulas: add_transition_axioms(base_transition_axioms, &counting_axioms_formulas),
-        };
-        for formula in counting_axioms_formulas.iter() {
-            taken_predicates.extend(formula.predicates());
-        }
+        counting_axioms_formulas = counting_axioms_formulas
+            .into_iter()
+            .map(gamma_formula)
+            .collect();
 
         let mut warnings = Vec::new();
 
