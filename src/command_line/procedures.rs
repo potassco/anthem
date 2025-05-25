@@ -291,14 +291,20 @@ pub fn main() -> Result<()> {
                         .specification()
                         .ok_or(anyhow!("no specification was provided"))?
                     {
-                        Either::Left(program) => Either::Left(asp::Program::from_file(program)?),
+                        Either::Left(program) => {
+                            let spec = superasp::Program::from_file(program)?;
+                            Either::Left(alpha(spec)?)
+                        }
                         Either::Right(specification) => {
                             Either::Right(fol::Specification::from_file(specification)?)
                         }
                     },
-                    program: asp::Program::from_file(
-                        files.program().ok_or(anyhow!("no program was provided"))?,
-                    )?,
+                    program: {
+                        let program = superasp::Program::from_file(
+                            files.program().ok_or(anyhow!("no program was provided"))?,
+                        )?;
+                        alpha(program)?
+                    },
                     user_guide: fol::UserGuide::from_file(
                         files
                             .user_guide()

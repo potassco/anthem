@@ -1,6 +1,6 @@
 // Helper functions for counting aggregates
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 
 use crate::{
     convenience::{apply::Apply, compose::Compose as _},
@@ -8,8 +8,8 @@ use crate::{
     syntax_tree::{
         asp::{self, AggregateAtom, AggregateFormulaKey, AggregateNameMap},
         fol::{
-            self, BinaryConnective, Formula, GeneralTerm, Guard, IntegerTerm, Quantification,
-            Quantifier,
+            self, BinaryConnective, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+            Quantification, Quantifier, Theory,
         },
     },
     translating::tau_star::{choose_fresh_variable_names, tau_b, val},
@@ -29,6 +29,24 @@ use crate::{
 pub struct TargetTheory {
     pub formulas: Vec<Formula>,
     pub axioms: Vec<Formula>,
+}
+
+impl TargetTheory {
+    pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
+        let theory = Theory {
+            formulas: self.formulas,
+        }
+        .replace_placeholders(mapping);
+        let axioms = Theory {
+            formulas: self.axioms,
+        }
+        .replace_placeholders(mapping);
+
+        TargetTheory {
+            formulas: theory.formulas,
+            axioms: axioms.formulas,
+        }
+    }
 }
 
 enum At {

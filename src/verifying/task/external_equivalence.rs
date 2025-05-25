@@ -9,8 +9,13 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
-        translating::{completion::completion, tau_star::tau_star},
+        syntax_tree::{
+            asp,
+            fol::{self, AnnotatedFormula, Theory},
+        },
+        translating::{
+            completion::completion, counting::TargetTheory, tau_star::tau_star_with_axioms,
+        },
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
             problem::{self, Problem},
@@ -496,20 +501,37 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
+        // Map aggregate elements to names for creating new predicate constants
+        let mut combined_program = self.program.clone();
+        match self.specification {
+            Either::Left(ref program) => {
+                combined_program.rules.extend(program.rules.clone());
+            }
+            Either::Right(_) => (),
+        }
+        let aggregate_names = combined_program.aggregate_names();
+
         let theory_translate = |program: asp::Program| {
             // TODO: allow more formula representations beyond tau-star
-            let mut theory = completion(tau_star(program).replace_placeholders(&placeholders))
-                .expect("tau_star did not create a completable theory");
+            let target_theory = tau_star_with_axioms(program, Some(aggregate_names.clone()))
+                .replace_placeholders(&placeholders);
+            let mut completion = completion(Theory {
+                formulas: target_theory.formulas,
+            })
+            .expect("tau_star did not create a completable theory");
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                theory = theory
+                completion = completion
                     .into_iter()
                     .map(|f| f.apply_fixpoint(&mut portfolio))
                     .collect();
             }
 
-            theory
+            TargetTheory {
+                formulas: completion.formulas,
+                axioms: target_theory.axioms,
+            }
         };
 
         let control_translate = |theory: fol::Theory| {
@@ -541,21 +563,33 @@ impl Task for ExternalEquivalenceTask {
             fol::Specification { formulas }
         };
 
+        let mut counting_axioms = vec![];
+
         let left = match self.specification {
-            Either::Left(program) => control_translate(theory_translate(program)),
+            Either::Left(program) => {
+                let target_theory = theory_translate(program);
+                counting_axioms.extend(target_theory.axioms);
+                control_translate(Theory {
+                    formulas: target_theory.formulas,
+                })
+            }
             Either::Right(specification) => specification.replace_placeholders(&placeholders),
         };
 
-        let right = control_translate(theory_translate(self.program));
+        let right = {
+            let target_theory = theory_translate(self.program);
+            counting_axioms.extend(target_theory.axioms);
+            control_translate(Theory {
+                formulas: target_theory.formulas,
+            })
+        };
 
+        println!("WARNING: programs must not contain private predicates of the same name!");
         // TODO: Warn when a conflict between private predicates is encountered
-        // TODO: Check if renaming creates new conflicts
-        let right = right.rename_predicates(
-            &specification_private_predicates
-                .intersection(&program_private_predicates)
-                .map(|p| (p.clone(), "p".to_string()))
-                .collect(),
-        );
+        // TODO: Check if renaming creates new conflict
+        let conflicts = specification_private_predicates.intersection(&program_private_predicates);
+        let right =
+            right.rename_predicates(&conflicts.map(|p| (p.clone(), "p".to_string())).collect());
 
         let mut user_guide_assumptions = Vec::new();
         for formula in self.user_guide.formulas() {
@@ -588,6 +622,19 @@ impl Task for ExternalEquivalenceTask {
         }
         for anf in right.formulas.iter() {
             taken_predicates.extend(anf.formula.predicates());
+        }
+        for formula in counting_axioms.iter() {
+            taken_predicates.extend(formula.predicates());
+        }
+
+        // Add counting axioms to user guide assumptions
+        for (i, formula) in counting_axioms.into_iter().enumerate() {
+            user_guide_assumptions.push(AnnotatedFormula {
+                role: fol::Role::Assumption,
+                direction: fol::Direction::Universal,
+                name: format!("counting_axiom_{i}"),
+                formula,
+            });
         }
 
         let proof_outline_construction =
