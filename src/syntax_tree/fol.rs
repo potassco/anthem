@@ -926,7 +926,13 @@ impl Formula {
     }
 
     pub fn universal_closure(self) -> Formula {
-        let variables = self.free_variables().into_iter().collect();
+        let variables: Vec<Variable> = self.free_variables().into_iter().collect();
+        self.quantify(Quantifier::Forall, variables)
+    }
+
+        pub fn universal_closure_with_sorting(self) -> Formula {
+        let mut variables: Vec<Variable> = self.free_variables().into_iter().collect();
+        variables.sort();
         self.quantify(Quantifier::Forall, variables)
     }
 

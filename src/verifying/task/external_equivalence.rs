@@ -14,7 +14,8 @@ use {
             fol::{self, AnnotatedFormula, Theory},
         },
         translating::{
-            completion::completion, counting::TargetTheory, tau_star::tau_star_with_axioms,
+            completion::completion_with_axioms, counting::TargetTheory,
+            tau_star::tau_star_with_axioms,
         },
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -515,23 +516,22 @@ impl Task for ExternalEquivalenceTask {
             // TODO: allow more formula representations beyond tau-star
             let target_theory = tau_star_with_axioms(program, Some(aggregate_names.clone()))
                 .replace_placeholders(&placeholders);
-            let mut completion = completion(Theory {
-                formulas: target_theory.formulas,
-            })
-            .expect("tau_star did not create a completable theory");
+
+            let completion = completion_with_axioms(target_theory)
+                .expect("tau_star did not create a completable theory");
+
+            let axioms = completion.axioms;
+            let mut formulas = completion.formulas;
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                completion = completion
+                formulas = formulas
                     .into_iter()
                     .map(|f| f.apply_fixpoint(&mut portfolio))
                     .collect();
             }
 
-            TargetTheory {
-                formulas: completion.formulas,
-                axioms: target_theory.axioms,
-            }
+            TargetTheory { formulas, axioms }
         };
 
         let control_translate = |theory: fol::Theory| {

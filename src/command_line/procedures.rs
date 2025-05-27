@@ -16,8 +16,8 @@ use {
             superasp,
         },
         translating::{
-            alpha::alpha, completion::completion, gamma::gamma, mu::mu, natural::natural,
-            tau_star::tau_star_with_axioms,
+            alpha::alpha, completion::completion_with_axioms, counting::TargetTheory, gamma::gamma,
+            mu::mu, natural::natural, tau_star::tau_star_with_axioms,
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -139,17 +139,41 @@ pub fn main() -> Result<()> {
                 Translation::Completion => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let mut completed_theory =
-                        completion(theory).context("the given theory is not completable")?;
+
+                    let target_theory = TargetTheory {
+                        formulas: theory.formulas,
+                        axioms: vec![],
+                    };
+
+                    let completed_theory = completion_with_axioms(target_theory)
+                        .context("the given theory is not completable")?;
+
+                    let mut completion = Theory::from_iter(completed_theory.formulas);
+
                     if !no_simplify {
                         let mut portfolio =
                             [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                        completed_theory = completed_theory
+                        completion = completion
                             .into_iter()
                             .map(|formula| formula.apply_fixpoint(&mut portfolio))
                             .collect();
                     }
-                    print!("{completed_theory}")
+
+                    if include_axioms {
+                        println!("\tSupporting Axioms:");
+                        let mut axioms = Theory::from_iter(completed_theory.axioms);
+                        if !no_simplify {
+                            let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
+                            axioms = axioms
+                                .into_iter()
+                                .map(|formula| formula.apply_fixpoint(&mut portfolio))
+                                .collect();
+                        }
+                        print!("{axioms}");
+                        println!("\tcompletion:");
+                    }
+
+                    print!("{completion}")
                 }
 
                 Translation::Gamma => {

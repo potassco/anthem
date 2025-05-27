@@ -1,11 +1,49 @@
 use {
+    super::counting::TargetTheory,
     crate::{
-        convenience::unbox::{Unbox, fol::UnboxedFormula},
-        syntax_tree::fol,
+        convenience::{
+            apply::Apply as _,
+            compose::Compose as _,
+            unbox::{Unbox, fol::UnboxedFormula},
+        },
+        simplifying::fol::{
+            ht::{COUNT, HT, exactly_axioms},
+            intuitionistic::INTUITIONISTIC,
+        },
+        syntax_tree::fol::{self, Theory},
     },
-    indexmap::{IndexMap, map::Entry},
+    indexmap::{IndexMap, IndexSet, map::Entry},
     itertools::Itertools,
 };
+
+pub(crate) fn completion_with_axioms(theory: TargetTheory) -> Option<TargetTheory> {
+    match completion(Theory::from_iter(theory.formulas)) {
+        Some(completed_theory) => {
+            let mut portfolio = [INTUITIONISTIC, HT, COUNT].concat().into_iter().compose();
+
+            let mut formulas = IndexSet::new();
+            let mut axioms = IndexSet::new();
+
+            for formula in completed_theory.formulas {
+                formulas.insert(formula.apply_fixpoint(&mut portfolio));
+            }
+            for formula in theory.axioms {
+                axioms.insert(formula);
+            }
+
+            let simplified_theory = Theory::from_iter(formulas);
+            for formula in exactly_axioms(simplified_theory.clone()) {
+                axioms.insert(formula);
+            }
+
+            Some(TargetTheory {
+                formulas: simplified_theory.formulas,
+                axioms: Vec::from_iter(axioms),
+            })
+        }
+        None => None,
+    }
+}
 
 pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
     // Retrieve the definitions and constraints
