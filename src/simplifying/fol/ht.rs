@@ -397,8 +397,7 @@ pub fn sid_theorem_y_lesseq_zero(atom: &Formula) -> Theory {
 
 // forall V N ( Atleast^XV_F(V,N) <-> exists X Start(X,V,N) )
 pub fn sid_theorem_atleast_iff_start(at_atom: &Formula, start_atom: &Formula) -> Theory {
-
-    if at_least_atom(&at_atom).is_none() {
+    if at_least_atom(at_atom).is_none() {
         return Theory { formulas: vec![] };
     }
 
