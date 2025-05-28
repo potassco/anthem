@@ -4,6 +4,7 @@ use crate::{
 };
 
 pub const CLASSIC: &[fn(Formula) -> Formula] = &[remove_double_negation];
+pub const POSTGAMMA: &[fn(Formula) -> Formula] = &[remove_double_negation, collapse_worlds];
 
 trait ReplaceHereWithThere {
     fn replace_here_with_there(self) -> Self;

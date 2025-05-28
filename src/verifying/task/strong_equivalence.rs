@@ -6,7 +6,7 @@ use {
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        simplifying::fol::{classic::POSTGAMMA, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{
             asp,
             fol::{self, Theory},
@@ -195,7 +195,7 @@ impl Task for StrongEquivalenceTask {
 
         // Apply classical simplifications
         if self.simplify {
-            let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
+            let mut portfolio = [INTUITIONISTIC, HT, POSTGAMMA].concat().into_iter().compose();
             left_formulas = left_formulas
                 .into_iter()
                 .map(|f| f.apply_fixpoint(&mut portfolio))
