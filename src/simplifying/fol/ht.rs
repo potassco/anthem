@@ -359,6 +359,127 @@ pub fn exactly_axioms(theory: Theory) -> Theory {
     Theory { formulas }
 }
 
+// forall V Y (Y <= 0 -> Atleast^XV_F(V,Y))
+pub fn sid_theorem_y_lesseq_zero(atom: &Formula) -> Theory {
+    let mut formulas = vec![];
+
+    if let Some(atom_id) = at_least_atom(atom) {
+        let mut terms = atom_id.terms;
+        terms.push(atom_id.last_term.clone());
+
+        for term in terms.iter() {
+            assert!(term.is_variable())
+        }
+
+        formulas.push(
+            Formula::BinaryFormula {
+                connective: BinaryConnective::Implication,
+                lhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
+                    term: atom_id.last_term,
+                    guards: vec![Guard {
+                        relation: Relation::LessEqual,
+                        term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
+                    }],
+                }))
+                .into(),
+                rhs: Formula::AtomicFormula(AtomicFormula::Atom(Atom {
+                    predicate_symbol: format!("at_least_{}", atom_id.name),
+                    terms,
+                }))
+                .into(),
+            }
+            .universal_closure_with_sorting(),
+        );
+    }
+
+    Theory { formulas }
+}
+
+// forall V N ( Atleast^XV_F(V,N) <-> exists X Start(X,V,N) )
+pub fn sid_theorem_atleast_iff_start(at_atom: &Formula, start_atom: &Formula) -> Theory {
+    let v = match at_atom {
+        Formula::AtomicFormula(AtomicFormula::Atom(at)) => {
+            let mut terms = at.terms.clone();
+            terms.pop();
+            terms
+        }
+        _ => unreachable!("At(least/most) formula must be an atom"),
+    };
+
+    let (x, n) = match start_atom {
+        Formula::AtomicFormula(AtomicFormula::Atom(start)) => {
+            let mut terms = start.terms.clone();
+            let n = terms.pop().unwrap();
+            terms.retain(|t| !v.contains(t));
+            (terms, n)
+        }
+        _ => unreachable!("start formula must be an atom"),
+    };
+
+    let mut start_terms = x.clone();
+    start_terms.extend(v.clone());
+    start_terms.push(n.clone());
+
+    // Start^XV_F( X, V, N )
+    let new_start_atom = Atom {
+        predicate_symbol: match start_atom {
+            Formula::AtomicFormula(AtomicFormula::Atom(atom)) => atom.predicate().symbol,
+            _ => unreachable!("start formula must be an atom"),
+        },
+        terms: start_terms,
+    };
+
+    let mut variables: Vec<Variable> = v.into_iter().map(|term| term.try_into().unwrap()).collect();
+    let x_vars: Vec<Variable> = x.into_iter().map(|term| term.try_into().unwrap()).collect();
+    let n_var: Variable = n.try_into().unwrap();
+    variables.push(n_var);
+
+    // Atleast^XV_F( V, N )
+    let new_at_atom = Atom {
+        predicate_symbol: match at_atom {
+            Formula::AtomicFormula(AtomicFormula::Atom(atom)) => atom.predicate().symbol,
+            _ => unreachable!("At(least/most) formula must be an atom"),
+        },
+        terms: variables.iter().map(|v| v.clone().into()).collect(),
+    };
+
+    let formulas = vec![Formula::QuantifiedFormula {
+        quantification: Quantification {
+            quantifier: Quantifier::Forall,
+            variables,
+        },
+        formula: Formula::BinaryFormula {
+            connective: BinaryConnective::Equivalence,
+            lhs: Formula::AtomicFormula(AtomicFormula::Atom(new_at_atom)).into(),
+            rhs: Formula::QuantifiedFormula {
+                quantification: Quantification {
+                    quantifier: Quantifier::Exists,
+                    variables: x_vars,
+                },
+                formula: Formula::AtomicFormula(AtomicFormula::Atom(new_start_atom)).into(),
+            }
+            .into(),
+        }
+        .into(),
+    }];
+
+    Theory { formulas }
+}
+
+pub fn sid_theorems(at_atom: &Formula, start_atom: &Formula) -> Vec<Formula> {
+    let mut theorems = vec![];
+    for formula in sid_theorem_y_lesseq_zero(at_atom) {
+        theorems.push(formula);
+    }
+    for formula in sid_theorem_atleast_iff_start(at_atom, start_atom) {
+        theorems.push(formula);
+    }
+    theorems
+}
+
+// forall V N (Atleast^XV_F)
+//pub fn sid_theorem_atleast_iff_start
+
 #[cfg(test)]
 mod tests {
     use {

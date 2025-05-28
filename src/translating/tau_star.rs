@@ -946,9 +946,9 @@ pub fn tau_star_with_axioms(p: asp::Program, names: Option<AggregateNameMap>) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::{syntax_tree::{asp, fol}, translating::tau_star::tau_star_with_axioms};
+    use crate::syntax_tree::fol;
 
-    use super::{tau_b, tau_star, val};
+    use super::{tau_b, tau_star_with_axioms, val};
 
     #[test]
     fn test_val() {
@@ -1085,8 +1085,8 @@ mod tests {
             ),
             (
                 "{p(1..n)}. :- #count{ X : p(X) } <= n-1.",
-                "forall V1 (exists I$i J$i K$i (I$i = 1 and J$i = n and V1 = K$i and I$i <= K$i <= J$i) and #true and not not p(V1) -> p(V1)). exists C (exists I$i J$i (C = I$i - J$i and I$i = n and J$i = 1) and at_most_f1(C)) -> #false."
-            )
+                "forall V1 (exists I$i J$i K$i (I$i = 1 and J$i = n and V1 = K$i and I$i <= K$i <= J$i) and #true and not not p(V1) -> p(V1)). exists C (exists I$i J$i (C = I$i - J$i and I$i = n and J$i = 1) and at_most_f1(C)) -> #false.",
+            ),
         ] {
             //let left = tau_star(src.parse().unwrap());
             let theory = tau_star_with_axioms(src.parse().unwrap(), None);

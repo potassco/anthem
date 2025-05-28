@@ -57,6 +57,10 @@ pub enum IntegerTerm {
 impl_node!(IntegerTerm, Format, IntegerTermParser);
 
 impl IntegerTerm {
+    pub fn is_variable(&self) -> bool {
+        matches!(self, IntegerTerm::Variable(_))
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             IntegerTerm::Numeral(_) | IntegerTerm::FunctionConstant(_) => IndexSet::new(),
@@ -118,6 +122,10 @@ pub enum SymbolicTerm {
 impl_node!(SymbolicTerm, Format, SymbolicTermParser);
 
 impl SymbolicTerm {
+    pub fn is_variable(&self) -> bool {
+        matches!(self, SymbolicTerm::Variable(_))
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             SymbolicTerm::Symbol(_) | SymbolicTerm::FunctionConstant(_) => IndexSet::new(),
@@ -166,6 +174,17 @@ pub enum GeneralTerm {
 impl_node!(GeneralTerm, Format, GeneralTermParser);
 
 impl GeneralTerm {
+    pub fn is_variable(&self) -> bool {
+        match &self {
+            GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::FunctionConstant(_) => {
+                false
+            }
+            GeneralTerm::Variable(_) => true,
+            GeneralTerm::IntegerTerm(term) => term.is_variable(),
+            GeneralTerm::SymbolicTerm(term) => term.is_variable(),
+        }
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::FunctionConstant(_) => {
@@ -305,6 +324,10 @@ pub struct Atom {
 }
 
 impl Atom {
+    pub fn subformulas(&self) -> Vec<Formula> {
+        vec![Formula::AtomicFormula(AtomicFormula::Atom(self.clone()))]
+    }
+
     pub fn predicate(&self) -> Predicate {
         Predicate {
             symbol: self.predicate_symbol.clone(),
@@ -416,6 +439,12 @@ pub struct Comparison {
 impl_node!(Comparison, Format, ComparisonParser);
 
 impl Comparison {
+    pub fn subformulas(&self) -> Vec<Formula> {
+        vec![Formula::AtomicFormula(AtomicFormula::Comparison(
+            self.clone(),
+        ))]
+    }
+
     pub fn individuals(&self) -> impl Iterator<Item = (&GeneralTerm, &Relation, &GeneralTerm)> {
         struct Individuals<'a> {
             lhs: &'a GeneralTerm,
@@ -501,6 +530,15 @@ pub enum AtomicFormula {
 impl_node!(AtomicFormula, Format, AtomicFormulaParser);
 
 impl AtomicFormula {
+    pub fn subformulas(&self) -> Vec<Formula> {
+        match self {
+            AtomicFormula::Truth => vec![Formula::AtomicFormula(AtomicFormula::Truth)],
+            AtomicFormula::Falsity => vec![Formula::AtomicFormula(AtomicFormula::Falsity)],
+            AtomicFormula::Atom(atom) => atom.subformulas(),
+            AtomicFormula::Comparison(comparison) => comparison.subformulas(),
+        }
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             AtomicFormula::Falsity | AtomicFormula::Truth => IndexSet::new(),
@@ -771,6 +809,19 @@ impl Formula {
             .unwrap_or(Formula::AtomicFormula(AtomicFormula::Falsity))
     }
 
+    pub fn subformulas(&self) -> Vec<Formula> {
+        match self {
+            Formula::AtomicFormula(atomic_formula) => atomic_formula.subformulas(),
+            Formula::UnaryFormula { formula, .. } => formula.subformulas(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut subformulas = lhs.subformulas();
+                subformulas.extend(rhs.subformulas());
+                subformulas
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.subformulas(),
+        }
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
             Formula::AtomicFormula(f) => f.variables(),
@@ -930,7 +981,7 @@ impl Formula {
         self.quantify(Quantifier::Forall, variables)
     }
 
-        pub fn universal_closure_with_sorting(self) -> Formula {
+    pub fn universal_closure_with_sorting(self) -> Formula {
         let mut variables: Vec<Variable> = self.free_variables().into_iter().collect();
         variables.sort();
         self.quantify(Quantifier::Forall, variables)

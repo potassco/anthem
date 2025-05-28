@@ -4,7 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 
 use crate::{
     convenience::{apply::Apply, compose::Compose as _},
-    simplifying::fol::intuitionistic::BASIC,
+    simplifying::fol::{ht::sid_theorems, intuitionistic::BASIC},
     syntax_tree::{
         asp::{self, AggregateAtom, AggregateFormulaKey, AggregateNameMap},
         fol::{
@@ -466,24 +466,22 @@ fn at_most_at_least(
     // Start_F^{X;V}(X,V,N)
     let start_atom = start_theory.formulas.pop().unwrap();
 
-    let mut axioms = vec![];
+    // SID theorems
+    let mut axioms = sid_theorems(&at_atom, &start_atom);
 
     // Ind for Start_F^{X;V}(X,V,N)
     let _start_ind = induction_schema(start_atom.clone());
     //axioms.push(_start_ind);
 
     // N
-    let n = match start_atom.clone() {
-        Formula::AtomicFormula(fol::AtomicFormula::Atom(a)) => {
-            let n: fol::Variable = a
-                .terms
-                .last()
-                .unwrap()
-                .clone()
-                .try_into()
-                .expect("last term of start atom should be an integer variable");
-            n
-        }
+    let n: fol::Variable = match start_atom.clone() {
+        Formula::AtomicFormula(fol::AtomicFormula::Atom(a)) => a
+            .terms
+            .last()
+            .unwrap()
+            .clone()
+            .try_into()
+            .expect("last term of start atom should be an integer variable"),
         _ => panic!("bug! start atom was improperly defined"),
     };
 
