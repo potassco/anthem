@@ -1,0 +1,10 @@
+input: h -> integer.
+input: in0/2.
+input: goto/3.
+input: person/1.
+
+assumption: h >= 0.
+output: in/3.
+
+assumption: forall X Y (in0(X,Y) -> person(X) ).
+assumption: forall X Y Z (goto(X,Y,Z) -> person(X) ).
