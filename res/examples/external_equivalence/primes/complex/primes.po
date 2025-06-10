@@ -1,9 +1,5 @@
-definition: forall I$ N$ (sqrt(I$,N$) <-> I$ >= 0 and I$*I$ < N$ <= (I$+1)*(I$+1) ).
-
-lemma: sqrt(I$,N$) and (I$+1)*(I$+1) <= N$+1 -> sqrt(I$+1,N$+1).
-
-inductive-lemma: N$ >= 0 -> exists I$ sqrt(I$,N$).
-
-lemma: b$i >= 1 -> (sqrtb(I$) <-> sqrt(I$, b$i)).
-
-lemma: I$ >= 0 and J$ >= 0 and I$*J$ <= b and sqrtb(N$) -> I$ <= N$ or J$ <= N$.
+definition: forall I$ N$ (sqrt(I$,N$) <-> I$ >= 0 and I$*I$ <= N$ < (I$+1)*(I$+1)).
+lemma[a]: sqrt(I$,N$) and (I$+1)*(I$+1) <= N$+1 -> sqrt(I$+1,N$+1).
+inductive-lemma[b]: N$ >= 0 -> exists I$ sqrt(I$,N$).
+lemma[c]: b >= 1 -> (sqrtb(I$) <-> sqrt(I$,b)).
+lemma[d]: I$ >= 0 and J$ >= 0 and I$*J$ <= b and sqrtb(N$) -> I$ <= N$ or J$ <= N$.
