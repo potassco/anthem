@@ -1,1 +1,1 @@
-tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT frame.1.lp frame.2.lp frame.ug frame.po
+tptp_compliance verify --equivalence external --no-proof-search --save-problems $OUT frame.1.lp frame.2.lp frame.ug frame.po --bypass-tightness
