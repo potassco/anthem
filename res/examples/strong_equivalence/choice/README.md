@@ -2,7 +2,6 @@
 
 ## Usage
 ```
-mkdir out
 anthem verify --equivalence strong choice.1.lp choice.2.lp
 ```
 

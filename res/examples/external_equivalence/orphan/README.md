@@ -4,6 +4,7 @@
 
 Note that the programs are not externally equivalent under user guide `orphan.a.ug`,
 but `orphan.b.ug` adds missing assumptions under which the programs are indeed externally equivalent.
+
 ```
 anthem verify --equivalence external orphan.1.lp orphan.2.lp orphan.b.ug
 ```
