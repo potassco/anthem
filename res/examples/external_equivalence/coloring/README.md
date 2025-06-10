@@ -2,5 +2,5 @@
 
 ## Usage
 ```
-anthem verify --equivalence external coloring.spec coloring.lp coloring.ug
+anthem verify --equivalence external coloring.lp coloring.spec coloring.ug
 ```
