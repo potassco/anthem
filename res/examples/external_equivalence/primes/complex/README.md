@@ -4,6 +4,7 @@
 ```
 anthem verify --equivalence=external primes.1.lp primes.2.lp primes.ug
 anthem verify --equivalence=external primes.2.lp primes.3.lp primes.ug
+anthem verify --equivalence=external primes.2.lp primes.spec primes.ug -t 600 -m 6
 ```
 
 ## Origin
