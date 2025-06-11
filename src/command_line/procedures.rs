@@ -199,6 +199,10 @@ pub fn main() -> Result<()> {
                             .right()
                             .ok_or(anyhow!("no right program was provided"))?,
                     )?,
+                    proof_outline: files
+                        .proof_outline()
+                        .map(fol::Specification::from_file)
+                        .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
                     decomposition,
                     formula_representation,
                     direction,
