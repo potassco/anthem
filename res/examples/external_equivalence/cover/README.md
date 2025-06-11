@@ -4,13 +4,13 @@
 To run the original program-to-specification verification task, use
 
 ```
-anthem verify --equivalence external cover.spec cover.lp cover.ug
+anthem verify --equivalence external cover.1.lp cover.spec cover.ug
 ```
 
 To run the program-to-program verification task against a new program with a symmetry breaking constraint, use
 
 ```
-anthem verify --equivalence external cover.lp cover_sym_break.lp cover.ug
+anthem verify --equivalence external cover.1.lp cover.2.lp cover.ug
 ```
 
 ## Origin

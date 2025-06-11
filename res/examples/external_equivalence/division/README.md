@@ -9,5 +9,5 @@ Vladimir Lifschitz.
 This is a partial specification of the definition of division.
 
 ```
-anthem verify --equivalence external -m 4 division.{lp,spec,ug,po} -t 200 --direction backward
+anthem verify --equivalence external --direction backward division.lp division.spec division.ug division.po
 ```

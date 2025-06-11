@@ -3,8 +3,11 @@
 ## Usage
 ```
 anthem verify --equivalence=external primes.1.lp primes.2.lp primes.ug
-anthem verify --equivalence=external primes.2.lp primes.3.lp primes.ug
+anthem verify --equivalence=external primes.2.lp primes.3.lp primes.ug primes.po
+anthem verify --equivalence=external primes.2.lp primes.spec primes.ug
 ```
+
+You probably want to increase the resource allocation with `-m 8` and `-t 300`.
 
 ## Origin
 This example was taken from
