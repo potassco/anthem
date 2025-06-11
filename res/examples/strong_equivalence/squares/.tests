@@ -1,0 +1,1 @@
+tptp_compliance verify --equivalence strong --no-proof-search --save-problems $OUT squares.1.lp squares.2.lp
