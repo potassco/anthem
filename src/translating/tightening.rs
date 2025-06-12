@@ -1,8 +1,8 @@
 use crate::{
     convenience::choose_fresh_variable_names,
     syntax_tree::asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Head, Literal, PrecomputedTerm, Predicate,
-        Program, Rule, Sign, Term, Variable,
+        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
+        Predicate, Program, Relation, Rule, Sign, Term, Variable,
     },
 };
 use indexmap::IndexSet;
@@ -19,15 +19,23 @@ impl Predicate {
             terms: terms.clone(),
         });
 
-        terms.push(Term::Variable(Variable("N".to_string())));
+        let counter_variable = Term::Variable(Variable("N".to_string()));
+        terms.push(counter_variable.clone());
         let body = Body {
-            formulas: vec![AtomicFormula::Literal(Literal {
-                sign: Sign::NoSign,
-                atom: Atom {
-                    predicate_symbol: self.symbol.clone(),
-                    terms,
-                },
-            })],
+            formulas: vec![
+                AtomicFormula::Literal(Literal {
+                    sign: Sign::NoSign,
+                    atom: Atom {
+                        predicate_symbol: self.symbol.clone(),
+                        terms,
+                    },
+                }),
+                AtomicFormula::Comparison(Comparison {
+                    relation: Relation::GreaterEqual,
+                    lhs: counter_variable,
+                    rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(0)),
+                }),
+            ],
         };
 
         Rule { head, body }
@@ -57,6 +65,12 @@ impl Body {
                 x => formulas.push(x),
             }
         }
+        let comparison_formula = AtomicFormula::Comparison(Comparison {
+            relation: Relation::GreaterEqual,
+            lhs: Term::Variable(variable),
+            rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(0)),
+        });
+        formulas.push(comparison_formula);
         Body { formulas }
     }
 }
