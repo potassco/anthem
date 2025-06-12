@@ -123,3 +123,35 @@ impl Program {
         Program { rules }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::syntax_tree::asp;
+
+    #[test]
+    fn test_tighten() {
+        for (src, target) in [
+            (
+                "p :- q. q :- p.",
+                "p(N+1) :- q(N), N >= 0. q(N+1) :- p(N), N >= 0. p :- p(N), N >= 0. q :- q(N), N >= 0.",
+            ),
+            (
+                "p(X) :- q(X). q(X) :- p(X).",
+                "p(X, N + 1) :- q(X, N), N >= 0. q(X, N + 1) :- p(X, N), N >= 0. p(X) :- p(X, N), N >= 0. q(X) :- q(X, N), N >= 0."
+            ),
+            (
+                "p(X,Y) :- q(X,Y). q(X,Y) :- p(X,Y).",
+                "p(X, Y, N + 1) :- q(X, Y, N), N >= 0. q(X, Y, N + 1) :- p(X, Y, N), N >= 0. p(X, X1) :- p(X, X1, N), N >= 0. q(X, X1) :- q(X, X1, N), N >= 0."
+            ),
+        ] {
+            let program: asp::Program = src.parse().unwrap();
+            let left = program.tighten();
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
+}
