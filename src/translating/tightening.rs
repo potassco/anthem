@@ -9,11 +9,13 @@ use indexmap::IndexSet;
 
 impl Predicate {
     fn forget_successors(&self) -> Rule {
-        let variables = choose_fresh_variable_names(&IndexSet::new(), "X", self.arity - 1);
-        let mut terms: Vec<Term> = variables
-            .into_iter()
-            .map(|v| Term::Variable(Variable(v)))
-            .collect();
+        let mut terms: Vec<Term> = match self.arity {
+            0 => vec![],
+            _ => choose_fresh_variable_names(&IndexSet::new(), "X", self.arity)
+                .into_iter()
+                .map(|v| Term::Variable(Variable(v)))
+                .collect(),
+        };
         let head = Head::Basic(Atom {
             predicate_symbol: self.symbol.clone(),
             terms: terms.clone(),
