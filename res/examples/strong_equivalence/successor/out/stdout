@@ -1,0 +1,26 @@
+$ anthem verify --equivalence strong successor.1.lp successor.2.lp
+> Proving forward_0...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 X2 (hp(X1, X2) -> tp(X1, X2))
+    forall V1 V2 X Y ((exists I$i (V1 = X and (V2 = I$i + 1 and I$i = Y) and hp(X, Y)) -> hq(V1, V2)) and (exists I$i (V1 = X and (V2 = I$i + 1 and I$i = Y) and tp(X, Y)) -> tq(V1, V2)))
+
+Conjectures:
+    forall V1 V2 X Y ((exists I$i (V1 = X and V2 = Y and (I$i = Y and hp(X, I$i - 1))) -> hq(V1, V2)) and (exists I$i (V1 = X and V2 = Y and (I$i = Y and tp(X, I$i - 1))) -> tq(V1, V2)))
+
+> Proving forward_0 ended with a SZS status
+Status: Theorem (1556 ms)
+
+> Proving backward_0...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 X2 (hp(X1, X2) -> tp(X1, X2))
+    forall V1 V2 X Y ((exists I$i (V1 = X and V2 = Y and (I$i = Y and hp(X, I$i - 1))) -> hq(V1, V2)) and (exists I$i (V1 = X and V2 = Y and (I$i = Y and tp(X, I$i - 1))) -> tq(V1, V2)))
+
+Conjectures:
+    forall V1 V2 X Y ((exists I$i (V1 = X and (V2 = I$i + 1 and I$i = Y) and hp(X, Y)) -> hq(V1, V2)) and (exists I$i (V1 = X and (V2 = I$i + 1 and I$i = Y) and tp(X, Y)) -> tq(V1, V2)))
+
+> Proving backward_0 ended with a SZS status
+Status: Theorem (903 ms)
+
+> Success! Anthem found a proof of the theorem. (2516 ms)

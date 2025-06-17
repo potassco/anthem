@@ -5,6 +5,9 @@
 anthem verify --equivalence strong choice.1.lp choice.2.lp
 ```
 
+## Output
+To understand what output is expected, have a look into the [out](./out) subfolder.
+
 ## Origin
 This example was taken from
 

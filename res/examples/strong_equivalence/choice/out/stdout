@@ -1,0 +1,26 @@
+$ anthem verify --equivalence strong choice.1.lp choice.2.lp
+> Proving forward_0...
+Axioms:
+    forall X1 (hq(X1) -> tq(X1))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 X ((V1 = X and hp(X) and tq(V1) -> hq(V1)) and (V1 = X and tp(X) and tq(V1) -> tq(V1)))
+
+Conjectures:
+    forall V1 X ((V1 = X and (hp(X) and tq(X)) -> hq(V1)) and (V1 = X and (tp(X) and tq(X)) -> tq(V1)))
+
+> Proving forward_0 ended with a SZS status
+Status: Theorem (21 ms)
+
+> Proving backward_0...
+Axioms:
+    forall X1 (hq(X1) -> tq(X1))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 X ((V1 = X and (hp(X) and tq(X)) -> hq(V1)) and (V1 = X and (tp(X) and tq(X)) -> tq(V1)))
+
+Conjectures:
+    forall V1 X ((V1 = X and hp(X) and tq(V1) -> hq(V1)) and (V1 = X and tp(X) and tq(V1) -> tq(V1)))
+
+> Proving backward_0 ended with a SZS status
+Status: Theorem (18 ms)
+
+> Success! Anthem found a proof of the theorem. (55 ms)

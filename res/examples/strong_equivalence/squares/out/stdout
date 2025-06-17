@@ -1,0 +1,24 @@
+$ anthem verify --equivalence strong squares.1.lp squares.2.lp
+> Proving forward_0...
+Axioms:
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 X Y ((exists K$i (V1 = Y and 0 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> hp(V1)) and (exists K$i (V1 = Y and 0 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> tp(V1)))
+
+Conjectures:
+    forall V1 X Y ((exists K$i (V1 = Y and -2 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> hp(V1)) and (exists K$i (V1 = Y and -2 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> tp(V1)))
+
+> Proving forward_0 ended with a SZS status
+Status: Theorem (12782 ms)
+
+> Proving backward_0...
+Axioms:
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 X Y ((exists K$i (V1 = Y and -2 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> hp(V1)) and (exists K$i (V1 = Y and -2 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> tp(V1)))
+
+Conjectures:
+    forall V1 X Y ((exists K$i (V1 = Y and 0 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> hp(V1)) and (exists K$i (V1 = Y and 0 <= K$i and K$i <= 2 and X = K$i and Y = K$i * K$i) -> tp(V1)))
+
+> Proving backward_0 ended with a SZS status
+Status: Theorem (148 ms)
+
+> Success! Anthem found a proof of the theorem. (12938 ms)
