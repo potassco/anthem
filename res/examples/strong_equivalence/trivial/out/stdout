@@ -1,0 +1,12 @@
+$ anthem verify --equivalence=strong trivial.1.lp trivial.2.lp
+> Proving backward_0...
+Axioms:
+    forall X1 (hp(X1) -> tp(X1))
+
+Conjectures:
+    forall V1 X ((V1 = X and (X < 3 and X > 5) -> hp(V1)) and (V1 = X and (X < 3 and X > 5) -> tp(V1)))
+
+> Proving backward_0 ended with a SZS status
+Status: Theorem (58 ms)
+
+> Success! Anthem found a proof of the theorem. (82 ms)

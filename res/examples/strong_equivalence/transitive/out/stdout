@@ -1,0 +1,56 @@
+$ anthem verify --equivalence strong transitive.1.lp transitive.2.lp
+> Proving forward_0...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+    forall V1 V2 X Y Z ((V1 = X and V2 = Z and (hq(X, Y) and hq(Y, Z) and hp(X) and hp(Y) and hp(Z)) -> hq(V1, V2)) and (V1 = X and V2 = Z and (tq(X, Y) and tq(Y, Z) and tp(X) and tp(Y) and tp(Z)) -> tq(V1, V2)))
+
+Conjectures:
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+
+> Proving forward_0 ended with a SZS status
+Status: Theorem (35 ms)
+
+> Proving forward_1...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+    forall V1 V2 X Y Z ((V1 = X and V2 = Z and (hq(X, Y) and hq(Y, Z) and hp(X) and hp(Y) and hp(Z)) -> hq(V1, V2)) and (V1 = X and V2 = Z and (tq(X, Y) and tq(Y, Z) and tp(X) and tp(Y) and tp(Z)) -> tq(V1, V2)))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+
+Conjectures:
+    forall X Y Z not (tq(X, Y) and tq(Y, Z) and not tq(X, Z) and tp(X) and tp(Y) and tp(Z))
+
+> Proving forward_1 ended with a SZS status
+Status: Theorem (23 ms)
+
+> Proving backward_0...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+    forall X Y Z not (tq(X, Y) and tq(Y, Z) and not tq(X, Z) and tp(X) and tp(Y) and tp(Z))
+
+Conjectures:
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+
+> Proving backward_0 ended with a SZS status
+Status: Theorem (15 ms)
+
+> Proving backward_1...
+Axioms:
+    forall X1 X2 (hq(X1, X2) -> tq(X1, X2))
+    forall X1 (hp(X1) -> tp(X1))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+    forall X Y Z not (tq(X, Y) and tq(Y, Z) and not tq(X, Z) and tp(X) and tp(Y) and tp(Z))
+    forall V1 V2 X Y ((V1 = X and V2 = Y and (hp(X) and hp(Y)) and tq(V1, V2) -> hq(V1, V2)) and (V1 = X and V2 = Y and (tp(X) and tp(Y)) and tq(V1, V2) -> tq(V1, V2)))
+
+Conjectures:
+    forall V1 V2 X Y Z ((V1 = X and V2 = Z and (hq(X, Y) and hq(Y, Z) and hp(X) and hp(Y) and hp(Z)) -> hq(V1, V2)) and (V1 = X and V2 = Z and (tq(X, Y) and tq(Y, Z) and tp(X) and tp(Y) and tp(Z)) -> tq(V1, V2)))
+
+> Proving backward_1 ended with a SZS status
+Status: Theorem (18 ms)
+
+> Success! Anthem found a proof of the theorem. (111 ms)
