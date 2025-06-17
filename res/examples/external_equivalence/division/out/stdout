@@ -1,0 +1,60 @@
+$ anthem verify --equivalence external --direction backward division.lp division.spec division.ug division.po
+> Proving backward_outline_0_0...
+Axioms:
+    forall V1 V2 V3 V4 (div(V1, V2, V3, V4) <-> exists I1$i J$i J1$i (I1$i = V2 and J1$i = V3 and J$i = V4 and V1 = I1$i * J1$i + J$i and 0 <= V4 and V4 < V2))
+
+Conjectures:
+    forall N$i D$i Q$i R$i (div(N$i, D$i, Q$i, R$i) and R$i < D$i - 1 -> div(N$i + 1, D$i, Q$i, R$i + 1))
+
+> Proving backward_outline_0_0 ended with a SZS status
+Status: Theorem (6352 ms)
+
+> Proving backward_outline_1_0...
+Axioms:
+    forall V1 V2 V3 V4 (div(V1, V2, V3, V4) <-> exists I1$i J$i J1$i (I1$i = V2 and J1$i = V3 and J$i = V4 and V1 = I1$i * J1$i + J$i and 0 <= V4 and V4 < V2))
+    forall N$i D$i Q$i R$i (div(N$i, D$i, Q$i, R$i) and R$i < D$i - 1 -> div(N$i + 1, D$i, Q$i, R$i + 1))
+
+Conjectures:
+    forall N$i D$i Q$i (div(N$i, D$i, Q$i, D$i - 1) -> div(N$i + 1, D$i, Q$i + 1, 0))
+
+> Proving backward_outline_1_0 ended with a SZS status
+Status: Theorem (1865 ms)
+
+> Proving backward_outline_2_0...
+Axioms:
+    forall V1 V2 V3 V4 (div(V1, V2, V3, V4) <-> exists I1$i J$i J1$i (I1$i = V2 and J1$i = V3 and J$i = V4 and V1 = I1$i * J1$i + J$i and 0 <= V4 and V4 < V2))
+    forall N$i D$i Q$i R$i (div(N$i, D$i, Q$i, R$i) and R$i < D$i - 1 -> div(N$i + 1, D$i, Q$i, R$i + 1))
+    forall N$i D$i Q$i (div(N$i, D$i, Q$i, D$i - 1) -> div(N$i + 1, D$i, Q$i + 1, 0))
+
+Conjectures:
+    forall D$i (D$i > 0 -> exists Q$i R$i div(0, D$i, Q$i, R$i))
+
+> Proving backward_outline_2_0 ended with a SZS status
+Status: Theorem (2062 ms)
+
+> Proving backward_outline_2_1...
+Axioms:
+    forall V1 V2 V3 V4 (div(V1, V2, V3, V4) <-> exists I1$i J$i J1$i (I1$i = V2 and J1$i = V3 and J$i = V4 and V1 = I1$i * J1$i + J$i and 0 <= V4 and V4 < V2))
+    forall N$i D$i Q$i R$i (div(N$i, D$i, Q$i, R$i) and R$i < D$i - 1 -> div(N$i + 1, D$i, Q$i, R$i + 1))
+    forall N$i D$i Q$i (div(N$i, D$i, Q$i, D$i - 1) -> div(N$i + 1, D$i, Q$i + 1, 0))
+
+Conjectures:
+    forall N$i D$i (N$i >= 0 and (D$i > 0 -> exists Q$i R$i div(N$i, D$i, Q$i, R$i)) -> (D$i > 0 -> exists Q$i R$i div(N$i + 1, D$i, Q$i, R$i)))
+
+> Proving backward_outline_2_1 ended with a SZS status
+Status: Theorem (2722 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    forall V1 V2 V3 V4 (div(V1, V2, V3, V4) <-> exists I1$i J$i J1$i (I1$i = V2 and J1$i = V3 and J$i = V4 and V1 = I1$i * J1$i + J$i and 0 <= V4 and V4 < V2))
+    forall N$i D$i Q$i R$i (div(N$i, D$i, Q$i, R$i) and R$i < D$i - 1 -> div(N$i + 1, D$i, Q$i, R$i + 1))
+    forall N$i D$i Q$i (div(N$i, D$i, Q$i, D$i - 1) -> div(N$i + 1, D$i, Q$i + 1, 0))
+    forall D$i N$i (N$i >= 0 -> (D$i > 0 -> exists Q$i R$i div(N$i, D$i, Q$i, R$i)))
+
+Conjectures:
+    forall N$i D$i (N$i >= 0 and D$i > 0 -> exists Q$i R$i div(N$i, D$i, Q$i, R$i))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (31 ms)
+
+> Success! Anthem found a proof of the theorem. (13039 ms)

@@ -1,0 +1,52 @@
+$ anthem verify --equivalence external first_order.spec first_order.lp first_order.ug
+> Proving forward_problem_0...
+Axioms:
+    forall V1 (p(V1) <-> V1 = a or V1 = b)
+    forall V1 (p_p(V1) <-> V1 = a or V1 = b)
+    forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))
+
+Conjectures:
+    forall V1 V2 (q(V1, V2) -> p_p(V1) and p_p(V2))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (50 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    forall V1 (p(V1) <-> V1 = a or V1 = b)
+    forall V1 (p_p(V1) <-> V1 = a or V1 = b)
+    forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))
+    forall V1 V2 (q(V1, V2) -> p_p(V1) and p_p(V2))
+
+Conjectures:
+    forall V1 V2 (q(V1, V2) <- p_p(V1) and p_p(V2))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (40 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    forall V1 (p(V1) <-> V1 = a or V1 = b)
+    forall V1 (p_p(V1) <-> V1 = a or V1 = b)
+    forall V1 V2 (q(V1, V2) <-> p_p(V1) and p_p(V2))
+
+Conjectures:
+    forall V1 V2 (q(V1, V2) -> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (49 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    forall V1 (p(V1) <-> V1 = a or V1 = b)
+    forall V1 (p_p(V1) <-> V1 = a or V1 = b)
+    forall V1 V2 (q(V1, V2) <-> p_p(V1) and p_p(V2))
+    forall V1 V2 (q(V1, V2) -> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))
+
+Conjectures:
+    forall V1 V2 (q(V1, V2) <- exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z)))))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (46 ms)
+
+> Success! Anthem found a proof of the theorem. (190 ms)

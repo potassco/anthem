@@ -1,0 +1,135 @@
+
+$ anthem verify --equivalence external cover.1.lp cover.2.lp cover.ug
+> Proving forward_problem_0...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+Conjectures:
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (71 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+
+Conjectures:
+    forall X I not (s(X, I) and not covered_p(X))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (47 ms)
+
+> Proving forward_problem_2...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+
+Conjectures:
+    forall V1 (in_cover(V1) -> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+> Proving forward_problem_2 ended with a SZS status
+Status: Theorem (48 ms)
+
+> Proving forward_problem_3...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+    forall V1 (in_cover(V1) -> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+Conjectures:
+    forall V1 (in_cover(V1) <- exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+> Proving forward_problem_3 ended with a SZS status
+Status: Theorem (37 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+Conjectures:
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (77 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+
+Conjectures:
+    forall X I not (s(X, I) and not covered(X))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Proving backward_problem_2...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+
+Conjectures:
+    forall V1 (in_cover(V1) -> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+> Proving backward_problem_2 ended with a SZS status
+Status: Theorem (38 ms)
+
+> Proving backward_problem_3...
+Axioms:
+    n$i >= 0
+    forall V1 (covered(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall V1 (covered_p(V1) <-> exists I (in_cover(I) and s(V1, I)))
+    forall I J X not (I < J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered_p(X))
+    forall V1 (in_cover(V1) <-> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+    forall I J X not (I != J and in_cover(I) and in_cover(J) and s(X, I) and s(X, J))
+    forall X I not (s(X, I) and not covered(X))
+    forall V1 (in_cover(V1) -> exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+Conjectures:
+    forall V1 (in_cover(V1) <- exists K$i (V1 = K$i and (1 <= K$i and K$i <= n$i) and in_cover(V1)))
+
+> Proving backward_problem_3 ended with a SZS status
+Status: Theorem (33 ms)
+
+> Success! Anthem found a proof of the theorem. (389 ms)
