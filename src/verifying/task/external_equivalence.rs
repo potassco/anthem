@@ -498,8 +498,11 @@ impl Task for ExternalEquivalenceTask {
 
         let theory_translate = |program: asp::Program| {
             // TODO: allow more formula representations beyond tau-star
-            let mut theory = completion(tau_star(program).replace_placeholders(&placeholders))
-                .expect("tau_star did not create a completable theory");
+            let mut theory = completion(
+                tau_star(program).replace_placeholders(&placeholders),
+                self.user_guide.input_predicates(),
+            )
+            .expect("tau_star did not create a completable theory");
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();

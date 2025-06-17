@@ -2,22 +2,54 @@ use {
     crate::{
         convenience::unbox::{Unbox, fol::UnboxedFormula},
         syntax_tree::fol,
+        translating::tau_star::choose_fresh_variable_names,
     },
-    indexmap::{IndexMap, map::Entry},
+    indexmap::{IndexMap, IndexSet, map::Entry},
     itertools::Itertools,
 };
 
-pub fn completion(theory: fol::Theory) -> Option<fol::Theory> {
-    // Retrieve the definitions and constraints
-    let (definitions, constraints) = components(theory)?;
+// External Equivalence of Logic Programs and Verification of Refactoring, Appendix B:
+// The first-order completion of Π is the conjunction of the following first-order sentences
+// over the signature σ0(In ∪ Out ∪ Private ):
+// 1. the completed definitions of the predicate symbols from Out ∪ Private in Π
+// 2. the constraints of Π rewritten in the syntax of first-order logic.
+// This function implements this definition of completion (e.g. omitting input predicate completions)
+pub fn completion(theory: fol::Theory, inputs: IndexSet<fol::Predicate>) -> Option<fol::Theory> {
+    let theory_predicates = theory.predicates();
+
+    // Retrieve the definitions and constraints present in the theory
+    let (explicit_definitions, constraints) = components(theory)?;
+
+    // Add the definitions of any predicates which do not occur in a formula "head"
+    let mut explicit_predicates = IndexSet::new();
+    for formula in explicit_definitions.keys() {
+        if let fol::AtomicFormula::Atom(atom) = formula {
+            explicit_predicates.insert(atom.predicate());
+        }
+    }
+
+    let mut definitions = explicit_definitions;
+    for predicate in theory_predicates.difference(&explicit_predicates) {
+        definitions.insert(atomic_formula_from(predicate), Vec::new());
+    }
 
     // Confirm there are no head mismatches
     if has_head_mismatches(&definitions) {
         return None;
     }
 
+    // Drop the completed definitions of any input predicates
+    let mut final_definitions = Definitions::new();
+    for (head, body) in definitions {
+        if let fol::AtomicFormula::Atom(atom) = head.clone() {
+            if !inputs.contains(&atom.predicate()) {
+                final_definitions.insert(head, body);
+            }
+        }
+    }
+
     // Complete the definitions
-    let completed_definitions = definitions.into_iter().map(|(g, a)| {
+    let completed_definitions = final_definitions.into_iter().map(|(g, a)| {
         let v = g.variables();
         fol::Formula::BinaryFormula {
             connective: fol::BinaryConnective::Equivalence,
@@ -47,6 +79,23 @@ pub(crate) fn has_head_mismatches(definitions: &Definitions) -> bool {
         }
     }
     false
+}
+
+fn atomic_formula_from(predicate: &fol::Predicate) -> fol::AtomicFormula {
+    // Make 'V' off-limits for consistency with global variable selection strategy
+    let taken_variables = IndexSet::from_iter(vec![fol::Variable {
+        name: "V".to_string(),
+        sort: fol::Sort::General,
+    }]);
+    let variables = choose_fresh_variable_names(&taken_variables, "V", predicate.arity);
+    let terms = variables
+        .into_iter()
+        .map(fol::GeneralTerm::Variable)
+        .collect();
+    fol::AtomicFormula::Atom(fol::Atom {
+        predicate_symbol: predicate.symbol.clone(),
+        terms,
+    })
 }
 
 fn heads(definitions: &Definitions) -> IndexMap<fol::Predicate, Vec<&fol::AtomicFormula>> {
@@ -172,52 +221,105 @@ enum Component {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+
     use crate::{
         syntax_tree::fol,
-        translating::{completion::completion, tau_star::tau_star},
+        translating::{
+            completion::{atomic_formula_from, completion},
+            tau_star::tau_star,
+        },
     };
 
     #[test]
-    fn test_completion() {
+    fn test_atomic_formula_from() {
         for (src, target) in [
+            ("p/1", "p(V1)"),
+            ("predicate/3", "predicate(V1, V2, V3)"),
+            ("q/0", "q"),
+        ] {
+            let left = atomic_formula_from(&src.parse().unwrap());
+            let right: fol::AtomicFormula = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_completion() {
+        for (src, target, inputs) in [
+            (
+                "p(X) :- q(X).",
+                "forall V1 (p(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z)))). forall V1 (q(V1) <-> #false).",
+                IndexSet::new(),
+            ),
             (
                 "p(X) :- q(X).",
                 "forall V1 (p(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z)))).",
+                IndexSet::from_iter(vec![fol::Predicate {
+                    symbol: "q".to_string(),
+                    arity: 1,
+                }]),
             ),
             (
                 "p(a). p(b). q(X,Y) :- p(X), p(Y).",
                 "forall V1 (p(V1) <-> V1 = a and #true or V1 = b and #true). forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))))).",
+                IndexSet::new(),
             ),
             (
                 "{p(X+1)} :- q(X).",
-                "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1))).",
+                "forall V1 (p(V1) <-> exists X (exists I$i J$i (V1 = I$i + J$i and I$i = X and J$i = 1) and exists Z (Z = X and q(Z)) and not not p(V1))). forall V1 (q(V1) <-> #false).",
+                IndexSet::new(),
             ),
             (
                 "r(X) :- q(X). r(G,Y) :- G < Y. r(a).",
-                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) ).",
+                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) ). forall V1 (q(V1) <-> #false).",
+                IndexSet::new(),
+            ),
+            (
+                "r(X) :- q(X). r(G,Y) :- G < Y. r(a).",
+                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true).",
+                IndexSet::from_iter(vec![
+                    fol::Predicate {
+                        symbol: "q".to_string(),
+                        arity: 1,
+                    },
+                    fol::Predicate {
+                        symbol: "r".to_string(),
+                        arity: 2,
+                    },
+                ]),
             ),
             (
                 "composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).",
                 "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z))))).",
+                IndexSet::new(),
             ),
             (
                 "p :- q, not t. p :- r. r :- t.",
-                "p <-> (q and not t) or (r). r <-> t.",
+                "p <-> (q and not t) or (r). r <-> t. q <-> #false. t <-> #false.",
+                IndexSet::new(),
             ),
             (
                 "p. p(a). :- q.",
-                "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true).",
+                "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true). q <-> #false.",
+                IndexSet::new(),
             ),
             (
                 "p(X) :- q(X, Y).",
-                "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1)))).",
+                "forall V1 (p(V1) <-> exists X Y (V1 = X and exists Z Z1 (Z = X and Z1 = Y and q(Z, Z1)))). forall V1 V2 (q(V1, V2) <-> #false).",
+                IndexSet::new(),
             ),
             (
                 ":- s(X, I), not covered(X).",
-                "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false).",
+                "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false). forall V1 V2 (s(V1,V2) <-> #false). forall V1 (covered(V1) <-> #false).",
+                IndexSet::new(),
             ),
         ] {
-            let left = completion(tau_star(src.parse().unwrap())).unwrap();
+            let left = completion(tau_star(src.parse().unwrap()), inputs).unwrap();
             let right = target.parse().unwrap();
 
             assert!(
@@ -237,7 +339,7 @@ mod tests {
         ] {
             let theory: fol::Theory = theory.parse().unwrap();
             assert!(
-                completion(theory.clone()).is_none(),
+                completion(theory.clone(), IndexSet::new()).is_none(),
                 "`{theory}` should not be completable"
             );
         }

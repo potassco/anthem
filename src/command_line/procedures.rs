@@ -25,6 +25,7 @@ use {
     anyhow::{Context, Result, anyhow},
     clap::Parser as _,
     either::Either,
+    indexmap::IndexSet,
     std::time::Instant,
 };
 
@@ -129,8 +130,8 @@ pub fn main() -> Result<()> {
                 Translation::Completion => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let completed_theory =
-                        completion(theory).context("the given theory is not completable")?;
+                    let completed_theory = completion(theory, IndexSet::new())
+                        .context("the given theory is not completable")?;
                     print!("{completed_theory}")
                 }
 
