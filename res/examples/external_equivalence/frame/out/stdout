@@ -1,0 +1,217 @@
+$ anthem verify --equivalence external frame.1.lp frame.2.lp frame.ug frame.po --bypass-tightness -t 300
+the following program is not tight:
+in(P, R, 0) :- in0(P, R).
+in(P, R, T + 1) :- goto(P, R, T).
+{in(P, R, T + 1)} :- in(P, R, T), T = 0..h - 1.
+ :- in(P, R1, T), in(P, R2, T), R1 != R2.
+in_building(P, T) :- in(P, R, T).
+ :- not in_building(P, T), person(P), T = 0..h.
+
+
+the following program is not tight:
+in(P, R, 0) :- in0(P, R).
+in(P, R, T + 1) :- goto(P, R, T).
+go(P, T) :- goto(P, R, T).
+in(P, R, T + 1) :- in(P, R, T), not go(P, T), T = 0..h - 1.
+ :- in(P, R1, T), in(P, R2, T), R1 != R2.
+in_building(P, T) :- in(P, R, T).
+ :- not in_building(P, T), person(P), T = 0..h.
+
+
+> Proving forward_problem_0...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+
+Conjectures:
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (47 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+
+Conjectures:
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (57 ms)
+
+> Proving forward_problem_2...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+
+Conjectures:
+    forall V1 V2 V3 (in(V1, V2, V3) -> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+
+> Proving forward_problem_2 ended with a SZS status
+Status: Theorem (129 ms)
+
+> Proving forward_problem_3...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) -> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+
+Conjectures:
+    forall V1 V2 V3 (in(V1, V2, V3) <- exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+
+> Proving forward_problem_3 ended with a SZS status
+Status: Theorem (58 ms)
+
+> Proving backward_outline_0_0...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+
+Conjectures:
+    forall X Y (in(X, Y, 0) -> person(X))
+
+> Proving backward_outline_0_0 ended with a SZS status
+Status: Theorem (2843 ms)
+
+> Proving backward_outline_0_1...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+
+Conjectures:
+    forall N$i X Y (N$i >= 0 and (in(X, Y, N$i) -> person(X)) -> (in(X, Y, N$i + 1) -> person(X)))
+
+> Proving backward_outline_0_1 ended with a SZS status
+Status: Theorem (3015 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+    forall N$i X Y (N$i >= 0 -> (in(X, Y, N$i) -> person(X)))
+
+Conjectures:
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+    forall N$i X Y (N$i >= 0 -> (in(X, Y, N$i) -> person(X)))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+
+Conjectures:
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (34 ms)
+
+> Proving backward_problem_2...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+    forall N$i X Y (N$i >= 0 -> (in(X, Y, N$i) -> person(X)))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+
+Conjectures:
+    forall V1 V2 V3 (in(V1, V2, V3) -> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+
+> Proving backward_problem_2 ended with a SZS status
+Status: Theorem (680 ms)
+
+> Proving backward_problem_3...
+Axioms:
+    h$i >= 0
+    forall X Y (in0(X, Y) -> person(X))
+    forall X Y Z (goto(X, Y, Z) -> person(X))
+    forall V1 V2 (go(V1, V2) <-> exists R goto(V1, R, V2))
+    forall V1 V2 (in_building(V1, V2) <-> exists R in(V1, R, V2))
+    forall V1 V2 (in_building_p(V1, V2) <-> exists R in(V1, R, V2))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building_p(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) <-> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and (0 <= I$i and I$i <= h$i - 1)) and in(V1, V2, V3))))
+    forall N$i X Y (N$i >= 0 -> (in(X, Y, N$i) -> person(X)))
+    forall P R1 T R2 not (in(P, R1, T) and in(P, R2, T) and R1 != R2)
+    forall P T not exists K$i (not in_building(P, T) and person(P) and (0 <= K$i and K$i <= h$i and T = K$i))
+    forall V1 V2 V3 (in(V1, V2, V3) -> exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+
+Conjectures:
+    forall V1 V2 V3 (in(V1, V2, V3) <- exists I$i (V3 = 0 and in0(V1, V2) or V3 = I$i + 1 and goto(V1, V2, I$i) or exists I$i (V3 = I$i + 1 and (in(V1, V2, I$i) and not go(V1, I$i) and (0 <= I$i and I$i <= h$i - 1)))))
+
+> Proving backward_problem_3 ended with a SZS status
+Status: Theorem (71779 ms)
+
+> Success! Anthem found a proof of the theorem. (78690 ms)

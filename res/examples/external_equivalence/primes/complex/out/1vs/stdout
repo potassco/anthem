@@ -1,0 +1,52 @@
+$ anthem verify --equivalence=external primes.2.lp primes.spec primes.ug -t 300
+> Proving forward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall X (prime(X) <-> a$i <= X <= b$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+
+Conjectures:
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (4910 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall X (prime(X) <-> a$i <= X <= b$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) <- exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (2318 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+Conjectures:
+    forall X (prime(X) -> a$i <= X <= b$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (2053 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall X (prime(X) -> a$i <= X <= b$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+
+Conjectures:
+    forall X (prime(X) <- a$i <= X <= b$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (79687 ms)
+
+> Success! Anthem found a proof of the theorem. (88998 ms)

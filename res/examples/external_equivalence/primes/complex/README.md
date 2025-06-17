@@ -9,6 +9,9 @@ anthem verify --equivalence=external primes.2.lp primes.spec primes.ug
 
 You probably want to increase the resource allocation with `-m 8` and `-t 300`.
 
+## Output
+To understand what output is expected, have a look into the [out](./out) subfolder.
+
 ## Origin
 This example was taken from
 

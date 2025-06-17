@@ -1,0 +1,153 @@
+$ anthem verify --equivalence external coloring.lp coloring.spec coloring.ug
+> Proving forward_problem_0...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+
+Conjectures:
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (40 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+
+Conjectures:
+    forall X not (vertex(X) and not aux(X))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (38 ms)
+
+> Proving forward_problem_2...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+
+Conjectures:
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+
+> Proving forward_problem_2 ended with a SZS status
+Status: Theorem (36 ms)
+
+> Proving forward_problem_3...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+
+Conjectures:
+    forall V1 V2 (color(V1, V2) -> vertex(V1) and color(V2) and color(V1, V2))
+
+> Proving forward_problem_3 ended with a SZS status
+Status: Theorem (30 ms)
+
+> Proving forward_problem_4...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall V1 V2 (color(V1, V2) -> vertex(V1) and color(V2) and color(V1, V2))
+
+Conjectures:
+    forall V1 V2 (color(V1, V2) <- vertex(V1) and color(V2) and color(V1, V2))
+
+> Proving forward_problem_4 ended with a SZS status
+Status: Theorem (31 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall V1 V2 (color(V1, V2) <-> vertex(V1) and color(V2) and color(V1, V2))
+
+Conjectures:
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall V1 V2 (color(V1, V2) <-> vertex(V1) and color(V2) and color(V1, V2))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+
+Conjectures:
+    forall X (vertex(X) -> exists Z color(X, Z))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Proving backward_problem_2...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall V1 V2 (color(V1, V2) <-> vertex(V1) and color(V2) and color(V1, V2))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+
+Conjectures:
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+
+> Proving backward_problem_2 ended with a SZS status
+Status: Theorem (31 ms)
+
+> Proving backward_problem_3...
+Axioms:
+    forall X Y (edge(X, Y) -> vertex(X) and vertex(Y))
+    forall V1 (aux(V1) <-> exists Z (vertex(V1) and color(Z) and color(V1, Z)))
+    forall X Z1 Z2 not (color(X, Z1) and color(X, Z2) and Z1 != Z2)
+    forall X not (vertex(X) and not aux(X))
+    forall X Y Z not (edge(X, Y) and color(X, Z) and color(Y, Z))
+    forall V1 V2 (color(V1, V2) <-> vertex(V1) and color(V2) and color(V1, V2))
+    forall X Z (color(X, Z) -> vertex(X) and color(Z))
+    forall X (vertex(X) -> exists Z color(X, Z))
+    forall X Z1 Z2 (color(X, Z1) and color(X, Z2) -> Z1 = Z2)
+
+Conjectures:
+    not exists X Y Z (edge(X, Y) and color(X, Z) and color(Y, Z))
+
+> Proving backward_problem_3 ended with a SZS status
+Status: Theorem (31 ms)
+
+> Success! Anthem found a proof of the theorem. (304 ms)

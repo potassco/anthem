@@ -13,6 +13,9 @@ To run the program-to-program verification task against a new program with a sym
 anthem verify --equivalence external cover.1.lp cover.2.lp cover.ug
 ```
 
+## Output
+To understand what output is expected, have a look into the [out](./out) subfolder.
+
 ## Origin
 The original program-to-specification verification task was taken from
 

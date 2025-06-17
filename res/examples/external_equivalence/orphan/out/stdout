@@ -1,0 +1,56 @@
+$ anthem verify --equivalence external orphan.1.lp orphan.2.lp orphan.b.ug
+> Proving forward_problem_0...
+Axioms:
+    forall X exists Y forall Z (father(Z, X) <-> Y = Z)
+    forall X exists Y forall Z (mother(Z, X) <-> Y = Z)
+    forall V1 (parent_living(V1) <-> exists Y (father(Y, V1) and living(Y) or exists Y (mother(Y, V1) and living(Y))))
+    forall V1 (orphan(V1) <-> living(V1) and not parent_living(V1))
+
+Conjectures:
+    forall V1 (orphan(V1) -> exists Y Z (living(V1) and father(Y, V1) and mother(Z, V1) and not living(Y) and not living(Z)))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (43 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    forall X exists Y forall Z (father(Z, X) <-> Y = Z)
+    forall X exists Y forall Z (mother(Z, X) <-> Y = Z)
+    forall V1 (parent_living(V1) <-> exists Y (father(Y, V1) and living(Y) or exists Y (mother(Y, V1) and living(Y))))
+    forall V1 (orphan(V1) <-> living(V1) and not parent_living(V1))
+    forall V1 (orphan(V1) -> exists Y Z (living(V1) and father(Y, V1) and mother(Z, V1) and not living(Y) and not living(Z)))
+
+Conjectures:
+    forall V1 (orphan(V1) <- exists Y Z (living(V1) and father(Y, V1) and mother(Z, V1) and not living(Y) and not living(Z)))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (126 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    forall X exists Y forall Z (father(Z, X) <-> Y = Z)
+    forall X exists Y forall Z (mother(Z, X) <-> Y = Z)
+    forall V1 (parent_living(V1) <-> exists Y (father(Y, V1) and living(Y) or exists Y (mother(Y, V1) and living(Y))))
+    forall V1 (orphan(V1) <-> exists Y Z (living(V1) and father(Y, V1) and mother(Z, V1) and not living(Y) and not living(Z)))
+
+Conjectures:
+    forall V1 (orphan(V1) -> living(V1) and not parent_living(V1))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (138 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    forall X exists Y forall Z (father(Z, X) <-> Y = Z)
+    forall X exists Y forall Z (mother(Z, X) <-> Y = Z)
+    forall V1 (parent_living(V1) <-> exists Y (father(Y, V1) and living(Y) or exists Y (mother(Y, V1) and living(Y))))
+    forall V1 (orphan(V1) <-> exists Y Z (living(V1) and father(Y, V1) and mother(Z, V1) and not living(Y) and not living(Z)))
+    forall V1 (orphan(V1) -> living(V1) and not parent_living(V1))
+
+Conjectures:
+    forall V1 (orphan(V1) <- living(V1) and not parent_living(V1))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (76 ms)
+
+> Success! Anthem found a proof of the theorem. (392 ms)

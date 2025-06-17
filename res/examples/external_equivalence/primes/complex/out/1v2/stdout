@@ -1,0 +1,56 @@
+$ anthem verify --equivalence=external primes.1.lp primes.2.lp primes.ug
+> Proving forward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (I1$i > 1 and J1$i > 1)))
+    forall V1 (composite_p(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (94 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (I1$i > 1 and J1$i > 1)))
+    forall V1 (composite_p(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) <- exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (1624 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (I1$i > 1 and J1$i > 1)))
+    forall V1 (composite_p(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (2322 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (I1$i > 1 and J1$i > 1)))
+    forall V1 (composite_p(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) <- exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (1589 ms)
+
+> Success! Anthem found a proof of the theorem. (5639 ms)

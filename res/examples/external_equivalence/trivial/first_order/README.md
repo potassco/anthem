@@ -5,6 +5,9 @@
 anthem verify --equivalence external first_order.spec first_order.lp first_order.ug
 ```
 
+## Output
+To understand what output is expected, have a look into the [out](./out) subfolder.
+
 ## Origin
 This example was taken from Appendix B of
 

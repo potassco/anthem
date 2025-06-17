@@ -9,6 +9,9 @@ but `orphan.b.ug` adds missing assumptions under which the programs are indeed e
 anthem verify --equivalence external orphan.1.lp orphan.2.lp orphan.b.ug
 ```
 
+## Output
+To understand what output is expected, have a look into the [out](./out) subfolder.
+
 ## Origin
 This example was taken from
 

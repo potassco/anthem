@@ -1,0 +1,240 @@
+$ anthem verify --equivalence=external primes.2.lp primes.3.lp primes.ug primes.po -t 300
+> Proving forward_outline_0_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+
+Conjectures:
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+> Proving forward_outline_0_0 ended with a SZS status
+Status: Theorem (663 ms)
+
+> Proving forward_outline_1_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+Conjectures:
+    exists I$i sqrt(I$i, 0)
+
+> Proving forward_outline_1_0 ended with a SZS status
+Status: Theorem (74 ms)
+
+> Proving forward_outline_1_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+Conjectures:
+    forall N$i (N$i >= 0 and exists I$i sqrt(I$i, N$i) -> exists I$i sqrt(I$i, N$i + 1))
+
+> Proving forward_outline_1_1 ended with a SZS status
+Status: Theorem (772 ms)
+
+> Proving forward_outline_2_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+
+Conjectures:
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+
+> Proving forward_outline_2_0 ended with a SZS status
+Status: Theorem (1612 ms)
+
+> Proving forward_outline_3_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+
+Conjectures:
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+
+> Proving forward_outline_3_0 ended with a SZS status
+Status: Theorem (787 ms)
+
+> Proving forward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+
+Conjectures:
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (673 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) <- exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (111093 ms)
+
+> Proving backward_outline_0_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+
+Conjectures:
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+> Proving backward_outline_0_0 ended with a SZS status
+Status: Theorem (647 ms)
+
+> Proving backward_outline_1_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+Conjectures:
+    exists I$i sqrt(I$i, 0)
+
+> Proving backward_outline_1_0 ended with a SZS status
+Status: Theorem (60 ms)
+
+> Proving backward_outline_1_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+
+Conjectures:
+    forall N$i (N$i >= 0 and exists I$i sqrt(I$i, N$i) -> exists I$i sqrt(I$i, N$i + 1))
+
+> Proving backward_outline_1_1 ended with a SZS status
+Status: Theorem (756 ms)
+
+> Proving backward_outline_2_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+
+Conjectures:
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+
+> Proving backward_outline_2_0 ended with a SZS status
+Status: Theorem (1583 ms)
+
+> Proving backward_outline_3_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) <-> I$i >= 0 and I$i * I$i <= N$i < (I$i + 1) * (I$i + 1))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+
+Conjectures:
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+
+> Proving backward_outline_3_0 ended with a SZS status
+Status: Theorem (773 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+
+Conjectures:
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (106473 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    a$i > 1
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= b$i and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (sqrtb(V1) <-> exists K$i (1 <= K$i and K$i <= b$i and V1 = K$i and K$i * K$i <= b$i and (K$i + 1) * (K$i + 1) > b$i))
+    forall V1 (composite_p(V1) <-> exists I1$i J$i J1$i (V1 = I1$i * J1$i and (sqrtb(J$i) and (2 <= I1$i and I1$i <= J$i) and (2 <= J1$i and J1$i <= b$i))))
+    forall V1 (prime(V1) <-> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite_p(V1)))
+    forall I$i N$i (sqrt(I$i, N$i) and (I$i + 1) * (I$i + 1) <= N$i + 1 -> sqrt(I$i + 1, N$i + 1))
+    forall N$i (N$i >= 0 -> exists I$i sqrt(I$i, N$i))
+    forall I$i (b$i >= 1 -> (sqrtb(I$i) <-> sqrt(I$i, b$i)))
+    forall I$i J$i N$i (I$i >= 0 and J$i >= 0 and I$i * J$i <= b$i and sqrtb(N$i) -> I$i <= N$i or J$i <= N$i)
+    forall V1 (prime(V1) -> exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+Conjectures:
+    forall V1 (prime(V1) <- exists K$i (a$i <= K$i and K$i <= b$i and V1 = K$i and not composite(V1)))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (1583 ms)
+
+> Success! Anthem found a proof of the theorem. (227616 ms)

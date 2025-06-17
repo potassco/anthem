@@ -1,0 +1,102 @@
+$ anthem verify --equivalence external propositional.spec propositional.lp propositional.ug
+> Proving forward_problem_0...
+Axioms:
+    q <-> t or r
+    p <-> #true
+
+Conjectures:
+    p -> #true
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (33 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    q <-> t or r
+    p <-> #true
+    p -> #true
+
+Conjectures:
+    p <- #true
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (36 ms)
+
+> Proving forward_problem_2...
+Axioms:
+    q <-> t or r
+    p <-> #true
+    p -> #true
+    p <- #true
+
+Conjectures:
+    q -> t or r
+
+> Proving forward_problem_2 ended with a SZS status
+Status: Theorem (39 ms)
+
+> Proving forward_problem_3...
+Axioms:
+    q <-> t or r
+    p <-> #true
+    p -> #true
+    p <- #true
+    q -> t or r
+
+Conjectures:
+    q <- t or r
+
+> Proving forward_problem_3 ended with a SZS status
+Status: Theorem (33 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    p <-> #true
+    q <-> t or r
+
+Conjectures:
+    q -> t or r
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (31 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    p <-> #true
+    q <-> t or r
+    q -> t or r
+
+Conjectures:
+    q <- t or r
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Proving backward_problem_2...
+Axioms:
+    p <-> #true
+    q <-> t or r
+    q -> t or r
+    q <- t or r
+
+Conjectures:
+    p -> #true
+
+> Proving backward_problem_2 ended with a SZS status
+Status: Theorem (25 ms)
+
+> Proving backward_problem_3...
+Axioms:
+    p <-> #true
+    q <-> t or r
+    q -> t or r
+    q <- t or r
+    p -> #true
+
+Conjectures:
+    p <- #true
+
+> Proving backward_problem_3 ended with a SZS status
+Status: Theorem (29 ms)
+
+> Success! Anthem found a proof of the theorem. (264 ms)
