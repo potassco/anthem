@@ -40,11 +40,15 @@ pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<Strin
 }
 
 /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-fn choose_fresh_variable_names(
+pub(crate) fn choose_fresh_variable_names(
     variables: &IndexSet<fol::Variable>,
     variant: &str,
     arity: usize,
 ) -> Vec<String> {
+    if arity < 1 {
+        return Vec::new();
+    }
+
     let mut taken_vars = Vec::<String>::new();
     for var in variables.iter() {
         taken_vars.push(var.name.to_string());

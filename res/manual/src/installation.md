@@ -7,7 +7,7 @@ Linux users can build `anthem` directly from source, as follows.
 ```
     git clone https://github.com/potassco/anthem.git && cd anthem
     cargo build --release
-    cp anthem/target/release/anthem ~/.local/bin
+    cp target/release/anthem ~/.local/bin
 ```
 
 Note that you will also need a working installation of `vampire.`
