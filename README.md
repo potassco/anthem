@@ -18,8 +18,8 @@ It was started by Zach Hansen and Tobias Stolzmann, but is now being developed b
 We'd like to thank Patrick for the effort he put into his implementation and the kindness of resolving the naming conflict with us.
 
 ## Examples
-Examples of verification problems are grouped by equivalence (strong or external) within the `res/examples` directory.
-For example, vist the `res/examples/external_equivalence/cover` directory for instructions on how to compare a program solving the Exact Cover problem (`cover.1.lp`) against a first-order specification (`cover.spec`).
+Examples of verification problems are grouped by equivalence (strong or external) within the [res/examples](res/examples) directory.
+For example, visit the [cover](res/examples/external_equivalence/cover) directory for instructions on how to compare a program solving the Exact Cover problem [cover.1.lp](res/examples/external_equivalence/cover/cover.1.lp) against a first-order specification [cover.spec](res/examples/external_equivalence/cover/cover.spec).
 
 ## License
 
