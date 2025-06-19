@@ -19,7 +19,7 @@ We'd like to thank Patrick for the effort he put into his implementation and the
 
 ## Examples
 Examples of verification problems are grouped by equivalence (strong or external) within the `res/examples` directory.
-For example, vist the `res/examples/external_equivalence/cover` directory for instructions on how to compare a program solving the Exact Cover program (`cover.1.lp`) against a first-order specification (`cover.spec`).
+For example, vist the `res/examples/external_equivalence/cover` directory for instructions on how to compare a program solving the Exact Cover problem (`cover.1.lp`) against a first-order specification (`cover.spec`).
 
 ## License
 
