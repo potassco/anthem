@@ -17,6 +17,10 @@ This version is a complete reimplementation of the original system with signific
 It was started by Zach Hansen and Tobias Stolzmann, but is now being developed by a growing [group of people](CONTRIBUTORS.md).
 We'd like to thank Patrick for the effort he put into his implementation and the kindness of resolving the naming conflict with us.
 
+## Examples
+Examples of verification problems are grouped by equivalence (strong or external) within the res/examples directory.
+For example, vist the res/examples/external_equivalence/cover directory for instructions on how to compare a program solving the Exact Cover program (cover.1.lp) against a first-order specification (cover.spec).
+
 ## License
 
 `anthem` is distributed under the terms of the MIT license.
