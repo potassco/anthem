@@ -1,5 +1,5 @@
 # Installing From Crates.io
-The `anthem` crate and installation instructions can be [here](https://crates.io/crates/anthem).
+The `anthem` crate and installation instructions can be found [here](https://crates.io/crates/anthem).
 
 # Installing From Source
 Linux users can build `anthem` directly from source, as follows.
