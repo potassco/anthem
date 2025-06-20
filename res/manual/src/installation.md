@@ -1,5 +1,5 @@
 # Installing From Crates.io
-tbd
+The `anthem` crate and installation instructions can be found [here](https://crates.io/crates/anthem).
 
 # Installing From Source
 Linux users can build `anthem` directly from source, as follows.
@@ -23,5 +23,5 @@ Make sure Docker is running then run the following commands.
     docker build -t anthem .
     docker run -it --name anthem-container anthem /bin/bash
 ```
-Now you can run your `anthem` commands in the interactive Docker terminal. 
+Now you can run your `anthem` commands in the interactive Docker terminal.
 Try ``anthem --help`` to get started or ``ls anthem/res/examples`` to see available examples.
