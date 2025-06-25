@@ -22,6 +22,28 @@ pub struct GeneralLemma {
     pub consequences: Vec<problem::AnnotatedFormula>,
 }
 
+// Apply the gamma transformation to every formula in conjectures and consequences
+impl GeneralLemma {
+    pub fn apply_gamma_reduction(self) -> GeneralLemma {
+        let conjectures = self
+            .conjectures
+            .into_iter()
+            .map(|f| f.apply_gamma_reduction())
+            .collect();
+
+        let consequences = self
+            .consequences
+            .into_iter()
+            .map(|f| f.apply_gamma_reduction())
+            .collect();
+
+        GeneralLemma {
+            conjectures,
+            consequences,
+        }
+    }
+}
+
 impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
     type Error = ProofOutlineError;
 
@@ -392,6 +414,36 @@ impl ProofOutline {
             backward_definitions,
         })
         .preface_warnings(warnings))
+    }
+
+    pub fn apply_gamma_reduction(self) -> Self {
+        let forward_lemmas = self
+            .forward_lemmas
+            .into_iter()
+            .map(|l| l.apply_gamma_reduction())
+            .collect();
+        let backward_lemmas = self
+            .backward_lemmas
+            .into_iter()
+            .map(|l| l.apply_gamma_reduction())
+            .collect();
+        let forward_definitions = self
+            .forward_definitions
+            .into_iter()
+            .map(|d| d.apply_gamma_reduction())
+            .collect();
+        let backward_definitions = self
+            .backward_definitions
+            .into_iter()
+            .map(|d| d.apply_gamma_reduction())
+            .collect();
+
+        ProofOutline {
+            forward_lemmas,
+            backward_lemmas,
+            forward_definitions,
+            backward_definitions,
+        }
     }
 }
 
