@@ -1,1 +1,1 @@
-pub mod default;
+pub mod mini_gringo;

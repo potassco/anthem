@@ -1,1 +1,1 @@
-pub mod pest;
+pub mod mini_gringo;

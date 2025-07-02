@@ -24,9 +24,12 @@ binary_operator_eoi = _{ binary_operator ~ EOI }
     modulo = { "\\" }
     interval = { ".." }
 
+absolute_valued_term = { "|" ~ term ~ "|" }
+absolute_valued_term_eoi = _{ absolute_valued_term ~ EOI }
+
 term = { unary_operator* ~ primary_term ~ (binary_operator ~ unary_operator* ~ primary_term)* }
 term_eoi = _{ term ~ EOI }
-    primary_term = _{ precomputed_term | variable | "(" ~ term ~ ")"}
+    primary_term = _{ precomputed_term | variable | absolute_valued_term | "(" ~ term ~ ")"}
 
 predicate = { symbol ~ "/" ~ arity }
 predicate_eoi = _{ predicate ~ EOI }

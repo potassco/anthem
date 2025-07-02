@@ -1,8 +1,9 @@
 use crate::{
     parsing::PestParser,
+    syntax_tree::asp::mini_gringo::{Body, Head, Program, Rule},
     syntax_tree::asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-        Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
+        Atom, AtomicFormula, BinaryOperator, Comparison, Literal, PrecomputedTerm, Predicate,
+        Relation, Sign, Term, UnaryOperator, Variable,
     },
 };
 
@@ -10,7 +11,7 @@ mod internal {
     use pest::pratt_parser::PrattParser;
 
     #[derive(pest_derive::Parser)]
-    #[grammar = "parsing/asp/grammar.pest"]
+    #[grammar = "parsing/asp/mini_gringo/grammar.pest"]
     pub struct Parser;
 
     lazy_static::lazy_static! {
@@ -118,6 +119,10 @@ impl PestParser for TermParser {
         internal::PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::term => TermParser::translate_pair(primary),
+                internal::Rule::absolute_valued_term => Term::UnaryOperation {
+                    op: UnaryOperator::AbsoluteValue,
+                    arg: TermParser::translate_pairs(primary.into_inner()).into(),
+                },
                 internal::Rule::precomputed_term => {
                     Term::PrecomputedTerm(PrecomputedTermParser::translate_pair(primary))
                 }
@@ -453,10 +458,10 @@ mod tests {
         },
         crate::{
             parsing::TestedParser,
+            syntax_tree::asp::mini_gringo::{Body, Head, Program, Rule},
             syntax_tree::asp::{
-                Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
-                PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
-                Variable,
+                Atom, AtomicFormula, BinaryOperator, Comparison, Literal, PrecomputedTerm,
+                Predicate, Relation, Sign, Term, UnaryOperator, Variable,
             },
         },
     };
@@ -561,6 +566,47 @@ mod tests {
                     Term::UnaryOperation {
                         op: UnaryOperator::Negative,
                         arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                    },
+                ),
+                (
+                    "|1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+                    },
+                ),
+                (
+                    "|-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                    },
+                ),
+                (
+                    "-|-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: Term::UnaryOperation {
+                            op: UnaryOperator::AbsoluteValue,
+                            arg: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                        }
+                        .into(),
+                    },
+                ),
+                (
+                    "-|3*-1|",
+                    Term::UnaryOperation {
+                        op: UnaryOperator::Negative,
+                        arg: Term::UnaryOperation {
+                            op: UnaryOperator::AbsoluteValue,
+                            arg: Term::BinaryOperation {
+                                op: BinaryOperator::Multiply,
+                                lhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(3)).into(),
+                                rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(-1)).into(),
+                            }
+                            .into(),
+                        }
+                        .into(),
                     },
                 ),
                 (

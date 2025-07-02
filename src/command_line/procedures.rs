@@ -10,7 +10,7 @@ use {
         },
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{Node as _, asp, fol},
+        syntax_tree::{Node as _, asp::mini_gringo, fol},
         translating::{
             completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
         },
@@ -34,15 +34,19 @@ pub fn main() -> Result<()> {
         Command::Analyze { property, input } => {
             match property {
                 Property::Regularity => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     let is_regular = program.is_regular();
                     println!("{is_regular}");
                 }
 
                 Property::Tightness => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     let is_tight = program.is_tight();
                     println!("{is_tight}");
                 }
@@ -58,8 +62,10 @@ pub fn main() -> Result<()> {
         } => {
             match r#as {
                 ParseAs::Program => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     match output {
                         Output::Debug => println!("{program:#?}"),
                         Output::Default => print!("{program}"),
@@ -143,22 +149,28 @@ pub fn main() -> Result<()> {
                 }
 
                 Translation::Mu => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     let theory = mu(program);
                     print!("{theory}")
                 }
 
                 Translation::Natural => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     let theory = natural(program).context("the given program is not regular")?;
                     print!("{theory}")
                 }
 
                 Translation::TauStar => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let program = input.map_or_else(
+                        mini_gringo::Program::from_stdin,
+                        mini_gringo::Program::from_file,
+                    )?;
                     let theory = tau_star(program);
                     print!("{theory}")
                 }
@@ -190,12 +202,12 @@ pub fn main() -> Result<()> {
 
             let problems = match equivalence {
                 Equivalence::Strong => StrongEquivalenceTask {
-                    left: asp::Program::from_file(
+                    left: mini_gringo::Program::from_file(
                         files
                             .left()
                             .ok_or(anyhow!("no left program was provided"))?,
                     )?,
-                    right: asp::Program::from_file(
+                    right: mini_gringo::Program::from_file(
                         files
                             .right()
                             .ok_or(anyhow!("no right program was provided"))?,
@@ -214,12 +226,14 @@ pub fn main() -> Result<()> {
                         .specification()
                         .ok_or(anyhow!("no specification was provided"))?
                     {
-                        Either::Left(program) => Either::Left(asp::Program::from_file(program)?),
+                        Either::Left(program) => {
+                            Either::Left(mini_gringo::Program::from_file(program)?)
+                        }
                         Either::Right(specification) => {
                             Either::Right(fol::Specification::from_file(specification)?)
                         }
                     },
-                    program: asp::Program::from_file(
+                    program: mini_gringo::Program::from_file(
                         files.program().ok_or(anyhow!("no program was provided"))?,
                     )?,
                     user_guide: fol::UserGuide::from_file(

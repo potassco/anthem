@@ -7,7 +7,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        syntax_tree::{asp, asp::mini_gringo, fol},
         translating::{
             gamma::{self, gamma},
             mu::mu,
@@ -26,8 +26,8 @@ use {
 pub enum StrongEquivalenceTaskError {}
 
 pub struct StrongEquivalenceTask {
-    pub left: asp::Program,
-    pub right: asp::Program,
+    pub left: mini_gringo::Program,
+    pub right: mini_gringo::Program,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub formula_representation: FormulaRepresentation,

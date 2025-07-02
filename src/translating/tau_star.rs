@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp, asp::mini_gringo, fol},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -10,7 +10,7 @@ lazy_static! {
 }
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+pub(crate) fn choose_fresh_global_variables(program: &mini_gringo::Program) -> Vec<String> {
     let mut max_arity = 0;
     let mut head_arity;
     for rule in program.rules.iter() {
@@ -78,7 +78,7 @@ pub(crate) fn choose_fresh_variable_names(
 }
 
 // Z = t
-fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
+pub(crate) fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
     let z_var_term = match z.sort {
         fol::Sort::General => fol::GeneralTerm::Variable(z.name),
         fol::Sort::Integer => fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(z.name)),
@@ -113,7 +113,7 @@ fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula
 
 // +,-,*
 // exists I J (Z = I op J & val_t1(I) & val_t2(J))
-fn construct_total_function_formula(
+pub(crate) fn construct_total_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     binop: asp::BinaryOperator,
@@ -179,7 +179,7 @@ fn construct_total_function_formula(
 // Follows the corrected arXiv paper (https://arxiv.org/abs/2008.02025), not the TPLP paper
 // Division: exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < J & Z = Q)
 // Modulo:   exists I J Q R (I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < J & Z = R)
-fn construct_partial_function_formula(
+pub(crate) fn construct_partial_function_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     binop: asp::BinaryOperator,
@@ -344,7 +344,7 @@ fn construct_partial_function_formula(
 
 // t1..t2
 // exists I J K (val_t1(I) & val_t2(J) & I <= K <= J & Z = K)
-fn construct_interval_formula(
+pub(crate) fn construct_interval_formula(
     valti: fol::Formula,
     valtj: fol::Formula,
     i_var: fol::Variable,
@@ -406,6 +406,39 @@ fn construct_interval_formula(
     }
 }
 
+// |t|
+// exists I$ (Z = I$ & val_t(I$))
+pub(crate) fn construct_absolute_value_formula(
+    valti: fol::Formula,
+    i_var: fol::Variable,
+    z: fol::Variable,
+) -> fol::Formula {
+    // Z = |I|
+    let zequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
+        term: z.into(),
+        guards: vec![fol::Guard {
+            relation: fol::Relation::Equal,
+            term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::UnaryOperation {
+                op: fol::UnaryOperator::AbsoluteValue,
+                arg: fol::IntegerTerm::Variable(i_var.name.clone()).into(),
+            }),
+        }],
+    }));
+
+    fol::Formula::QuantifiedFormula {
+        quantification: fol::Quantification {
+            quantifier: fol::Quantifier::Exists,
+            variables: vec![i_var],
+        },
+        formula: fol::Formula::BinaryFormula {
+            connective: fol::BinaryConnective::Conjunction,
+            lhs: zequals.into(),
+            rhs: valti.into(),
+        }
+        .into(),
+    }
+}
+
 // val_t(Z)
 fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     let mut taken_vars = IndexSet::<fol::Variable>::new();
@@ -450,6 +483,10 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
                         var2,
                         z,
                     )
+                }
+                asp::UnaryOperator::AbsoluteValue => {
+                    let valti = val(*arg, var1.clone()); // val_t1(I)
+                    construct_absolute_value_formula(valti, var1, z)
                 }
             }
         }
@@ -698,7 +735,7 @@ fn tau_b(f: asp::AtomicFormula) -> fol::Formula {
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body) -> fol::Formula {
+pub(crate) fn tau_body(b: mini_gringo::Body) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone()));
@@ -707,7 +744,7 @@ fn tau_body(b: asp::Body) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a first-order atom or choice atom in the head
-fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+fn tau_star_fo_head_rule(r: &mini_gringo::Rule, globals: &[String]) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -747,8 +784,8 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
     };
 
     let new_body = match r.head {
-        asp::Head::Basic(_) => core_lhs, // val_t(V) & tau^B(Body)
-        asp::Head::Choice(_) => fol::Formula::BinaryFormula {
+        mini_gringo::Head::Basic(_) => core_lhs, // val_t(V) & tau^B(Body)
+        mini_gringo::Head::Choice(_) => fol::Formula::BinaryFormula {
             // val_t(V) & tau^B(Body) & ~~p(V)
             connective: fol::BinaryConnective::Conjunction,
             lhs: core_lhs.into(),
@@ -786,7 +823,7 @@ fn tau_star_fo_head_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with a propositional atom or choice atom in the head
-fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_prop_head_rule(r: &mini_gringo::Rule) -> fol::Formula {
     let head_symbol = r.head.predicate().unwrap();
     let fol_head_predicate = fol::Predicate {
         symbol: head_symbol.symbol,
@@ -805,11 +842,11 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
     }));
     let core_lhs = tau_body(r.body.clone());
     let new_body = match &r.head {
-        asp::Head::Basic(_) => {
+        mini_gringo::Head::Basic(_) => {
             // tau^B(Body)
             core_lhs
         }
-        asp::Head::Choice(_) => {
+        mini_gringo::Head::Choice(_) => {
             // tau^B(Body) & ~~p
             fol::Formula::BinaryFormula {
                 connective: fol::BinaryConnective::Conjunction,
@@ -825,7 +862,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
                 .into(),
             }
         }
-        asp::Head::Falsity => {
+        mini_gringo::Head::Falsity => {
             unreachable!("a constraint head is not permitted in this formula constructor")
         }
     };
@@ -852,7 +889,7 @@ fn tau_star_prop_head_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Handles the case when we have a rule with an empty head
-fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
+fn tau_star_constraint_rule(r: &mini_gringo::Rule) -> fol::Formula {
     let mut gvars = Vec::<fol::Variable>::new();
     for var in r.variables().iter() {
         gvars.push(fol::Variable {
@@ -880,7 +917,7 @@ fn tau_star_constraint_rule(r: &asp::Rule) -> fol::Formula {
 }
 
 // Translate a rule using a pre-defined list of global variables
-pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
+pub(crate) fn tau_star_rule(r: &mini_gringo::Rule, globals: &[String]) -> fol::Formula {
     match r.head.predicate() {
         Some(_) => {
             if r.head.arity() > 0 {
@@ -898,7 +935,7 @@ pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 // For each rule, produce a formula: forall G V ( val_t(V) & tau_body(Body) -> p(V) )
 // Where G is all variables from the original rule
 // and V is the set of fresh variables replacing t within p
-pub fn tau_star(p: asp::Program) -> fol::Theory {
+pub fn tau_star(p: mini_gringo::Program) -> fol::Theory {
     let globals = choose_fresh_global_variables(&p);
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {

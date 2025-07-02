@@ -6,4 +6,4 @@ Caused by:
     2 | p(X) :- q(X++1), not r(X).
       |             ^---
       |
-      = expected precomputed_term, variable, or negative
+      = expected precomputed_term, variable, negative, or absolute_valued_term
