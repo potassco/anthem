@@ -13,6 +13,7 @@ use {
         syntax_tree::{Node as _, asp, fol},
         translating::{
             completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+            tightening::tightening,
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -161,6 +162,13 @@ pub fn main() -> Result<()> {
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
                     let theory = tau_star(program);
                     print!("{theory}")
+                }
+
+                Translation::Tightening => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let tightened_program = tightening(program);
+                    print!("{tightened_program}")
                 }
             }
 

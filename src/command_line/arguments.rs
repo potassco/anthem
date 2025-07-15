@@ -167,6 +167,7 @@ pub enum Translation {
     Mu,
     Natural,
     TauStar,
+    Tightening,
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
