@@ -1,2 +1,10 @@
+lemma: forall X (not p(X,0)).
+lemma: forall X (not q(X,0)).
+lemma: forall X (not p(X,1)).
+lemma: forall X (not q(X,1)).
+lemma: forall X N$ (N$ >= 0 and not p(X,N$) -> not q(X,N$+1)).
+lemma: forall X N$ (N$ >= 0 and not q(X,N$) -> not p(X,N$+1)).
+lemma: forall X N$ (N$ >= 0 and not p(X,N$) -> not p(X,N$+2)).
+lemma: forall X N$ (N$ >= 0 and not q(X,N$) -> not q(X,N$+2)).
 inductive-lemma: forall X N$ (N$ >= 0 -> not p(X,N$)).
 inductive-lemma: forall X N$ (N$ >= 0 -> not q(X,N$)).

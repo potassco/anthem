@@ -1,0 +1,1 @@
+inductive-lemma: forall X N$ (N$ >= 0 -> not p(X,N$)).
