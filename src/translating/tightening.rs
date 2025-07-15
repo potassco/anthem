@@ -7,20 +7,24 @@ use crate::{
 };
 
 pub fn tightening(program: Program) -> Program {
+    // collect all predicates for creating projection rules
     let predicates = program.predicates();
 
+    // tighten each rule
     let mut rules: Vec<Rule> = program.rules.into_iter().map(tighten_rule).collect();
 
+    // create projection rules and add to tightened rules
     let projection_rules: Vec<Rule> = predicates.into_iter().map(projection_rule).collect();
-
     rules.extend(projection_rules);
 
     Program { rules }
 }
 
 fn tighten_rule(rule: Rule) -> Rule {
+    // collect all variables that occur in the rule
     let rule_vars = rule.variables();
     let taken_var_names: Vec<String> = rule_vars.into_iter().map(|v| v.to_string()).collect();
+    // get a new variable new_var
     let fresh_vars = choose_fresh_variable_names(taken_var_names, "N", 1);
     let new_var = Variable(fresh_vars.first().unwrap().to_string());
 
@@ -28,13 +32,16 @@ fn tighten_rule(rule: Rule) -> Rule {
         Head::Basic(a) | Head::Choice(a) => {
             let mut terms = a.terms;
 
+            // build the term new_var + 1
             let new_var_successor = Term::BinaryOperation {
                 op: BinaryOperator::Add,
                 lhs: Term::Variable(new_var.clone()).into(),
                 rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
             };
+            // add this term to the terms of the head predicate
             terms.push(new_var_successor);
 
+            // head predicate is the same, only new_var + 1 is added as a new term
             let head = match rule.head {
                 Head::Basic(_) => Head::Basic(Atom {
                     predicate_symbol: a.predicate_symbol,
@@ -47,10 +54,12 @@ fn tighten_rule(rule: Rule) -> Rule {
                 Head::Falsity => unreachable!(),
             };
 
+            // tighten the rule body
             let body = tighten_body(rule.body, new_var);
 
             Rule { head, body }
         }
+        // constraints are not changed by tightening
         Head::Falsity => rule,
     }
 }
@@ -60,11 +69,13 @@ fn tighten_body(body: Body, new_var: Variable) -> Body {
 
     for formula in body.formulas {
         match formula {
+            // positive body literals are replaced
             AtomicFormula::Literal(Literal {
                 sign: Sign::NoSign,
                 atom,
             }) => {
                 let mut terms = atom.terms;
+                // new_var is added as an additional term to the atom
                 terms.push(Term::Variable(new_var.clone()));
                 let atom = Atom {
                     predicate_symbol: atom.predicate_symbol,
@@ -75,15 +86,18 @@ fn tighten_body(body: Body, new_var: Variable) -> Body {
                     atom,
                 }));
             }
+            // non-positive literals and other body elements are unchanged
             x => formulas.push(x),
         }
     }
 
+    // add the comparison formula as the last body element
     formulas.push(comparison_formula(new_var));
 
     Body { formulas }
 }
 
+// generates the comparison that var >= 0
 fn comparison_formula(var: Variable) -> AtomicFormula {
     AtomicFormula::Comparison(Comparison {
         relation: Relation::GreaterEqual,
@@ -93,27 +107,34 @@ fn comparison_formula(var: Variable) -> AtomicFormula {
 }
 
 fn projection_rule(predicate: Predicate) -> Rule {
+    // variables X, X1, ..., Xn matching arity of the predicate
     let variables = choose_fresh_variable_names(Vec::<String>::new(), "X", predicate.arity);
     let mut terms: Vec<Term> = variables
         .into_iter()
         .map(|v| Term::Variable(Variable(v)))
         .collect();
 
+    // head is the predicate with the variables from above as terms
     let head = Head::Basic(Atom {
         predicate_symbol: predicate.symbol.clone(),
         terms: terms.clone(),
     });
 
+    // for the body we need an additional variable N
     let new_var = Variable("N".to_string());
-    terms.push(Term::Variable(new_var.clone()));
 
-    let mut formulas = vec![AtomicFormula::Literal(Literal {
+    // the body has the formulas
+    let mut formulas: Vec<AtomicFormula> = Vec::new();
+    // first, the predicate as a positive literal with the new variable N as an additional term
+    terms.push(Term::Variable(new_var.clone()));
+    formulas.push(AtomicFormula::Literal(Literal {
         sign: Sign::NoSign,
         atom: Atom {
             predicate_symbol: predicate.symbol,
             terms,
         },
-    })];
+    }));
+    // second, the comparison formula for the new variable N
     formulas.push(comparison_formula(new_var));
 
     let body = Body { formulas };
