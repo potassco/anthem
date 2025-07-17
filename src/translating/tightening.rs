@@ -1,9 +1,6 @@
-use crate::{
-    convenience::choose_fresh_variable_names,
-    syntax_tree::asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
-        Predicate, Program, Relation, Rule, Sign, Term, Variable,
-    },
+use crate::syntax_tree::asp::{
+    Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
+    Predicate, Program, Relation, Rule, Sign, Term, Variable,
 };
 
 pub fn tightening(program: Program) -> Program {
@@ -21,12 +18,8 @@ pub fn tightening(program: Program) -> Program {
 }
 
 fn tighten_rule(rule: Rule) -> Rule {
-    // collect all variables that occur in the rule
-    let rule_vars = rule.variables();
-    let taken_var_names: Vec<String> = rule_vars.into_iter().map(|v| v.to_string()).collect();
     // get a new variable new_var
-    let fresh_vars = choose_fresh_variable_names(taken_var_names, "N", 1);
-    let new_var = Variable(fresh_vars.first().unwrap().to_string());
+    let new_var: Variable = rule.choose_fresh_variables("N", 1).first().unwrap().clone();
 
     match rule.head.clone() {
         Head::Basic(a) | Head::Choice(a) => {
@@ -108,11 +101,8 @@ fn comparison_formula(var: Variable) -> AtomicFormula {
 
 fn projection_rule(predicate: Predicate) -> Rule {
     // variables X, X1, ..., Xn matching arity of the predicate
-    let variables = choose_fresh_variable_names(Vec::<String>::new(), "X", predicate.arity);
-    let mut terms: Vec<Term> = variables
-        .into_iter()
-        .map(|v| Term::Variable(Variable(v)))
-        .collect();
+    let variables = predicate.choose_fresh_variables("X");
+    let mut terms: Vec<Term> = variables.into_iter().map(Term::Variable).collect();
 
     // head is the predicate with the variables from above as terms
     let head = Head::Basic(Atom {

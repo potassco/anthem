@@ -7,11 +7,25 @@ use {
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
             VariableParser,
         },
-        syntax_tree::{Node, impl_node},
+        syntax_tree::{Node, choose_fresh_variable_names, impl_node},
     },
     derive_more::derive::IntoIterator,
     indexmap::IndexSet,
 };
+
+fn choose_fresh_asp_variables(
+    taken_vars: IndexSet<Variable>,
+    variant: &str,
+    arity: usize,
+) -> Vec<Variable> {
+    let taken_var_names: Vec<String> = taken_vars.into_iter().map(|v| v.to_string()).collect();
+
+    let fresh_var_names = choose_fresh_variable_names(taken_var_names, variant, arity);
+
+    let fresh_vars: Vec<Variable> = fresh_var_names.into_iter().map(Variable).collect();
+
+    fresh_vars
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum PrecomputedTerm {
@@ -117,6 +131,12 @@ impl From<crate::syntax_tree::fol::Predicate> for Predicate {
             symbol: value.symbol,
             arity: value.arity,
         }
+    }
+}
+
+impl Predicate {
+    pub fn choose_fresh_variables(&self, variant: &str) -> Vec<Variable> {
+        choose_fresh_asp_variables(IndexSet::<Variable>::new(), variant, self.arity)
     }
 }
 
@@ -415,6 +435,10 @@ impl Rule {
         }
         terms.extend(self.body.terms());
         terms
+    }
+
+    pub fn choose_fresh_variables(&self, variant: &str, arity: usize) -> Vec<Variable> {
+        choose_fresh_asp_variables(self.variables(), variant, arity)
     }
 }
 

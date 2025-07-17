@@ -64,3 +64,60 @@ macro_rules! impl_node {
 }
 
 pub(crate) use impl_node;
+
+/// Choose `arity` variable names by incrementing `variant`, disjoint from `taken_vars`
+pub(crate) fn choose_fresh_variable_names(
+    taken_vars: Vec<String>,
+    variant: &str,
+    arity: usize,
+) -> Vec<String> {
+    // create candidate variable names from variant
+    let candidate_vars = (0..).map(|i| {
+        if i == 0 {
+            // the first name is just the variant
+            variant.to_string()
+        } else {
+            // afterwards we add an index i starting from 1
+            format!("{}{}", variant, i)
+        }
+    });
+
+    let fresh_vars: Vec<String> = candidate_vars
+        // filter out all variable names that are already taken
+        .filter(|candidate| !taken_vars.contains(candidate))
+        // choose arity many of the filtered variable names
+        .take(arity)
+        .collect();
+
+    fresh_vars
+}
+
+#[cfg(test)]
+mod tests {
+    use super::choose_fresh_variable_names;
+
+    #[test]
+    fn test_choose_fresh_variable_names() {
+        for (taken_vars, variant, arity, target) in [
+            (Vec::<String>::new(), "X", 0, Vec::<String>::new()),
+            (
+                Vec::<String>::new(),
+                "X",
+                2,
+                vec!["X".to_string(), "X1".to_string()],
+            ),
+            (
+                vec!["X".to_string(), "X2".to_string()],
+                "X",
+                3,
+                vec!["X1".to_string(), "X3".to_string(), "X4".to_string()],
+            ),
+        ] {
+            let fresh_vars = choose_fresh_variable_names(taken_vars, variant, arity);
+            assert!(
+                fresh_vars == target,
+                "assertion `fresh_vars == target` failed:\nfresh_vars:\n{fresh_vars:?}\ntarget:\n{target:?}"
+            );
+        }
+    }
+}
