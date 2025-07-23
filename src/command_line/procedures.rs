@@ -10,19 +10,21 @@ use {
         },
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{Node as _, asp, fol},
+        syntax_tree::{asp, fol, Node as _},
         translating::{
-            completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+            completion::completion,
+            counterexample::external::generate_external_counterexample_program, gamma::gamma,
+            mu::mu, natural::natural, tau_star::tau_star,
         },
         verifying::{
-            prover::{Prover, Report, Status, Success, vampire::Vampire},
+            prover::{vampire::Vampire, Prover, Report, Status, Success},
             task::{
-                Task, external_equivalence::ExternalEquivalenceTask,
-                strong_equivalence::StrongEquivalenceTask,
+                external_equivalence::ExternalEquivalenceTask,
+                strong_equivalence::StrongEquivalenceTask, Task,
             },
         },
     },
-    anyhow::{Context, Result, anyhow},
+    anyhow::{anyhow, Context, Result},
     clap::Parser as _,
     either::Either,
     indexmap::IndexSet,
@@ -46,6 +48,60 @@ pub fn main() -> Result<()> {
                     let is_tight = program.is_tight();
                     println!("{is_tight}");
                 }
+            }
+
+            Ok(())
+        }
+
+        Command::Falsify {
+            equivalence,
+            direction: _,
+            save_files: _,
+            files,
+        } => {
+            match equivalence {
+                Equivalence::External => {
+                    let files = Files::sort(files)
+                        .context("unable to sort the given files by their function")?;
+
+                    let left = asp::Program::from_file(
+                        files
+                            .left()
+                            .ok_or(anyhow!("no left program was provided"))?,
+                    )?;
+                    let right = asp::Program::from_file(
+                        files
+                            .right()
+                            .ok_or(anyhow!("no right program was provided"))?,
+                    )?;
+                    let user_guide = fol::UserGuide::from_file(
+                        files
+                            .user_guide()
+                            .ok_or(anyhow!("no user guide was provided"))?,
+                    )?;
+
+                    // TODO: check for stratification of private parts
+                    // (i.e. no loops trough at least one negation and no choice on privates)
+
+                    // TODO: take direction into account
+                    let forward_program = generate_external_counterexample_program(
+                        &user_guide,
+                        left.clone(),
+                        right.clone(),
+                    );
+
+                    let backward_program =
+                        generate_external_counterexample_program(&user_guide, right, left);
+
+                    // TODO: otuput equivalence programs(s) to files
+                    println!("% external equivalence checking program forward direction");
+                    print!("{forward_program}");
+                    println!("% external equivalence checking program backward direction");
+                    print!("{backward_program}")
+                }
+                Equivalence::Strong => println!(
+                    "finding counterexamples for strong equivalence is currently not supported"
+                ),
             }
 
             Ok(())

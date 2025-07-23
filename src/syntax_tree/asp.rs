@@ -7,7 +7,7 @@ use {
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
             VariableParser,
         },
-        syntax_tree::{Node, impl_node},
+        syntax_tree::{impl_node, Node},
     },
     derive_more::derive::IntoIterator,
     indexmap::IndexSet,
@@ -277,6 +277,14 @@ pub enum Head {
 impl_node!(Head, Format, HeadParser);
 
 impl Head {
+    pub fn atom(&self) -> Option<Atom> {
+        match self {
+            Head::Basic(a) => Some(a.clone()),
+            Head::Choice(a) => Some(a.clone()),
+            Head::Falsity => None,
+        }
+    }
+
     pub fn predicate(&self) -> Option<Predicate> {
         match self {
             Head::Basic(a) => Some(a.predicate()),

@@ -22,6 +22,30 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Find countermodels to an equivalence problem
+    Falsify {
+        /// The equivalence problem
+        #[arg(long, value_enum)]
+        equivalence: Equivalence,
+
+        /// The direction to falsify
+        #[arg(long, value_enum, default_value_t)]
+        direction: Direction,
+
+        /// The destination directory for the files
+        #[arg(long)]
+        save_files: Option<PathBuf>,
+
+        // TODO: add argument for control if guess and check translation is used
+        // values: true, false, auto (uses guess and check depending on stratification of private parts)
+        /// A set of files from which to construct the equivalence problem, including
+        ///
+        ///   - the two programs, and
+        ///   - the user guide.
+        #[arg(verbatim_doc_comment)]
+        files: Vec<PathBuf>,
+    },
+
     /// Parse a file and print its debug or output representation
     Parse {
         /// What to parse the input as
