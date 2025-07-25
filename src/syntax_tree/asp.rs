@@ -7,7 +7,7 @@ use {
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
             VariableParser,
         },
-        syntax_tree::{impl_node, Node},
+        syntax_tree::{Node, impl_node},
     },
     derive_more::derive::IntoIterator,
     indexmap::IndexSet,

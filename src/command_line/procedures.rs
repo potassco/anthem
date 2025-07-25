@@ -10,21 +10,21 @@ use {
         },
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol, Node as _},
+        syntax_tree::{Node as _, asp, fol},
         translating::{
             completion::completion,
             counterexample::external::generate_external_counterexample_program, gamma::gamma,
             mu::mu, natural::natural, tau_star::tau_star,
         },
         verifying::{
-            prover::{vampire::Vampire, Prover, Report, Status, Success},
+            prover::{Prover, Report, Status, Success, vampire::Vampire},
             task::{
-                external_equivalence::ExternalEquivalenceTask,
-                strong_equivalence::StrongEquivalenceTask, Task,
+                Task, external_equivalence::ExternalEquivalenceTask,
+                strong_equivalence::StrongEquivalenceTask,
             },
         },
     },
-    anyhow::{anyhow, Context, Result},
+    anyhow::{Context, Result, anyhow},
     clap::Parser as _,
     either::Either,
     indexmap::IndexSet,
@@ -55,7 +55,7 @@ pub fn main() -> Result<()> {
 
         Command::Falsify {
             equivalence,
-            direction: _,
+            direction,
             save_files: _,
             files,
         } => {
@@ -83,21 +83,30 @@ pub fn main() -> Result<()> {
                     // TODO: check for stratification of private parts
                     // (i.e. no loops trough at least one negation and no choice on privates)
 
-                    // TODO: take direction into account
-                    let forward_program = generate_external_counterexample_program(
-                        &user_guide,
-                        left.clone(),
-                        right.clone(),
-                    );
+                    if matches!(
+                        direction,
+                        fol::Direction::Forward | fol::Direction::Universal
+                    ) {
+                        let forward_program = generate_external_counterexample_program(
+                            &user_guide,
+                            left.clone(),
+                            right.clone(),
+                        );
 
-                    let backward_program =
-                        generate_external_counterexample_program(&user_guide, right, left);
+                        println!("% external equivalence checking program forward direction");
+                        print!("{forward_program}");
+                    }
 
-                    // TODO: otuput equivalence programs(s) to files
-                    println!("% external equivalence checking program forward direction");
-                    print!("{forward_program}");
-                    println!("% external equivalence checking program backward direction");
-                    print!("{backward_program}")
+                    if matches!(
+                        direction,
+                        fol::Direction::Backward | fol::Direction::Universal
+                    ) {
+                        let backward_program =
+                            generate_external_counterexample_program(&user_guide, right, left);
+
+                        println!("% external equivalence checking program backward direction");
+                        print!("{backward_program}")
+                    }
                 }
                 Equivalence::Strong => println!(
                     "finding counterexamples for strong equivalence is currently not supported"
