@@ -148,6 +148,11 @@ fn generate_diff_rules(user_guide: &UserGuide) -> Program {
                 .collect(),
         };
 
+        let head = Head::Basic(Atom {
+            predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
+            terms: vec![],
+        });
+
         fn diff_body(left: Atom, right: Atom) -> Body {
             Body {
                 formulas: vec![
@@ -164,11 +169,11 @@ fn generate_diff_rules(user_guide: &UserGuide) -> Program {
         }
 
         rules.push(Rule {
-            head: Head::Falsity,
+            head: head.clone(),
             body: diff_body(atom.clone(), convert_atom(atom.clone())),
         });
         rules.push(Rule {
-            head: Head::Falsity,
+            head,
             body: diff_body(convert_atom(atom.clone()), atom),
         });
 
@@ -275,7 +280,7 @@ fn convert_literal(user_guide: &UserGuide, literal: Literal) -> Literal {
             atom,
         } => {
             let atom = if user_guide
-                .input_predicates()
+                .output_predicates()
                 .contains(&fol::Predicate::from(atom.predicate()))
             {
                 convert_atom(atom)
@@ -288,18 +293,7 @@ fn convert_literal(user_guide: &UserGuide, literal: Literal) -> Literal {
                 atom,
             }
         }
-        Literal { sign, atom } => {
-            let atom = if user_guide
-                .public_predicates()
-                .contains(&fol::Predicate::from(atom.predicate()))
-            {
-                convert_atom(atom)
-            } else {
-                atom
-            };
-
-            Literal { sign, atom }
-        }
+        l => l,
     }
 }
 
