@@ -22,12 +22,8 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
-    /// Find countermodels to an equivalence problem
+    /// Find countermodels to an external equivalence problem
     Falsify {
-        /// The equivalence problem
-        #[arg(long, value_enum)]
-        equivalence: Equivalence,
-
         /// The direction to falsify
         #[arg(long, value_enum, default_value_t)]
         direction: Direction,
@@ -38,7 +34,7 @@ pub enum Command {
 
         // TODO: add argument for control if guess and check translation is used
         // values: true, false, auto (uses guess and check depending on stratification of private parts)
-        /// A set of files from which to construct the equivalence problem, including
+        /// A set of files from which to construct the equivalence problem:
         ///
         ///   - the two programs, and
         ///   - the user guide.
