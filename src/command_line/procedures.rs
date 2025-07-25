@@ -28,7 +28,7 @@ use {
     clap::Parser as _,
     either::Either,
     indexmap::IndexSet,
-    std::time::Instant,
+    std::{fs::File, io::Write as _, time::Instant},
 };
 
 pub fn main() -> Result<()> {
@@ -54,64 +54,83 @@ pub fn main() -> Result<()> {
         }
 
         Command::Falsify {
-            equivalence,
             direction,
-            save_files: _,
+            save_files: out_dir,
             files,
         } => {
-            match equivalence {
-                Equivalence::External => {
-                    let files = Files::sort(files)
-                        .context("unable to sort the given files by their function")?;
+            let files =
+                Files::sort(files).context("unable to sort the given files by their function")?;
 
-                    let left = asp::Program::from_file(
-                        files
-                            .left()
-                            .ok_or(anyhow!("no left program was provided"))?,
-                    )?;
-                    let right = asp::Program::from_file(
-                        files
-                            .right()
-                            .ok_or(anyhow!("no right program was provided"))?,
-                    )?;
-                    let user_guide = fol::UserGuide::from_file(
-                        files
-                            .user_guide()
-                            .ok_or(anyhow!("no user guide was provided"))?,
-                    )?;
+            let left = asp::Program::from_file(
+                files
+                    .left()
+                    .ok_or(anyhow!("no left program was provided"))?,
+            )?;
+            let right = asp::Program::from_file(
+                files
+                    .right()
+                    .ok_or(anyhow!("no right program was provided"))?,
+            )?;
+            let user_guide = fol::UserGuide::from_file(
+                files
+                    .user_guide()
+                    .ok_or(anyhow!("no user guide was provided"))?,
+            )?;
 
-                    // TODO: check for stratification of private parts
-                    // (i.e. no loops trough at least one negation and no choice on privates)
+            // TODO: check for stratification of private parts
+            // (i.e. no loops trough at least one negation and no choice on privates)
 
-                    if matches!(
-                        direction,
-                        fol::Direction::Forward | fol::Direction::Universal
-                    ) {
-                        let forward_program = generate_external_counterexample_program(
-                            &user_guide,
-                            left.clone(),
-                            right.clone(),
-                        );
-
-                        println!("% external equivalence checking program forward direction");
-                        print!("{forward_program}");
-                    }
-
-                    if matches!(
-                        direction,
-                        fol::Direction::Backward | fol::Direction::Universal
-                    ) {
-                        let backward_program =
-                            generate_external_counterexample_program(&user_guide, right, left);
-
-                        println!("% external equivalence checking program backward direction");
-                        print!("{backward_program}")
-                    }
-                }
-                Equivalence::Strong => println!(
-                    "finding counterexamples for strong equivalence is currently not supported"
-                ),
+            struct NamedProgram {
+                pub name: String,
+                pub program: asp::Program,
             }
+
+            let mut programs: Vec<NamedProgram> = vec![];
+
+            if matches!(
+                direction,
+                fol::Direction::Forward | fol::Direction::Universal
+            ) {
+                let forward_program = generate_external_counterexample_program(
+                    &user_guide,
+                    left.clone(),
+                    right.clone(),
+                );
+                programs.push(NamedProgram {
+                    name: "forward".to_string(),
+                    program: forward_program,
+                });
+            }
+
+            if matches!(
+                direction,
+                fol::Direction::Backward | fol::Direction::Universal
+            ) {
+                let backward_program =
+                    generate_external_counterexample_program(&user_guide, right, left);
+
+                programs.push(NamedProgram {
+                    name: "backward".to_string(),
+                    program: backward_program,
+                });
+            }
+
+            if let Some(out_dir) = out_dir {
+                for p in programs {
+                    let mut path = out_dir.clone();
+                    path.push(format!("{}.lp", p.name));
+                    let mut file = File::create(&path)
+                        .with_context(|| format!("could not create file {}", path.display()))?;
+                    write!(file, "{}", p.program)
+                        .with_context(|| format!("could not write file {}", path.display()))?;
+                    println!("saved file {}", path.display())
+                }
+            } else {
+                for p in programs {
+                    println!("% {}", p.name);
+                    print!("{}", p.program)
+                }
+            };
 
             Ok(())
         }
