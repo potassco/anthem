@@ -1,7 +1,13 @@
 use crate::syntax_tree::{
-    asp::{Atom, AtomicFormula, Body, Head, Literal, Program, Rule, Sign},
+    asp::{
+        Atom, AtomicFormula, BinaryOperator, Body, Head, Literal, PrecomputedTerm, Predicate,
+        Program, Rule, Sign, Term, Variable,
+    },
     fol::{self, UserGuide},
 };
+
+const DOMAIN_PREDICATE_NAME: &str = "dom";
+const DIFF_PREDICATE_NAME: &str = "diff";
 
 pub fn generate_external_counterexample_program(
     user_guide: &UserGuide,
@@ -22,7 +28,10 @@ pub fn generate_external_counterexample_program(
 }
 
 fn generate_input_program(user_guide: &UserGuide) -> Program {
-    let rules = vec![];
+    let mut rules = vec![];
+
+    rules.append(&mut generate_domain_facts().rules);
+    rules.append(&mut generate_input_generator(user_guide).rules);
 
     Program { rules }
 }
@@ -30,25 +39,98 @@ fn generate_input_program(user_guide: &UserGuide) -> Program {
 // dom(1..n).
 // TODO: also include all ground terms as input elements (needs programs as inputs)
 fn generate_domain_facts() -> Program {
-    todo!()
+    let interval = Term::BinaryOperation {
+        op: BinaryOperator::Interval,
+        lhs: Box::new(Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))),
+        rhs: Box::new(Term::PrecomputedTerm(PrecomputedTerm::Symbol(
+            "n".to_string(),
+        ))),
+    };
+
+    let head = Head::Basic(Atom {
+        predicate_symbol: DOMAIN_PREDICATE_NAME.to_string(),
+        terms: vec![interval],
+    });
+
+    Program {
+        rules: vec![Rule {
+            head,
+            body: Body { formulas: vec![] },
+        }],
+    }
 }
 
 // for all input predicates p in user_guide:
 // { p(X) } :- dom(X).
 fn generate_input_generator(user_guide: &UserGuide) -> Program {
-    todo!()
+    fn domain_choice(predicate: Predicate) -> Rule {
+        let variables: Vec<Term> = (1..predicate.arity + 1)
+            .map(|i| Term::Variable(Variable(format!("X{}", i))))
+            .collect();
+
+        let head = Head::Choice(Atom {
+            predicate_symbol: predicate.symbol,
+            terms: variables.clone(),
+        });
+
+        fn domain_literal(var: Term) -> Literal {
+            Literal {
+                sign: Sign::NoSign,
+                atom: Atom {
+                    predicate_symbol: DOMAIN_PREDICATE_NAME.to_string(),
+                    terms: vec![var],
+                },
+            }
+        }
+
+        let formulas: Vec<AtomicFormula> = variables
+            .into_iter()
+            .map(|var| AtomicFormula::Literal(domain_literal(var)))
+            .collect();
+
+        Rule {
+            head,
+            body: Body { formulas },
+        }
+    }
+
+    let rules = user_guide
+        .input_predicates()
+        .into_iter()
+        .map(|predicate| domain_choice(Predicate::from(predicate)))
+        .collect();
+
+    Program { rules }
 }
 
 fn generate_diff_program(user_guide: &UserGuide) -> Program {
-    let rules = vec![];
+    let mut rules = vec![];
+
+    rules.append(&mut generate_diff_rules(user_guide).rules);
+    rules.append(&mut generate_diff_constraint().rules);
 
     Program { rules }
 }
 
 // :- not diff.
 // TODO: add input for guess and check flag
-fn generate_difference_constraint() -> Program {
-    todo!()
+fn generate_diff_constraint() -> Program {
+    let constraint = Rule {
+        head: Head::Falsity,
+        body: Body {
+            formulas: vec![AtomicFormula::Literal(Literal {
+                sign: Sign::Negation,
+                atom: Atom {
+                    predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
+                    terms: vec![],
+                },
+            })],
+        },
+    };
+
+    Program {
+        rules: vec![constraint],
+    }
 }
 
 // for every output predicate p in user_guide:
@@ -56,7 +138,50 @@ fn generate_difference_constraint() -> Program {
 // diff :- not p, p'.
 // TODO: add input for guess and check flag
 fn generate_diff_rules(user_guide: &UserGuide) -> Program {
-    todo!()
+    fn diff_rule(predicate: Predicate) -> Vec<Rule> {
+        let mut rules = vec![];
+
+        let atom = Atom {
+            predicate_symbol: predicate.symbol,
+            terms: (1..predicate.arity + 1)
+                .map(|i| Term::Variable(Variable(format!("X{}", i))))
+                .collect(),
+        };
+
+        fn diff_body(left: Atom, right: Atom) -> Body {
+            Body {
+                formulas: vec![
+                    AtomicFormula::Literal(Literal {
+                        sign: Sign::NoSign,
+                        atom: left,
+                    }),
+                    AtomicFormula::Literal(Literal {
+                        sign: Sign::Negation,
+                        atom: right,
+                    }),
+                ],
+            }
+        }
+
+        rules.push(Rule {
+            head: Head::Falsity,
+            body: diff_body(atom.clone(), convert_atom(atom.clone())),
+        });
+        rules.push(Rule {
+            head: Head::Falsity,
+            body: diff_body(convert_atom(atom.clone()), atom),
+        });
+
+        rules
+    }
+
+    let rules: Vec<Rule> = user_guide
+        .output_predicates()
+        .into_iter()
+        .flat_map(|predicate| diff_rule(Predicate::from(predicate)))
+        .collect();
+
+    Program { rules }
 }
 
 fn convert_program(user_guide: &UserGuide, program: Program) -> Program {
