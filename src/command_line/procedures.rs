@@ -95,8 +95,12 @@ pub fn main() -> Result<()> {
                     .ok_or(anyhow!("no user guide was provided"))?,
             )?;
 
-            // TODO: check for stratification of private parts
-            // (i.e. no loops trough at least one negation and no choice on privates)
+            if !left.is_private_weakly_stratified(&user_guide) {
+                println!("the left program is not private weakly stratified\n{left}")
+            }
+            if !right.is_private_weakly_stratified(&user_guide) {
+                println!("the right program is not private weakly stratified\n{right}")
+            }
 
             struct NamedProgram {
                 pub name: String,
