@@ -252,7 +252,6 @@ impl AtomicFormula {
         }
     }
 
-    // TODO: is negation and double negation correct here?
     fn negative_predicates(&self) -> IndexSet<Predicate> {
         match &self {
             AtomicFormula::Literal(Literal {

@@ -1,0 +1,4 @@
+input: father/2.
+input: mother/2.
+input: living/1.
+output: orphan/1.
