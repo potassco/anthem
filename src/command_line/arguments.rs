@@ -149,6 +149,7 @@ pub enum Property {
     Regularity,
     Tightness,
     Stratification,
+    WeakStratification,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

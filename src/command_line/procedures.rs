@@ -1,7 +1,9 @@
 use {
     crate::{
         analyzing::{
-            regularity::Regularity as _, stratification::Stratification, tightness::Tightness,
+            regularity::Regularity as _,
+            stratification::{PrivateWeakStratification, Stratification, WeakStratification},
+            tightness::Tightness,
         },
         command_line::{
             arguments::{
@@ -56,6 +58,13 @@ pub fn main() -> Result<()> {
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
                     let is_stratified = program.is_stratified();
                     println!("{is_stratified}");
+                }
+
+                Property::WeakStratification => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let is_weakly_stratified = program.is_weakly_stratified();
+                    println!("{is_weakly_stratified}");
                 }
             }
 
