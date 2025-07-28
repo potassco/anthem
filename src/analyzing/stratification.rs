@@ -85,43 +85,71 @@ impl Stratification for Program {
     }
 }
 
+pub trait WeakStratification {
+    fn is_weakly_stratified(&self) -> bool;
+}
+
+impl WeakStratification for Program {
+    fn is_weakly_stratified(&self) -> bool {
+        // filter out all constraints
+        let filtered_rules = self
+            .rules
+            .clone()
+            .into_iter()
+            .filter(|rule| {
+                !matches!(
+                    rule,
+                    Rule {
+                        head: Head::Falsity,
+                        body: _,
+                    },
+                )
+            })
+            .collect();
+
+        Program {
+            rules: filtered_rules,
+        }
+        .is_stratified()
+    }
+}
+
 trait PrivatePart {
     fn private_part(&self, user_guide: &UserGuide) -> Self;
 }
 
 impl PrivatePart for Program {
     fn private_part(&self, user_guide: &UserGuide) -> Self {
+        fn is_private_head(head: &Head, user_guide: &UserGuide) -> bool {
+            let head_predicate = head.predicate();
+            if let Some(head_predicate) = head_predicate {
+                // for basic and choice heads the predicate needs to be private
+                !user_guide
+                    .public_predicates()
+                    .contains(&fol::Predicate::from(head_predicate))
+            } else {
+                // constraint heads are always private
+                true
+            }
+        }
+
+        // check if a body is private
+        fn is_private_body(body: &Body, user_guide: &UserGuide) -> bool {
+            for predicate in body.predicates() {
+                if !user_guide
+                    .public_predicates()
+                    .contains(&fol::Predicate::from(predicate))
+                {
+                    // a body is private if it contains some private predicate
+                    return true;
+                }
+            }
+
+            false
+        }
+
+        // check if the rule is private
         fn is_private_rule(rule: &Rule, user_guide: &UserGuide) -> bool {
-            // check if head is private
-            fn is_private_head(head: &Head, user_guide: &UserGuide) -> bool {
-                let head_predicate = head.predicate();
-                if let Some(head_predicate) = head_predicate {
-                    // for basic and choice heads the predicate needs to be private
-                    !user_guide
-                        .public_predicates()
-                        .contains(&fol::Predicate::from(head_predicate))
-                } else {
-                    // constraint heads are always private
-                    true
-                }
-            }
-
-            // check if a body is private
-            fn is_private_body(body: &Body, user_guide: &UserGuide) -> bool {
-                for predicate in body.predicates() {
-                    if !user_guide
-                        .public_predicates()
-                        .contains(&fol::Predicate::from(predicate))
-                    {
-                        // a body is private if it contains some private predicate
-                        return true;
-                    }
-                }
-
-                false
-            }
-
-            // check if the rule is private
             match rule {
                 // for choices we just need to check whether the head is private
                 Rule {
@@ -168,10 +196,22 @@ impl PrivateStratification for Program {
     }
 }
 
+pub trait PrivateWeakStratification {
+    fn is_private_weakly_stratified(&self, user_guide: &UserGuide) -> bool;
+}
+
+impl PrivateWeakStratification for Program {
+    fn is_private_weakly_stratified(&self, user_guide: &UserGuide) -> bool {
+        self.private_part(user_guide).is_weakly_stratified()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use {
-        super::{PrivateStratification, Stratification},
+        super::{
+            PrivateStratification, PrivateWeakStratification, Stratification, WeakStratification,
+        },
         crate::syntax_tree::{asp::Program, fol::UserGuide},
         std::str::FromStr,
     };
@@ -197,6 +237,30 @@ mod tests {
             assert!(
                 !Program::from_str(program).unwrap().is_stratified(),
                 "assertion failed:\n program should not be stratified:\n {program}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_weak_stratification() {
+        for program in ["a.", "a :- a.", "a :- b. b :- a.", ":- a."] {
+            assert!(
+                Program::from_str(program).unwrap().is_weakly_stratified(),
+                "assertion failed:\n program should be weakly stratified:\n {program}"
+            );
+        }
+
+        for program in [
+            "{ a }.",
+            "a :- not a.",
+            "a :- not b. b :- not a.",
+            "p(X) :- not q(X). q(X) :- p(X).",
+            "q(X) :- p(X). p(X) :- not q(X).",
+            "p :- q, not r. p :- r. r :- p.",
+        ] {
+            assert!(
+                !Program::from_str(program).unwrap().is_weakly_stratified(),
+                "assertion failed:\n program should not be weakly stratified:\n {program}"
             );
         }
     }
@@ -234,6 +298,43 @@ mod tests {
                     .unwrap()
                     .is_private_stratified(user_guide),
                 "assertion failed:\n program should be privately stratified:\n {program}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_private_weak_stratification() {
+        let user_guide = &UserGuide::from_str("input: p/0. output: q/0.").unwrap();
+
+        for program in [
+            "{ a }.",
+            "a :- not b. b :- not a.",
+            "a :- b. b :- not a.",
+            "b :- not a. a :- b.",
+        ] {
+            assert!(
+                !Program::from_str(program)
+                    .unwrap()
+                    .is_private_weakly_stratified(user_guide),
+                "assertion failed:\n program should not be private weakly stratified:]n {program}"
+            );
+        }
+
+        for program in [
+            "{ p }.",
+            "p :- not q. q :- not p.",
+            "p :- q. q :- p.",
+            "a :- b. b :- a.",
+            ":- p.",
+            "p :- a. a :- p.",
+            "p :- not a. a :- not p.",
+            ":- a.",
+        ] {
+            assert!(
+                Program::from_str(program)
+                    .unwrap()
+                    .is_private_weakly_stratified(user_guide),
+                "assertion failed:\n program should be private weakly stratified:\n {program}"
             );
         }
     }
