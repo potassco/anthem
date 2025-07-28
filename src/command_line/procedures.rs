@@ -1,6 +1,8 @@
 use {
     crate::{
-        analyzing::{regularity::Regularity as _, tightness::Tightness},
+        analyzing::{
+            regularity::Regularity as _, stratification::Stratification, tightness::Tightness,
+        },
         command_line::{
             arguments::{
                 Arguments, Command, Equivalence, Output, ParseAs, Property,
@@ -47,6 +49,13 @@ pub fn main() -> Result<()> {
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
                     let is_tight = program.is_tight();
                     println!("{is_tight}");
+                }
+
+                Property::Stratification => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let is_stratified = program.is_stratified();
+                    println!("{is_stratified}");
                 }
             }
 

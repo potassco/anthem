@@ -252,6 +252,17 @@ impl AtomicFormula {
         }
     }
 
+    // TODO: is negation and double negation correct here?
+    fn negative_predicates(&self) -> IndexSet<Predicate> {
+        match &self {
+            AtomicFormula::Literal(Literal {
+                sign: Sign::Negation | Sign::DoubleNegation,
+                atom,
+            }) => IndexSet::from([atom.predicate()]),
+            AtomicFormula::Literal(_) | AtomicFormula::Comparison(_) => IndexSet::new(),
+        }
+    }
+
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
             AtomicFormula::Literal(l) => l.function_constants(),
@@ -347,6 +358,14 @@ impl Body {
         let mut predicates = IndexSet::new();
         for formula in self.formulas.iter() {
             predicates.extend(formula.positive_predicates())
+        }
+        predicates
+    }
+
+    pub fn negative_predicates(&self) -> IndexSet<Predicate> {
+        let mut predicates = IndexSet::new();
+        for formula in self.formulas.iter() {
+            predicates.extend(formula.negative_predicates())
         }
         predicates
     }
