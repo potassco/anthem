@@ -16,7 +16,7 @@ pub fn generate_external_counterexample_program(
     right: Program,
 ) -> Program {
     let mut input_program = generate_input_program(user_guide);
-    let mut diff_program = generate_diff_program(user_guide, false);
+    let mut diff_program = generate_diff_program(user_guide, false, right.has_constraint());
     let mut right_transformed = convert_program(user_guide, right);
 
     let mut rules = vec![];
@@ -43,7 +43,7 @@ pub fn generate_guess_and_check_programs(
     guess_rules.append(&mut map_program.rules);
 
     // check program
-    let mut diff_program = generate_diff_program(user_guide, true);
+    let mut diff_program = generate_diff_program(user_guide, true, right.has_constraint());
     let mut right_transformed = convert_program(user_guide, right);
     let mut projection_program = generate_holds_projection(user_guide);
 
@@ -134,10 +134,14 @@ fn generate_input_generator(user_guide: &UserGuide) -> Program {
     Program { rules }
 }
 
-fn generate_diff_program(user_guide: &UserGuide, use_guess_and_check: bool) -> Program {
+fn generate_diff_program(
+    user_guide: &UserGuide,
+    use_guess_and_check: bool,
+    has_constraint: bool,
+) -> Program {
     let mut rules = vec![];
 
-    rules.append(&mut generate_diff_rules(user_guide).rules);
+    rules.append(&mut generate_diff_rules(user_guide, has_constraint).rules);
     rules.append(&mut generate_diff_constraint(use_guess_and_check).rules);
 
     Program { rules }
@@ -174,7 +178,7 @@ fn generate_diff_constraint(use_guess_and_check: bool) -> Program {
 // diff :- p, not p'.
 // diff :- not p, p'.
 // and rule for unsat predicate: diff :- unsat.
-fn generate_diff_rules(user_guide: &UserGuide) -> Program {
+fn generate_diff_rules(user_guide: &UserGuide, has_constraint: bool) -> Program {
     fn diff_rule(predicate: Predicate) -> Vec<Rule> {
         let mut rules = vec![];
 
@@ -223,23 +227,23 @@ fn generate_diff_rules(user_guide: &UserGuide) -> Program {
         .flat_map(|predicate| diff_rule(Predicate::from(predicate)))
         .collect();
 
-    // TODO: only add this rule if right program contains a constraint
-    // (avoid clingo warnings)
-    rules.push(Rule {
-        head: Head::Basic(Atom {
-            predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
-            terms: vec![],
-        }),
-        body: Body {
-            formulas: vec![AtomicFormula::Literal(Literal {
-                sign: Sign::NoSign,
-                atom: Atom {
-                    predicate_symbol: UNSAT_PREDICATE_NAME.to_string(),
-                    terms: vec![],
-                },
-            })],
-        },
-    });
+    if has_constraint {
+        rules.push(Rule {
+            head: Head::Basic(Atom {
+                predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
+                terms: vec![],
+            }),
+            body: Body {
+                formulas: vec![AtomicFormula::Literal(Literal {
+                    sign: Sign::NoSign,
+                    atom: Atom {
+                        predicate_symbol: UNSAT_PREDICATE_NAME.to_string(),
+                        terms: vec![],
+                    },
+                })],
+            },
+        });
+    }
 
     Program { rules }
 }
