@@ -10,13 +10,14 @@ const DOMAIN_PREDICATE_NAME: &str = "dom";
 const DIFF_PREDICATE_NAME: &str = "diff";
 const UNSAT_PREDICATE_NAME: &str = "unsat";
 
+// TODO: add use_guess_and_check flag and integrate guess and check generation
 pub fn generate_external_counterexample_program(
     user_guide: &UserGuide,
     mut left: Program,
     right: Program,
 ) -> Program {
     let mut input_program = generate_input_program(user_guide);
-    let mut diff_program = generate_diff_program(user_guide);
+    let mut diff_program = generate_diff_program(user_guide, false);
     let mut right_transformed = convert_program(user_guide, right);
 
     let mut rules = vec![];
@@ -26,6 +27,34 @@ pub fn generate_external_counterexample_program(
     rules.append(&mut diff_program.rules);
 
     Program { rules }
+}
+
+pub fn generate_guess_and_check_programs(
+    user_guide: &UserGuide,
+    mut left: Program,
+    right: Program,
+) -> (Program, Program) {
+    let mut input_program = generate_input_program(user_guide);
+    let mut map_program = generate_holds_map(user_guide);
+
+    let mut guess_rules = vec![];
+    guess_rules.append(&mut input_program.rules);
+    guess_rules.append(&mut left.rules);
+    guess_rules.append(&mut map_program.rules);
+
+    let mut diff_program = generate_diff_program(user_guide, true);
+    let mut right_transformed = convert_program(user_guide, right);
+    let mut projection_program = generate_holds_projection(user_guide);
+
+    let mut check_rules = vec![];
+    check_rules.append(&mut right_transformed.rules);
+    check_rules.append(&mut diff_program.rules);
+    check_rules.append(&mut projection_program.rules);
+
+    (
+        Program { rules: guess_rules },
+        Program { rules: check_rules },
+    )
 }
 
 fn generate_input_program(user_guide: &UserGuide) -> Program {
@@ -104,23 +133,28 @@ fn generate_input_generator(user_guide: &UserGuide) -> Program {
     Program { rules }
 }
 
-fn generate_diff_program(user_guide: &UserGuide) -> Program {
+fn generate_diff_program(user_guide: &UserGuide, use_guess_and_check: bool) -> Program {
     let mut rules = vec![];
 
     rules.append(&mut generate_diff_rules(user_guide).rules);
-    rules.append(&mut generate_diff_constraint().rules);
+    rules.append(&mut generate_diff_constraint(use_guess_and_check).rules);
 
     Program { rules }
 }
 
 // :- not diff.
-// TODO: add input for guess and check flag
-fn generate_diff_constraint() -> Program {
+fn generate_diff_constraint(use_guess_and_check: bool) -> Program {
+    let sign = if use_guess_and_check {
+        Sign::NoSign
+    } else {
+        Sign::Negation
+    };
+
     let constraint = Rule {
         head: Head::Falsity,
         body: Body {
             formulas: vec![AtomicFormula::Literal(Literal {
-                sign: Sign::Negation,
+                sign,
                 atom: Atom {
                     predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
                     terms: vec![],
@@ -186,6 +220,8 @@ fn generate_diff_rules(user_guide: &UserGuide) -> Program {
         .flat_map(|predicate| diff_rule(Predicate::from(predicate)))
         .collect();
 
+    // TODO: only add this rule if right program contains a constraint
+    // (avoid clingo warnings)
     rules.push(Rule {
         head: Head::Basic(Atom {
             predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
@@ -320,4 +356,82 @@ fn convert_atom(atom: Atom) -> Atom {
         predicate_symbol,
         terms: atom.terms,
     }
+}
+
+fn atom_as_term(atom: Atom) -> PrecomputedTerm {
+    let atom_as_string: String = format!("{}", atom);
+    PrecomputedTerm::Symbol(atom_as_string)
+}
+
+fn convert_atom_to_holds(atom: Atom) -> Atom {
+    Atom {
+        predicate_symbol: "holds".to_string(),
+        terms: vec![Term::PrecomputedTerm(atom_as_term(atom))],
+    }
+}
+
+fn map_into_holds(predicate: Predicate) -> Rule {
+    let variables: Vec<Term> = (1..predicate.arity + 1)
+        .map(|i| Term::Variable(Variable(format!("X{}", i))))
+        .collect();
+
+    let atom = Atom {
+        predicate_symbol: predicate.symbol,
+        terms: variables,
+    };
+
+    let holds_atom = convert_atom_to_holds(atom.clone());
+
+    Rule {
+        head: Head::Basic(holds_atom),
+        body: Body {
+            formulas: vec![AtomicFormula::Literal(Literal {
+                sign: Sign::NoSign,
+                atom,
+            })],
+        },
+    }
+}
+
+fn generate_holds_map(user_guide: &UserGuide) -> Program {
+    let rules: Vec<Rule> = user_guide
+        .public_predicates()
+        .into_iter()
+        .map(|predicate| map_into_holds(Predicate::from(predicate)))
+        .collect();
+
+    Program { rules }
+}
+
+fn project_from_holds(predicate: Predicate) -> Rule {
+    let variables: Vec<Term> = (1..predicate.arity + 1)
+        .map(|i| Term::Variable(Variable(format!("X{}", i))))
+        .collect();
+
+    let atom = Atom {
+        predicate_symbol: predicate.symbol,
+        terms: variables,
+    };
+
+    let holds_atom = convert_atom_to_holds(atom.clone());
+
+    Rule {
+        head: Head::Basic(atom),
+        body: Body {
+            formulas: vec![AtomicFormula::Literal(Literal {
+                sign: Sign::NoSign,
+                atom: holds_atom,
+            })],
+        },
+    }
+}
+
+fn generate_holds_projection(user_guide: &UserGuide) -> Program {
+    let rules: Vec<Rule> = user_guide
+        .public_predicates()
+        .into_iter()
+        .map(|predicate| project_from_holds(Predicate::from(predicate)))
+        .collect();
+
+    Program { rules }
 }
