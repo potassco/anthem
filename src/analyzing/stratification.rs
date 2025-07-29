@@ -96,7 +96,7 @@ impl WeakStratification for Program {
             .rules
             .clone()
             .into_iter()
-            .filter(|rule| rule.is_constraint())
+            .filter(|rule| !rule.is_constraint())
             .collect();
 
         Program {
