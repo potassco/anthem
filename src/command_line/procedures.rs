@@ -101,7 +101,7 @@ pub fn main() -> Result<()> {
             )?;
 
             // TODO: could be optimised to only use guess and check in a specific direction
-            // i.e. if right is not private weakly stratified we only need guess and check for the left -> right direction
+            // i.e. if only right is not private weakly stratified we only need guess and check for the left -> right direction
             let mut use_guess_and_check = false;
             if !left.is_private_weakly_stratified(&user_guide) {
                 println!("the left program is not private weakly stratified\n{left}");

@@ -10,7 +10,6 @@ const DOMAIN_PREDICATE_NAME: &str = "dom";
 const DIFF_PREDICATE_NAME: &str = "diff";
 const UNSAT_PREDICATE_NAME: &str = "unsat";
 
-// TODO: add use_guess_and_check flag and integrate guess and check generation
 pub fn generate_external_counterexample_program(
     user_guide: &UserGuide,
     mut left: Program,
@@ -34,6 +33,7 @@ pub fn generate_guess_and_check_programs(
     mut left: Program,
     right: Program,
 ) -> (Program, Program) {
+    // guess program
     let mut input_program = generate_input_program(user_guide);
     let mut map_program = generate_holds_map(user_guide);
 
@@ -42,6 +42,7 @@ pub fn generate_guess_and_check_programs(
     guess_rules.append(&mut left.rules);
     guess_rules.append(&mut map_program.rules);
 
+    // check program
     let mut diff_program = generate_diff_program(user_guide, true);
     let mut right_transformed = convert_program(user_guide, right);
     let mut projection_program = generate_holds_projection(user_guide);
@@ -142,7 +143,8 @@ fn generate_diff_program(user_guide: &UserGuide, use_guess_and_check: bool) -> P
     Program { rules }
 }
 
-// :- not diff.
+// :- not diff. or
+// :- diff. for guess and check
 fn generate_diff_constraint(use_guess_and_check: bool) -> Program {
     let sign = if use_guess_and_check {
         Sign::NoSign
@@ -171,6 +173,7 @@ fn generate_diff_constraint(use_guess_and_check: bool) -> Program {
 // for every output predicate p in user_guide:
 // diff :- p, not p'.
 // diff :- not p, p'.
+// and rule for unsat predicate: diff :- unsat.
 fn generate_diff_rules(user_guide: &UserGuide) -> Program {
     fn diff_rule(predicate: Predicate) -> Vec<Rule> {
         let mut rules = vec![];
@@ -251,6 +254,9 @@ fn convert_program(user_guide: &UserGuide, program: Program) -> Program {
     Program { rules }
 }
 
+// { p } :- Body. -> p'    :- Body', p.
+//       :- Body. -> unsat :- Body'.
+//   p   :- Body. -> p'    :- Body'.
 fn convert_rule(user_guide: &UserGuide, rule: Rule) -> Rule {
     match rule {
         Rule {
@@ -287,7 +293,7 @@ fn convert_rule(user_guide: &UserGuide, rule: Rule) -> Rule {
     }
 }
 
-// convert { p } :- Body. in right program to
+// convert { p } :- Body. to
 // p' :- Body', p. if p is output predicate where Body' is the converted body
 fn convert_choice_rule(user_guide: &UserGuide, rule: Rule) -> Rule {
     let atom = rule.head.atom().unwrap();
@@ -303,7 +309,7 @@ fn convert_choice_rule(user_guide: &UserGuide, rule: Rule) -> Rule {
     Rule { head, body }
 }
 
-// get new head for constraints (i.e. unsat)
+// get new head for constraints
 fn get_unsat_head() -> Head {
     Head::Basic(Atom {
         predicate_symbol: UNSAT_PREDICATE_NAME.to_string(),
@@ -311,6 +317,7 @@ fn get_unsat_head() -> Head {
     })
 }
 
+// convert each literal in a body
 fn convert_rule_body(user_guide: &UserGuide, body: Body) -> Body {
     let formulas = body
         .into_iter()
@@ -325,6 +332,10 @@ fn convert_rule_body(user_guide: &UserGuide, body: Body) -> Body {
     Body { formulas }
 }
 
+// convert positive literals p(X) to
+//   p'(X) if p is an output predicate
+//   p(X)  else
+// negative literals are unchanged
 fn convert_literal(user_guide: &UserGuide, literal: Literal) -> Literal {
     match literal {
         Literal {
@@ -349,6 +360,7 @@ fn convert_literal(user_guide: &UserGuide, literal: Literal) -> Literal {
     }
 }
 
+// convert p(X) to p'(X)
 fn convert_atom(atom: Atom) -> Atom {
     let mut predicate_symbol = atom.predicate_symbol;
     predicate_symbol.push('\'');
@@ -358,18 +370,16 @@ fn convert_atom(atom: Atom) -> Atom {
     }
 }
 
-fn atom_as_term(atom: Atom) -> PrecomputedTerm {
-    let atom_as_string: String = format!("{}", atom);
-    PrecomputedTerm::Symbol(atom_as_string)
-}
-
+// turn p(X) into holds(p(X))
 fn convert_atom_to_holds(atom: Atom) -> Atom {
+    let atom_as_term = PrecomputedTerm::Symbol(format!("{}", atom));
     Atom {
         predicate_symbol: "holds".to_string(),
-        terms: vec![Term::PrecomputedTerm(atom_as_term(atom))],
+        terms: vec![Term::PrecomputedTerm(atom_as_term)],
     }
 }
 
+// holds(p(X)) :- p(X).
 fn map_into_holds(predicate: Predicate) -> Rule {
     let variables: Vec<Term> = (1..predicate.arity + 1)
         .map(|i| Term::Variable(Variable(format!("X{}", i))))
@@ -393,6 +403,7 @@ fn map_into_holds(predicate: Predicate) -> Rule {
     }
 }
 
+// holds mapping rules for each public predicate
 fn generate_holds_map(user_guide: &UserGuide) -> Program {
     let rules: Vec<Rule> = user_guide
         .public_predicates()
@@ -403,6 +414,7 @@ fn generate_holds_map(user_guide: &UserGuide) -> Program {
     Program { rules }
 }
 
+// p(X) :- holds(p(X)).
 fn project_from_holds(predicate: Predicate) -> Rule {
     let variables: Vec<Term> = (1..predicate.arity + 1)
         .map(|i| Term::Variable(Variable(format!("X{}", i))))
@@ -426,6 +438,7 @@ fn project_from_holds(predicate: Predicate) -> Rule {
     }
 }
 
+// holds projection rule for each public predicate
 fn generate_holds_projection(user_guide: &UserGuide) -> Program {
     let rules: Vec<Rule> = user_guide
         .public_predicates()
