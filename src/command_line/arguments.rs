@@ -32,8 +32,6 @@ pub enum Command {
         #[arg(long)]
         save_files: Option<PathBuf>,
 
-        // TODO: add argument for control if guess and check translation is used
-        // values: true, false, auto (uses guess and check depending on stratification of private parts)
         /// A set of files from which to construct the equivalence problem:
         ///
         ///   - the two programs, and

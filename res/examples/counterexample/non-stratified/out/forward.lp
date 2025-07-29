@@ -7,5 +7,4 @@ diff :- p, not p'.
 diff :- p', not p.
 diff :- q, not q'.
 diff :- q', not q.
-diff :- unsat.
  :- not diff.

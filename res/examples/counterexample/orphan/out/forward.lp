@@ -8,5 +8,4 @@ orphan(X) :- living(X), not parent_living(X).
 orphan'(X) :- living(X), father(Y, X), mother(Z, X), not living(Y), not living(Z).
 diff :- orphan(X1), not orphan'(X1).
 diff :- orphan'(X1), not orphan(X1).
-diff :- unsat.
  :- not diff.

@@ -11,5 +11,4 @@ p'(X) :- r(X), q(X), not c.
 p'(X) :- r(X), not q(X), c.
 diff :- p(X1), not p'(X1).
 diff :- p'(X1), not p(X1).
-diff :- unsat.
  :- not diff.

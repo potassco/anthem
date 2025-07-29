@@ -5,5 +5,4 @@ p(X) :- q(X).
 p'(X) :- q(X).
 diff :- p(X1), not p'(X1).
 diff :- p'(X1), not p(X1).
-diff :- unsat.
  :- not diff.
