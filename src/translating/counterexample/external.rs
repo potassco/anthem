@@ -8,6 +8,7 @@ use crate::syntax_tree::{
 
 const DOMAIN_PREDICATE_NAME: &str = "dom";
 const DIFF_PREDICATE_NAME: &str = "diff";
+const UNSAT_PREDICATE_NAME: &str = "unsat";
 
 pub fn generate_external_counterexample_program(
     user_guide: &UserGuide,
@@ -136,7 +137,6 @@ fn generate_diff_constraint() -> Program {
 // for every output predicate p in user_guide:
 // diff :- p, not p'.
 // diff :- not p, p'.
-// TODO: add input for guess and check flag
 fn generate_diff_rules(user_guide: &UserGuide) -> Program {
     fn diff_rule(predicate: Predicate) -> Vec<Rule> {
         let mut rules = vec![];
@@ -180,11 +180,27 @@ fn generate_diff_rules(user_guide: &UserGuide) -> Program {
         rules
     }
 
-    let rules: Vec<Rule> = user_guide
+    let mut rules: Vec<Rule> = user_guide
         .output_predicates()
         .into_iter()
         .flat_map(|predicate| diff_rule(Predicate::from(predicate)))
         .collect();
+
+    rules.push(Rule {
+        head: Head::Basic(Atom {
+            predicate_symbol: DIFF_PREDICATE_NAME.to_string(),
+            terms: vec![],
+        }),
+        body: Body {
+            formulas: vec![AtomicFormula::Literal(Literal {
+                sign: Sign::NoSign,
+                atom: Atom {
+                    predicate_symbol: UNSAT_PREDICATE_NAME.to_string(),
+                    terms: vec![],
+                },
+            })],
+        },
+    });
 
     Program { rules }
 }
@@ -254,7 +270,7 @@ fn convert_choice_rule(user_guide: &UserGuide, rule: Rule) -> Rule {
 // get new head for constraints (i.e. unsat)
 fn get_unsat_head() -> Head {
     Head::Basic(Atom {
-        predicate_symbol: "unsat".to_string(),
+        predicate_symbol: UNSAT_PREDICATE_NAME.to_string(),
         terms: vec![],
     })
 }
