@@ -7,4 +7,5 @@ t'(X, Y) :- n(X), n(Y), e(X, Y).
 t'(X, Y) :- n(X), n(Y), n(Z), e(X, Z), not not t(Z, Y).
 diff :- t(X1, X2), not t'(X1, X2).
 diff :- t'(X1, X2), not t(X1, X2).
+diff :- unsat.
  :- not diff.
