@@ -442,6 +442,10 @@ impl Rule {
         terms.extend(self.body.terms());
         terms
     }
+
+    pub fn is_constraint(&self) -> bool {
+        matches!(self.head, Head::Falsity)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -485,6 +489,16 @@ impl Program {
             functions.extend(rule.function_constants());
         }
         functions
+    }
+
+    pub fn has_constraint(&self) -> bool {
+        for rule in self.rules.iter() {
+            if rule.is_constraint() {
+                return true;
+            }
+        }
+
+        false
     }
 }
 

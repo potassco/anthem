@@ -96,15 +96,7 @@ impl WeakStratification for Program {
             .rules
             .clone()
             .into_iter()
-            .filter(|rule| {
-                !matches!(
-                    rule,
-                    Rule {
-                        head: Head::Falsity,
-                        body: _,
-                    },
-                )
-            })
+            .filter(|rule| rule.is_constraint())
             .collect();
 
         Program {
