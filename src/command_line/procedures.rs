@@ -180,7 +180,7 @@ pub fn main() -> Result<()> {
             decomposition,
             direction,
             formula_representation,
-            bypass_tightness,
+            mut bypass_tightness,
             no_simplify,
             no_eq_break,
             no_proof_search,
@@ -217,37 +217,81 @@ pub fn main() -> Result<()> {
                 .decompose()?
                 .report_warnings(),
 
-                Equivalence::External => ExternalEquivalenceTask {
-                    specification: match files
-                        .specification()
-                        .ok_or(anyhow!("no specification was provided"))?
-                    {
-                        Either::Left(program) => Either::Left(asp::Program::from_file(program)?),
-                        Either::Right(specification) => {
-                            Either::Right(fol::Specification::from_file(specification)?)
-                        }
-                    },
-                    program: asp::Program::from_file(
-                        files.program().ok_or(anyhow!("no program was provided"))?,
-                    )?,
-                    user_guide: fol::UserGuide::from_file(
-                        files
-                            .user_guide()
-                            .ok_or(anyhow!("no user guide was provided"))?,
-                    )?,
-                    proof_outline: files
-                        .proof_outline()
-                        .map(fol::Specification::from_file)
-                        .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
-                    decomposition,
-                    formula_representation,
-                    direction,
-                    bypass_tightness,
-                    simplify: !no_simplify,
-                    break_equivalences: !no_eq_break,
+                Equivalence::External => {
+                    let mut new_outputs: IndexSet<asp::Predicate> = IndexSet::new();
+
+                    ExternalEquivalenceTask {
+                        specification: match files
+                            .specification()
+                            .ok_or(anyhow!("no specification was provided"))?
+                        {
+                            Either::Left(program) => {
+                                let mut prog = asp::Program::from_file(program)?;
+                                if !bypass_tightness && !prog.is_tight() {
+                                    for pred in prog.predicates() {
+                                        let tightened_pred = asp::Predicate {
+                                            symbol: pred.symbol,
+                                            arity: pred.arity + 1,
+                                        };
+                                        new_outputs.insert(tightened_pred);
+                                    }
+                                    prog = tightening(prog);
+                                    bypass_tightness = true;
+                                }
+                                Either::Left(prog)
+                            }
+                            Either::Right(specification) => {
+                                Either::Right(fol::Specification::from_file(specification)?)
+                            }
+                        },
+                        program: {
+                            let mut prog = asp::Program::from_file(
+                                files.program().ok_or(anyhow!("no program was provided"))?,
+                            )?;
+
+                            if !bypass_tightness && !prog.is_tight() {
+                                for pred in prog.predicates() {
+                                    let tightened_pred = asp::Predicate {
+                                        symbol: pred.symbol,
+                                        arity: pred.arity + 1,
+                                    };
+                                    new_outputs.insert(tightened_pred);
+                                }
+                                prog = tightening(prog);
+                                bypass_tightness = true;
+                            }
+                            prog
+                        },
+                        user_guide: {
+                            let ug = fol::UserGuide::from_file(
+                                files
+                                    .user_guide()
+                                    .ok_or(anyhow!("no user guide was provided"))?,
+                            )?;
+                            let mut entries = ug.entries;
+
+                            for pred in new_outputs {
+                                entries.push(fol::UserGuideEntry::OutputPredicate(
+                                    fol::Predicate::from(pred),
+                                ));
+                            }
+
+                            fol::UserGuide { entries }
+                        },
+                        proof_outline: files
+                            .proof_outline()
+                            .map(fol::Specification::from_file)
+                            .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
+                        decomposition,
+                        formula_representation,
+                        direction,
+                        bypass_tightness,
+                        simplify: !no_simplify,
+                        break_equivalences: !no_eq_break,
+                    }
+                    .decompose()?
+                    .report_warnings()
                 }
-                .decompose()?
-                .report_warnings(),
             };
 
             if let Some(out_dir) = out_dir {
