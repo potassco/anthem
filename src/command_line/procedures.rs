@@ -106,11 +106,11 @@ pub fn main() -> Result<()> {
             let mut use_guess_and_check = false;
             if !left.is_private_weakly_stratified(&user_guide) {
                 println!("the left program is not private weakly stratified\n{left}");
-                use_guess_and_check = true && !no_gc;
+                use_guess_and_check = !no_gc;
             }
             if !right.is_private_weakly_stratified(&user_guide) {
                 println!("the right program is not private weakly stratified\n{right}");
-                use_guess_and_check = true && !no_gc;
+                use_guess_and_check = !no_gc;
             }
             if use_guess_and_check {
                 println!(
