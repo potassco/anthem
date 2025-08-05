@@ -28,6 +28,10 @@ pub enum Command {
         #[arg(long, value_enum, default_value_t)]
         direction: Direction,
 
+        /// Disable use of guess and check translation
+        #[arg(long, action)]
+        no_gc: bool,
+
         /// The destination directory for the files
         #[arg(long)]
         save_files: Option<PathBuf>,
