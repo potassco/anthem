@@ -1,3 +1,4 @@
+dom(a).
 dom(1..n).
 {q(X1)} :- dom(X1).
 p(X) :- q(X), X != a.

@@ -1,9 +1,12 @@
-use crate::syntax_tree::{
-    asp::{
-        Atom, AtomicFormula, BinaryOperator, Body, Head, Literal, PrecomputedTerm, Predicate,
-        Program, Rule, Sign, Term, Variable,
+use {
+    crate::syntax_tree::{
+        asp::{
+            Atom, AtomicFormula, BinaryOperator, Body, Head, Literal, PrecomputedTerm, Predicate,
+            Program, Rule, Sign, Term, Variable,
+        },
+        fol::{self, UserGuide},
     },
-    fol::{self, UserGuide},
+    indexmap::IndexSet,
 };
 
 const DOMAIN_PREDICATE_NAME: &str = "dom";
@@ -15,7 +18,10 @@ pub fn generate_external_counterexample_program(
     mut left: Program,
     right: Program,
 ) -> Program {
-    let mut input_program = generate_input_program(user_guide);
+    let mut functions = left.function_constants();
+    functions.extend(right.function_constants());
+
+    let mut input_program = generate_input_program(user_guide, functions);
     let mut diff_program = generate_diff_program(user_guide, false, right.has_constraint());
     let mut right_transformed = convert_program(user_guide, right);
 
@@ -33,8 +39,11 @@ pub fn generate_guess_and_check_programs(
     mut left: Program,
     right: Program,
 ) -> (Program, Program) {
+    let mut functions = left.function_constants();
+    functions.extend(right.function_constants());
+
     // guess program
-    let mut input_program = generate_input_program(user_guide);
+    let mut input_program = generate_input_program(user_guide, functions);
     let mut map_program = generate_holds_map(user_guide);
 
     let mut guess_rules = vec![];
@@ -58,10 +67,10 @@ pub fn generate_guess_and_check_programs(
     )
 }
 
-fn generate_input_program(user_guide: &UserGuide) -> Program {
+fn generate_input_program(user_guide: &UserGuide, functions: IndexSet<String>) -> Program {
     let mut rules = vec![];
 
-    rules.append(&mut generate_domain_facts().rules);
+    rules.append(&mut generate_domain_facts(functions).rules);
     rules.append(&mut generate_input_generator(user_guide).rules);
 
     Program { rules }
@@ -69,7 +78,7 @@ fn generate_input_program(user_guide: &UserGuide) -> Program {
 
 // dom(1..n).
 // TODO: also include all ground terms as input elements (needs programs as inputs)
-fn generate_domain_facts() -> Program {
+fn generate_domain_facts(functions: IndexSet<String>) -> Program {
     let interval = Term::BinaryOperation {
         op: BinaryOperator::Interval,
         lhs: Box::new(Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))),
@@ -83,12 +92,23 @@ fn generate_domain_facts() -> Program {
         terms: vec![interval],
     });
 
-    Program {
-        rules: vec![Rule {
-            head,
+    let mut rules: Vec<Rule> = functions
+        .into_iter()
+        .map(|function| Rule {
+            head: Head::Basic(Atom {
+                predicate_symbol: DOMAIN_PREDICATE_NAME.to_string(),
+                terms: vec![Term::PrecomputedTerm(PrecomputedTerm::Symbol(function))],
+            }),
             body: Body { formulas: vec![] },
-        }],
-    }
+        })
+        .collect();
+
+    rules.push(Rule {
+        head,
+        body: Body { formulas: vec![] },
+    });
+
+    Program { rules }
 }
 
 // for all input predicates p in user_guide:
