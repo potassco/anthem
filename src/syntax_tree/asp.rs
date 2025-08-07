@@ -101,6 +101,36 @@ impl Term {
             }
         }
     }
+
+    pub fn is_ground(&self) -> bool {
+        match &self {
+            Term::PrecomputedTerm(_) => true,
+            Term::Variable(_) => false,
+            Term::UnaryOperation { arg, .. } => arg.is_ground(),
+            Term::BinaryOperation { lhs, rhs, .. } => lhs.is_ground() && rhs.is_ground(),
+        }
+    }
+
+    // returns self if self is ground
+    // otherwise the largest subterm(s) that are ground
+    // i.e. if self is 1 + 2 returns only 1 + 2 but not the subterm 1 and 2
+    // if self is X + (1 + 2) returns 1 + 2
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        if self.is_ground() {
+            IndexSet::from([self.clone()])
+        } else {
+            match &self {
+                Term::Variable(_) => IndexSet::new(),
+                Term::UnaryOperation { arg, .. } => arg.ground_terms(),
+                Term::BinaryOperation { lhs, rhs, .. } => {
+                    let mut ground_terms = lhs.ground_terms();
+                    ground_terms.extend(rhs.ground_terms());
+                    ground_terms
+                }
+                Term::PrecomputedTerm(_) => unreachable!(),
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -151,6 +181,14 @@ impl Atom {
         }
         functions
     }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        let mut ground_terms = IndexSet::new();
+        for term in self.terms.iter() {
+            ground_terms.extend(term.ground_terms())
+        }
+        ground_terms
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -181,6 +219,10 @@ impl Literal {
 
     pub fn function_constants(&self) -> IndexSet<String> {
         self.atom.function_constants()
+    }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        self.atom.ground_terms()
     }
 }
 
@@ -216,6 +258,12 @@ impl Comparison {
         let mut functions = self.lhs.function_constants();
         functions.extend(self.rhs.function_constants());
         functions
+    }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        let mut ground_terms = self.lhs.ground_terms();
+        ground_terms.extend(self.rhs.ground_terms());
+        ground_terms
     }
 }
 
@@ -273,6 +321,13 @@ impl AtomicFormula {
         match &self {
             AtomicFormula::Literal(l) => l.atom.terms.iter().cloned().collect(),
             AtomicFormula::Comparison(c) => IndexSet::from([c.lhs.clone(), c.rhs.clone()]),
+        }
+    }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        match &self {
+            AtomicFormula::Literal(l) => l.ground_terms(),
+            AtomicFormula::Comparison(c) => c.ground_terms(),
         }
     }
 }
@@ -334,6 +389,13 @@ impl Head {
             Head::Falsity => IndexSet::new(),
         }
     }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        match &self {
+            Head::Basic(a) | Head::Choice(a) => a.ground_terms(),
+            Head::Falsity => IndexSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -392,6 +454,14 @@ impl Body {
         }
         terms
     }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        let mut ground_terms = IndexSet::new();
+        for formula in self.formulas.iter() {
+            ground_terms.extend(formula.ground_terms())
+        }
+        ground_terms
+    }
 }
 
 impl FromIterator<AtomicFormula> for Body {
@@ -446,6 +516,12 @@ impl Rule {
     pub fn is_constraint(&self) -> bool {
         matches!(self.head, Head::Falsity)
     }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        let mut ground_terms = self.head.ground_terms();
+        ground_terms.extend(self.body.ground_terms());
+        ground_terms
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -499,6 +575,14 @@ impl Program {
         }
 
         false
+    }
+
+    pub fn ground_terms(&self) -> IndexSet<Term> {
+        let mut ground_terms = IndexSet::new();
+        for rule in self.rules.iter() {
+            ground_terms.extend(rule.ground_terms());
+        }
+        ground_terms
     }
 }
 

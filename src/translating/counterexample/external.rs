@@ -18,11 +18,10 @@ pub fn generate_external_counterexample_program(
     mut left: Program,
     right: Program,
 ) -> Program {
-    // TODO: also include all ground integer terms
-    let mut functions = left.function_constants();
-    functions.extend(right.function_constants());
+    let mut ground_terms = left.ground_terms();
+    ground_terms.extend(right.ground_terms());
 
-    let mut input_program = generate_input_program(user_guide, functions);
+    let mut input_program = generate_input_program(user_guide, ground_terms);
     let mut diff_program = generate_diff_program(user_guide, false, right.has_constraint());
     let mut right_transformed = convert_program(user_guide, right);
 
@@ -40,11 +39,11 @@ pub fn generate_guess_and_check_programs(
     mut left: Program,
     right: Program,
 ) -> (Program, Program) {
-    let mut functions = left.function_constants();
-    functions.extend(right.function_constants());
+    let mut ground_terms = left.ground_terms();
+    ground_terms.extend(right.ground_terms());
 
     // guess program
-    let mut input_program = generate_input_program(user_guide, functions);
+    let mut input_program = generate_input_program(user_guide, ground_terms);
     let mut map_program = generate_holds_map(user_guide);
 
     let mut guess_rules = vec![];
@@ -68,10 +67,10 @@ pub fn generate_guess_and_check_programs(
     )
 }
 
-fn generate_input_program(user_guide: &UserGuide, functions: IndexSet<String>) -> Program {
+fn generate_input_program(user_guide: &UserGuide, ground_terms: IndexSet<Term>) -> Program {
     let mut rules = vec![];
 
-    rules.append(&mut generate_domain_facts(functions).rules);
+    rules.append(&mut generate_domain_facts(ground_terms).rules);
     rules.append(&mut generate_input_generator(user_guide).rules);
 
     Program { rules }
@@ -79,7 +78,7 @@ fn generate_input_program(user_guide: &UserGuide, functions: IndexSet<String>) -
 
 // dom(1..n).
 // dom(a). for each function constant a
-fn generate_domain_facts(functions: IndexSet<String>) -> Program {
+fn generate_domain_facts(ground_terms: IndexSet<Term>) -> Program {
     let interval = Term::BinaryOperation {
         op: BinaryOperator::Interval,
         lhs: Box::new(Term::PrecomputedTerm(PrecomputedTerm::Numeral(1))),
@@ -93,12 +92,12 @@ fn generate_domain_facts(functions: IndexSet<String>) -> Program {
         terms: vec![interval],
     });
 
-    let mut rules: Vec<Rule> = functions
+    let mut rules: Vec<Rule> = ground_terms
         .into_iter()
-        .map(|function| Rule {
+        .map(|term| Rule {
             head: Head::Basic(Atom {
                 predicate_symbol: DOMAIN_PREDICATE_NAME.to_string(),
-                terms: vec![Term::PrecomputedTerm(PrecomputedTerm::Symbol(function))],
+                terms: vec![term],
             }),
             body: Body { formulas: vec![] },
         })
