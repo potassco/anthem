@@ -18,6 +18,7 @@ pub fn generate_external_counterexample_program(
     mut left: Program,
     right: Program,
 ) -> Program {
+    // TODO: also include all ground integer terms
     let mut functions = left.function_constants();
     functions.extend(right.function_constants());
 
@@ -77,7 +78,7 @@ fn generate_input_program(user_guide: &UserGuide, functions: IndexSet<String>) -
 }
 
 // dom(1..n).
-// TODO: also include all ground terms as input elements (needs programs as inputs)
+// dom(a). for each function constant a
 fn generate_domain_facts(functions: IndexSet<String>) -> Program {
     let interval = Term::BinaryOperation {
         op: BinaryOperator::Interval,
