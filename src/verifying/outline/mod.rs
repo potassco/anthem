@@ -78,6 +78,9 @@ pub(crate) trait CheckInternal {
         taken_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError>;
 
+    // Returns the formula in the RHS of the formula if it is a structurally valid definition, else returns an error
+    fn definition_rhs(&self) -> Result<fol::Formula, ProofOutlineWarning, ProofOutlineError>;
+
     // Returns the base case and inductive step formulas if the formula is a valid inductive lemma, else returns an error
     fn inductive_lemma(
         self,
@@ -164,6 +167,26 @@ impl CheckInternal for fol::Formula {
                 }
                 _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
             },
+
+            _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
+        }
+    }
+
+    fn definition_rhs(&self) -> Result<fol::Formula, ProofOutlineWarning, ProofOutlineError> {
+        match self.clone().unbox() {
+            UnboxedFormula::QuantifiedFormula {
+                quantification:
+                    fol::Quantification {
+                        quantifier: fol::Quantifier::Forall,
+                        ..
+                    },
+                formula:
+                    fol::Formula::BinaryFormula {
+                        connective: fol::BinaryConnective::Equivalence,
+                        rhs,
+                        ..
+                    },
+            } => Ok(WithWarnings::flawless(*rhs)),
 
             _ => Err(ProofOutlineError::MalformedDefinition(self.clone())),
         }
