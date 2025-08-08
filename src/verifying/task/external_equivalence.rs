@@ -156,6 +156,12 @@ impl Display for ExternalEquivalenceTaskWarning {
     }
 }
 
+#[derive(Debug)]
+pub struct InvalidPredicateErrorContent {
+    pub formula: fol::AnnotatedFormula,
+    pub predicate: fol::Predicate,
+}
+
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     UnsupportedFormulaRepresentation,
@@ -166,8 +172,8 @@ pub enum ExternalEquivalenceTaskError {
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
-    AssumptionContainsInvalidPredicate(fol::AnnotatedFormula, fol::Predicate),
-    SpecContainsInvalidPredicate(fol::AnnotatedFormula, fol::Predicate),
+    AssumptionContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
+    SpecContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
     AssumptionContainsNonInputSymbols(fol::AnnotatedFormula),
     SpecificationContainsUnsupportedRoles(fol::AnnotatedFormula),
     SpecificationDefinesOutputPredicates(Vec<fol::Predicate>),
@@ -252,16 +258,19 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following placeholder is given conflicting sorts within the user guide: {s}"
                 )
             }
-            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(
-                formula,
-                predicate,
-            ) => {
+            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
                 writeln!(
                     f,
                     "the following assumption contains a predicate ({predicate}) that is not valid for use within assumptions: {formula}"
                 )
             }
-            ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(formula, predicate) => {
+            ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
                 writeln!(
                     f,
                     "the following spec contains a predicate ({predicate}) that is not valid for use within specs: {formula}"
@@ -484,8 +493,10 @@ impl ExternalEquivalenceTask {
                     if !valid(&sequence.data, p.clone()) {
                         return Err(
                             ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(
-                                formula.clone(),
-                                p,
+                                Box::new(InvalidPredicateErrorContent {
+                                    formula: formula.clone(),
+                                    predicate: p,
+                                }),
                             ),
                         );
                     }
@@ -511,8 +522,10 @@ impl ExternalEquivalenceTask {
                 for p in formula.formula.predicates() {
                     if !valid(&sequence.data, p.clone()) {
                         return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
-                            formula.clone(),
-                            p,
+                            Box::new(InvalidPredicateErrorContent {
+                                formula: formula.clone(),
+                                predicate: p,
+                            }),
                         ));
                     }
                 }
