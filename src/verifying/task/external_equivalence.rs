@@ -268,7 +268,7 @@ impl Display for ExternalEquivalenceTaskError {
                 )
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
-                writeln!(f, "the given proof outline contains errors")
+                writeln!(f, "a definition or lemma contains errors")
             }
             ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
                 writeln!(
