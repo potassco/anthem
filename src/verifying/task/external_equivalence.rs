@@ -500,7 +500,9 @@ impl ExternalEquivalenceTask {
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        let base_predicates = self.user_guide.public_predicates();
+        // TODO: should output predicates be allowed in the set of base predicates?
+        // let base_predicates = self.user_guide.public_predicates();
+        let base_predicates = self.user_guide.input_predicates();
         let sequence =
             ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
 
@@ -1037,5 +1039,143 @@ impl Task for AssembledExternalEquivalenceTask {
         }
 
         Ok(WithWarnings::flawless(problems))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{DefinitionSequence, DefinitionSequenceNode, valid},
+        crate::syntax_tree::fol,
+        indexmap::IndexSet,
+    };
+
+    #[test]
+    fn test_valid_case_1() {
+        // input predicates: p
+        // defined predicates: q
+        let p = fol::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = fol::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+
+        // q(X) <-> p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: q.clone(),
+            rhs: IndexSet::from_iter([p.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(valid(&sequence, q));
+    }
+
+    #[test]
+    fn test_valid_case_2() {
+        // input predicates: p
+        // defined predicates: q, r, t
+        let p = fol::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = fol::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+        let r = fol::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+        let t = fol::Predicate {
+            symbol: "t".to_string(),
+            arity: 1,
+        };
+
+        // q(X) <-> p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: q.clone(),
+            rhs: IndexSet::from_iter([p.clone()]),
+        };
+
+        // r(X) <-> q(X)
+        let n2 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        // t(X) <-> p(X) & q(X)
+        let n3 = DefinitionSequenceNode {
+            lhs: t.clone(),
+            rhs: IndexSet::from_iter([p.clone(), q.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1, n2, n3],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(valid(&sequence, q));
+        assert!(valid(&sequence, r));
+        assert!(valid(&sequence, t));
+
+        let x = fol::Predicate {
+            symbol: "x".to_string(),
+            arity: 1,
+        };
+        assert!(!valid(&sequence, x));
+    }
+
+    #[test]
+    fn test_valid_case_3() {
+        // input predicates: p
+        // defined predicates: r, t
+        // missing definitions: q
+        let p = fol::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = fol::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+        let r = fol::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+        let t = fol::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+
+        // r(X) <-> q(X) & p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        // t(X) <-> r(X)
+        let n2 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1, n2],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(!valid(&sequence, q));
+        assert!(!valid(&sequence, r));
+        assert!(!valid(&sequence, t));
     }
 }

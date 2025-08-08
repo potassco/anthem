@@ -122,6 +122,15 @@ pub enum Command {
         #[arg(verbatim_doc_comment)]
         files: Vec<PathBuf>,
     },
+    // /// Check if a query is a consequence of a logic program
+    // Query {
+    //     /// A set of files from which to construct the query, including
+    //     ///
+    //     ///   - a program against which the query is tested, and
+    //     ///   - the query itself.
+    //     #[arg(verbatim_doc_comment)]
+    //     files: Vec<PathBuf>,
+    // }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

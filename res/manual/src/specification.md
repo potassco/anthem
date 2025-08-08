@@ -18,23 +18,17 @@ All formulas must be closed.
 For convenience, a specification may contain a sequence of definitions (similarly to proof outlines).
 These formulas introduce fresh predicates on the LHS of an equivalence.
 
-A sequence is *valid for use within assumptions* if it satisfies that
+A sequence is *valid for use within assumptions and specs* if it satisfies that
 1. the RHS of the first definition contains only input predicates from the user guide,
 2. the RHS of subsequent definitions contains only input predicates and previously defined predicates, and
 3. the LHS of every definition contains a fresh predicate.
 A fresh predicate does not occur in the list of input or output predicates, and has not been previously defined.
 
-We consider a predicate to be valid for use within assumptions when it is the last definition in a sequence that is valid for use within assumptions.
+We consider a predicate to be valid for use within assumptions and specs when it is the last definition in a sequence that is valid for use within assumptions and specs.
 
-Using defined predicates in specs is less restrictive insofar as that output predicates may also be used within the RHS of definitions.
-Thus, a sequence is *valid for use within specs* if it satisfies that
-1. the RHS of the first definition contains only public predicates,
-2. the RHS of subsequent definitions contains only public predicates and previously defined predicates, and
-3. the LHS of every definition contains a fresh predicate.
+[//]: # (Using defined predicates in specs is less restrictive insofar as that output predicates may also be used within the RHS of definitions.)
 
-Similarly, a predicate to be valid for use within specs when it is the last definition in a sequence that is valid for use within specs.
-
-The following specification from the `twin primes` problem contains an example of a definition that is valid for use within assumptions (and thus also for use within specs):
+The following specification from the `twin primes` problem contains an example of a definition that is valid for use within assumptions and specs:
 
 ```
 definition: forall X (prime(X) <-> 2 <= X <= n and not exists D$i M$i (1 < D$i < X and M$i*D$i = X)).
