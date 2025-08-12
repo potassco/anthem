@@ -42,13 +42,32 @@ In the presence of arithmetic terms or intervals, such as `1/0` or `0..9`, this 
 Interested readers should refer [here](https://doi.org/10.1017/S1471068420000344) for details.
 
 The tau* transformation is fundamental to Anthem.
-For a mini-gringo program `Π`, the HTA (here-and-there with arithmetic) models of the formula representation `τ*Π` correspond to the stable models of `Π`.
+For a mini-gringo program `Π`, the HTA (here-and-there with arithmetic) equilibrium models of the formula representation `τ*Π` correspond to the stable models of `Π`.
 Furthermore, additional transformations can, in certain cases, produce formula representations within the same language whose classical models capture the behavior of `Π`.
 
 Access the `τ*` transformation via the `translate` command, e.g.
 ```
     anthem translate program.lp --with tau-star
 ```
+
+## Natural Translation (nu)
+
+The `tau*` transformation often produces complex formulas.
+For a broad class of mini-gringo programs called *regular*, an alternative translation known as `nu` (`ν`) is available via the `translate` command:
+```
+    anthem translate program.lp --with nu
+```
+For regular rules, the resulting formulas are much simpler while still retaining HT-equivalence to their `τ*` counterparts.
+This transformation was introduced [here](https://doi.org/10.1007/978-3-030-75775-5_28).
+
+## A Combined Transformation (mu)
+The `mu` (`μ`) translation is obtained by applying `ν` to every regular rule, and `tau*` to the remainder.
+A justification for this process can be found [here](https://doi.org/10.1007/978-3-031-43619-2_18).
+It can be accessed as a translation option as follows:
+```
+    anthem translate program.lp --with mu
+```
+Since `anthem` refuses to compute `νΠ` when `Π` is not regular, `μ` is usually a better option.
 
 ## Transformations Within the Target Language
 
