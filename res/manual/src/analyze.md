@@ -18,3 +18,14 @@ Users can check their programs for tightness with the command
 ```
     anthem analyze program.lp --property tightness
 ```
+
+## Regularity
+Regular rules represent a broad syntactic fragment of the mini-gringo language.
+They forbid terms of certain forms -- primarily terms that do not have exactly one value, such as
+```
+    2/X, 3 × (X..Y), a+1, a..5
+```
+Users can check their programs for regularity with the command
+```
+    anthem analyze program.lp --property regularity
+```

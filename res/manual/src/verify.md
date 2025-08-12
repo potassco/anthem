@@ -14,6 +14,12 @@ The property can be automatically verified with the command
     anthem verify --equivalence strong p1.lp p2.lp
 ```
 
+Strong equivalence verification also allows users to select the transformation used for obtaining the formula representation of a program.
+The default option is `tau*`, but `mu` may also be selected:
+```
+    anthem verify --equivalence strong --formula-representation mu p1.lp p2.lp
+```
+
 
 ## External Equivalence
 Strong equivalence is sometimes too strong of a condition.
@@ -46,6 +52,8 @@ Anthem can verify this claim automatically with the command
 ```
 This amounts to confirming that the program implements the specification under the assumptions of the user guide.
 This is done by transforming the program(s) into their formula representations using the `τ*` and `COMP` transformations, then deriving their equivalence.
+Currently, `τ*` is the only valid formula representation option for external equivalence,
+as `mu` is not guaranteed to produce [completable theories](https://doi.org/10.1017/S147106842300039X).
 
 Note that the `universal` direction is the default, and may be dropped.
 To verify that the program posesses a certain property expressed by the specification, set the direction to backward (`--direction backward`).
