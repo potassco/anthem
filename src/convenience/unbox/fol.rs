@@ -1,4 +1,4 @@
-use crate::syntax_tree::fol::{
+use crate::syntax_tree::fol::sigma_0::{
     AtomicFormula, BinaryConnective, Formula, Quantification, UnaryConnective,
 };
 

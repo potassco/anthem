@@ -1,4 +1,4 @@
-use crate::syntax_tree::fol::Formula;
+use crate::syntax_tree::fol::sigma_0::Formula;
 
 pub trait Apply {
     /// Apply an operation `f` in post-order to each node of a tree

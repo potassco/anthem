@@ -4,7 +4,7 @@ use {
             unbox::{Unbox as _, fol::UnboxedFormula},
             with_warnings::{Result, WithWarnings},
         },
-        syntax_tree::fol,
+        syntax_tree::fol::sigma_0 as fol,
         verifying::problem,
     },
     indexmap::{IndexMap, IndexSet},
@@ -399,7 +399,7 @@ impl ProofOutline {
 mod tests {
     use {
         super::{CheckInternal, ProofOutlineError},
-        crate::syntax_tree::fol,
+        crate::syntax_tree::fol::sigma_0 as fol,
         indexmap::IndexSet,
     };
 

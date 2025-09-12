@@ -9,7 +9,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::completion::completion, formula_representation::tau_star::tau_star,
         },
@@ -662,7 +662,7 @@ impl Task for ValidatedExternalEquivalenceTask {
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         use crate::{
-            syntax_tree::fol::{Direction::*, Role::*},
+            syntax_tree::fol::sigma_0::{Direction::*, Role::*},
             verifying::problem::Role::*,
         };
 

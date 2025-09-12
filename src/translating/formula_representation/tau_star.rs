@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,

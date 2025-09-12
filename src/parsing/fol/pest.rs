@@ -1,6 +1,6 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::fol::{
+    syntax_tree::fol::sigma_0::{
         AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
         Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
         PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role, Sort,
@@ -826,7 +826,7 @@ mod tests {
         },
         crate::{
             parsing::TestedParser,
-            syntax_tree::fol::{
+            syntax_tree::fol::sigma_0::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
                 Comparison, Direction, Formula, GeneralTerm, Guard, IntegerTerm,
                 PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,

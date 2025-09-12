@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::asp::{Head, Predicate, Program},
+    crate::syntax_tree::asp::mini_gringo::{Head, Predicate, Program},
     indexmap::IndexSet,
     petgraph::{algo::is_cyclic_directed, graph::DiGraph},
     std::collections::HashMap,
@@ -57,7 +57,7 @@ mod tests {
     use {
         crate::{
             analyzing::private_recursion::PrivateRecursion,
-            syntax_tree::asp::{Predicate, Program},
+            syntax_tree::asp::mini_gringo::{Predicate, Program},
         },
         indexmap::IndexSet,
         std::str::FromStr,

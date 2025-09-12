@@ -288,8 +288,8 @@ impl Predicate {
     }
 }
 
-impl From<crate::syntax_tree::asp::Predicate> for Predicate {
-    fn from(value: crate::syntax_tree::asp::Predicate) -> Self {
+impl From<crate::syntax_tree::asp::mini_gringo::Predicate> for Predicate {
+    fn from(value: crate::syntax_tree::asp::mini_gringo::Predicate) -> Self {
         Predicate {
             symbol: value.symbol,
             arity: value.arity,
@@ -364,15 +364,15 @@ pub enum Relation {
 
 impl_node!(Relation, Format, RelationParser);
 
-impl From<crate::syntax_tree::asp::Relation> for Relation {
-    fn from(value: crate::syntax_tree::asp::Relation) -> Self {
+impl From<crate::syntax_tree::asp::mini_gringo::Relation> for Relation {
+    fn from(value: crate::syntax_tree::asp::mini_gringo::Relation) -> Self {
         match value {
-            crate::syntax_tree::asp::Relation::Equal => Relation::Equal,
-            crate::syntax_tree::asp::Relation::NotEqual => Relation::NotEqual,
-            crate::syntax_tree::asp::Relation::Greater => Relation::Greater,
-            crate::syntax_tree::asp::Relation::Less => Relation::Less,
-            crate::syntax_tree::asp::Relation::GreaterEqual => Relation::GreaterEqual,
-            crate::syntax_tree::asp::Relation::LessEqual => Relation::LessEqual,
+            crate::syntax_tree::asp::mini_gringo::Relation::Equal => Relation::Equal,
+            crate::syntax_tree::asp::mini_gringo::Relation::NotEqual => Relation::NotEqual,
+            crate::syntax_tree::asp::mini_gringo::Relation::Greater => Relation::Greater,
+            crate::syntax_tree::asp::mini_gringo::Relation::Less => Relation::Less,
+            crate::syntax_tree::asp::mini_gringo::Relation::GreaterEqual => Relation::GreaterEqual,
+            crate::syntax_tree::asp::mini_gringo::Relation::LessEqual => Relation::LessEqual,
         }
     }
 }

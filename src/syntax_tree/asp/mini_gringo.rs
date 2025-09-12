@@ -111,8 +111,8 @@ pub struct Predicate {
 
 impl_node!(Predicate, Format, PredicateParser);
 
-impl From<crate::syntax_tree::fol::Predicate> for Predicate {
-    fn from(value: crate::syntax_tree::fol::Predicate) -> Self {
+impl From<crate::syntax_tree::fol::sigma_0::Predicate> for Predicate {
+    fn from(value: crate::syntax_tree::fol::sigma_0::Predicate) -> Self {
         Predicate {
             symbol: value.symbol,
             arity: value.arity,

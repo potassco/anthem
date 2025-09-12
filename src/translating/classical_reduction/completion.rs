@@ -1,7 +1,7 @@
 use {
     crate::{
         convenience::unbox::{Unbox, fol::UnboxedFormula},
-        syntax_tree::fol,
+        syntax_tree::fol::sigma_0 as fol,
         translating::formula_representation::tau_star::choose_fresh_variable_names,
     },
     indexmap::{IndexMap, IndexSet, map::Entry},
@@ -224,7 +224,7 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::{
-        syntax_tree::fol,
+        syntax_tree::fol::sigma_0 as fol,
         translating::{
             classical_reduction::completion::{atomic_formula_from, completion},
             formula_representation::tau_star::tau_star,

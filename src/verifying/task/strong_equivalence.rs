@@ -7,7 +7,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::gamma::{self, gamma},
             formula_representation::{mu::mu, tau_star::tau_star},
