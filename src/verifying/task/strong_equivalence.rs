@@ -106,8 +106,8 @@ impl Task for StrongEquivalenceTask {
         }
 
         if self.break_equivalences {
-            left = crate::breaking::fol::ht::break_equivalences_theory(left);
-            right = crate::breaking::fol::ht::break_equivalences_theory(right);
+            left = crate::breaking::fol::sigma_0::ht::break_equivalences_theory(left);
+            right = crate::breaking::fol::sigma_0::ht::break_equivalences_theory(right);
         }
 
         let mut problems = Vec::new();

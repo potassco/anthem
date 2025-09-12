@@ -1,7 +1,7 @@
 use {
     crate::{
         analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
-        breaking::fol::ht::break_equivalences_annotated_formula,
+        breaking::fol::sigma_0::ht::break_equivalences_annotated_formula,
         command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
