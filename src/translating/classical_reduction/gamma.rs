@@ -5,77 +5,93 @@ use crate::{
     },
 };
 
-pub fn gamma(theory: Theory) -> Theory {
-    let mut formulas = Vec::new();
-    for formula in theory.formulas {
-        formulas.push(gamma_formula(formula));
-    }
-
-    Theory { formulas }
+pub trait Gamma {
+    fn gamma(self) -> Self;
 }
 
-pub fn gamma_formula(formula: Formula) -> Formula {
-    match formula {
-        x @ Formula::AtomicFormula(_) => here(x),
+impl Gamma for Theory {
+    fn gamma(self) -> Self {
+        self.into_iter().map(Gamma::gamma).collect()
+    }
+}
 
-        Formula::UnaryFormula {
-            connective: connective @ UnaryConnective::Negation,
-            formula,
-        } => Formula::UnaryFormula {
-            connective,
-            formula: there(*formula).into(),
-        },
+impl Gamma for Formula {
+    fn gamma(self) -> Self {
+        match self {
+            x @ Formula::AtomicFormula(_) => x.here(),
 
-        Formula::BinaryFormula {
-            connective:
-                connective @ BinaryConnective::Conjunction | connective @ BinaryConnective::Disjunction,
-            lhs,
-            rhs,
-        } => Formula::BinaryFormula {
-            connective,
-            lhs: gamma_formula(*lhs).into(),
-            rhs: gamma_formula(*rhs).into(),
-        },
-
-        Formula::BinaryFormula {
-            connective:
-                connective @ BinaryConnective::Implication
-                | connective @ BinaryConnective::ReverseImplication
-                | connective @ BinaryConnective::Equivalence,
-            lhs,
-            rhs,
-        } => Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: Formula::BinaryFormula {
-                connective: connective.clone(),
-                lhs: gamma_formula(*lhs.clone()).into(),
-                rhs: gamma_formula(*rhs.clone()).into(),
-            }
-            .into(),
-            rhs: Formula::BinaryFormula {
+            Formula::UnaryFormula {
+                connective: connective @ UnaryConnective::Negation,
+                formula,
+            } => Formula::UnaryFormula {
                 connective,
-                lhs: there(*lhs).into(),
-                rhs: there(*rhs).into(),
-            }
-            .into(),
-        },
+                formula: formula.there().into(),
+            },
 
-        Formula::QuantifiedFormula {
-            quantification,
-            formula,
-        } => Formula::QuantifiedFormula {
-            quantification,
-            formula: gamma_formula(*formula).into(),
-        },
+            Formula::BinaryFormula {
+                connective:
+                    connective @ BinaryConnective::Conjunction
+                    | connective @ BinaryConnective::Disjunction,
+                lhs,
+                rhs,
+            } => Formula::BinaryFormula {
+                connective,
+                lhs: lhs.gamma().into(),
+                rhs: rhs.gamma().into(),
+            },
+
+            Formula::BinaryFormula {
+                connective:
+                    connective @ BinaryConnective::Implication
+                    | connective @ BinaryConnective::ReverseImplication
+                    | connective @ BinaryConnective::Equivalence,
+                lhs,
+                rhs,
+            } => Formula::BinaryFormula {
+                connective: BinaryConnective::Conjunction,
+                lhs: Formula::BinaryFormula {
+                    connective: connective.clone(),
+                    lhs: lhs.clone().gamma().into(),
+                    rhs: rhs.clone().gamma().into(),
+                }
+                .into(),
+                rhs: Formula::BinaryFormula {
+                    connective,
+                    lhs: lhs.there().into(),
+                    rhs: rhs.there().into(),
+                }
+                .into(),
+            },
+
+            Formula::QuantifiedFormula {
+                quantification,
+                formula,
+            } => Formula::QuantifiedFormula {
+                quantification,
+                formula: formula.gamma().into(),
+            },
+        }
     }
 }
 
-pub fn here(formula: Formula) -> Formula {
-    prepend_predicate(formula, "h")
+pub trait Here {
+    fn here(self) -> Self;
 }
 
-pub fn there(formula: Formula) -> Formula {
-    prepend_predicate(formula, "t")
+impl Here for Formula {
+    fn here(self) -> Self {
+        prepend_predicate(self, "h")
+    }
+}
+
+pub trait There {
+    fn there(self) -> Self;
+}
+
+impl There for Formula {
+    fn there(self) -> Self {
+        prepend_predicate(self, "t")
+    }
 }
 
 fn prepend_predicate(formula: Formula, prefix: &'static str) -> Formula {
@@ -90,7 +106,7 @@ fn prepend_predicate(formula: Formula, prefix: &'static str) -> Formula {
 
 #[cfg(test)]
 mod tests {
-    use super::gamma_formula;
+    use {super::Gamma as _, crate::syntax_tree::fol::sigma_0::Formula};
 
     #[test]
     fn test_gamma() {
@@ -109,7 +125,7 @@ mod tests {
             ("forall X p(X)", "forall X hp(X)"),
             ("exists X p(X)", "exists X hp(X)"),
         ] {
-            let left = gamma_formula(src.parse().unwrap());
+            let left = src.parse::<Formula>().unwrap().gamma();
             let right = target.parse().unwrap();
 
             assert!(

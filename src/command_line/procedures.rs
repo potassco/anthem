@@ -12,7 +12,7 @@ use {
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            classical_reduction::{completion::completion, gamma::gamma},
+            classical_reduction::{completion::completion, gamma::Gamma as _},
             formula_representation::{mu::mu, natural::natural, tau_star::tau_star},
         },
         verifying::{
@@ -139,7 +139,7 @@ pub fn main() -> Result<()> {
                 Translation::Gamma => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let gamma_theory = gamma(theory);
+                    let gamma_theory = theory.gamma();
                     print!("{gamma_theory}")
                 }
 
