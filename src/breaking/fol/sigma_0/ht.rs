@@ -1,5 +1,5 @@
 use crate::{
-    convenience::unbox::{Unbox, fol::UnboxedFormula},
+    convenience::unbox::{Unbox, fol::sigma_0::UnboxedFormula},
     syntax_tree::fol::sigma_0::{
         AnnotatedFormula, BinaryConnective, Formula, Quantification, Quantifier, Specification,
         Theory,
