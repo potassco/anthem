@@ -125,6 +125,7 @@ pub enum ExternalEquivalenceTaskError {
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
     AssumptionContainsNonInputSymbols(fol::AnnotatedFormula),
+    SpecificationContainsUnsupportedRoles(fol::AnnotatedFormula),
     ProofOutlineError(#[from] ProofOutlineError),
 }
 
@@ -219,6 +220,12 @@ impl Display for ExternalEquivalenceTaskError {
                 writeln!(
                     f,
                     "tau-star is the only formula-representation currently supported for external equivalence"
+                )
+            }
+            ExternalEquivalenceTaskError::SpecificationContainsUnsupportedRoles(formula) => {
+                writeln!(
+                    f,
+                    "the role of the following formula is not supported in specifications: {formula}"
                 )
             }
         }
@@ -400,6 +407,26 @@ impl ExternalEquivalenceTask {
 
         Ok(WithWarnings::flawless(()))
     }
+
+    fn ensure_specification_roles_are_supported(
+        &self,
+        formulas: &Vec<fol::AnnotatedFormula>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        for formula in formulas {
+            if !(matches!(
+                formula.role,
+                fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition
+            )) {
+                return Err(
+                    ExternalEquivalenceTaskError::SpecificationContainsUnsupportedRoles(
+                        formula.clone(),
+                    ),
+                );
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
 }
 
 impl Task for ExternalEquivalenceTask {
@@ -469,6 +496,7 @@ impl Task for ExternalEquivalenceTask {
                     &program_private_predicates,
                     &specification.formulas,
                 )?;
+                self.ensure_specification_roles_are_supported(&specification.formulas)?;
             }
         }
 
