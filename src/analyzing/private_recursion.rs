@@ -6,11 +6,15 @@ use {
 };
 
 pub trait PrivateRecursion {
-    fn has_private_recursion(&self, private_predicates: &IndexSet<Predicate>) -> bool;
+    type Predicates;
+
+    fn has_private_recursion(&self, private_predicates: &Self::Predicates) -> bool;
 }
 
 impl PrivateRecursion for Program {
-    fn has_private_recursion(&self, private_predicates: &IndexSet<Predicate>) -> bool {
+    type Predicates = IndexSet<Predicate>;
+
+    fn has_private_recursion(&self, private_predicates: &Self::Predicates) -> bool {
         for rule in &self.rules {
             match rule.head {
                 Head::Choice(ref a) => {
