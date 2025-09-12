@@ -8,7 +8,7 @@ use {
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::completion::completion, formula_representation::tau_star::tau_star,

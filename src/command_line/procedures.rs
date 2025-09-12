@@ -9,7 +9,7 @@ use {
             files::Files,
         },
         convenience::{apply::Apply, compose::Compose},
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::{completion::completion, gamma::gamma},

@@ -11,7 +11,7 @@ use {
             TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser,
             UserGuideParser, VariableParser,
         },
-        simplifying::fol::intuitionistic::join_nested_quantifiers,
+        simplifying::fol::sigma_0::intuitionistic::join_nested_quantifiers,
         syntax_tree::{Node, impl_node},
         verifying::problem,
     },
