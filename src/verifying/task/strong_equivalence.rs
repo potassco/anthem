@@ -10,7 +10,7 @@ use {
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::gamma::{Gamma as _, Here as _, There as _},
-            formula_representation::{mu::mu, tau_star::tau_star},
+            formula_representation::{mu::mu, tau_star::TauStar as _},
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
@@ -70,12 +70,12 @@ impl Task for StrongEquivalenceTask {
 
         let mut left = match self.formula_representation {
             FormulaRepresentation::Mu => mu(self.left),
-            FormulaRepresentation::TauStar => tau_star(self.left),
+            FormulaRepresentation::TauStar => self.left.tau_star(),
         };
 
         let mut right = match self.formula_representation {
             FormulaRepresentation::Mu => mu(self.right),
-            FormulaRepresentation::TauStar => tau_star(self.right),
+            FormulaRepresentation::TauStar => self.right.tau_star(),
         };
 
         if self.simplify {
