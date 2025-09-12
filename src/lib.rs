@@ -1,10 +1,10 @@
 pub mod analyzing;
-pub mod breaking;
-pub mod command_line;
+pub(crate) mod breaking;
+pub(crate) mod command_line;
 pub mod convenience;
 pub mod formatting;
 pub mod parsing;
-pub mod simplifying;
+pub(crate) mod simplifying;
 pub mod syntax_tree;
 pub mod translating;
-pub mod verifying;
+pub(crate) mod verifying;
