@@ -2,7 +2,7 @@ use {
     crate::{
         convenience::apply::Apply as _,
         formatting::fol::default::Format,
-        parsing::fol::pest::{
+        parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
             FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,

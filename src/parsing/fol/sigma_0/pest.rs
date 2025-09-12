@@ -13,7 +13,7 @@ mod internal {
     use pest::pratt_parser::PrattParser;
 
     #[derive(pest_derive::Parser)]
-    #[grammar = "parsing/fol/grammar.pest"]
+    #[grammar = "parsing/fol/sigma_0/grammar.pest"]
     pub struct Parser;
 
     lazy_static::lazy_static! {
