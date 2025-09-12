@@ -15,13 +15,13 @@ use {
 #[derive(Error, Debug)]
 pub enum VampireError {
     #[error("unable to spawn vampire as a child process")]
-    UnableToSpawn(#[source] std::io::Error),
+    Spawn(#[source] std::io::Error),
     #[error("unable to write to vampire's stdin")]
-    UnableToWrite(#[source] std::io::Error),
+    Write(#[source] std::io::Error),
     #[error("unable to wait for vampire")]
-    UnableToWait(#[source] std::io::Error),
+    Wait(#[source] std::io::Error),
     #[error("unable to convert output")]
-    UnableToConvertOutput(#[source] std::string::FromUtf8Error),
+    ConvertOutput(#[source] std::string::FromUtf8Error),
 }
 
 #[derive(Debug, Clone)]
@@ -36,8 +36,8 @@ impl TryFrom<Output> for VampireOutput {
     fn try_from(value: Output) -> Result<Self, Self::Error> {
         // TODO: Should we do something about the exit status?!
         Ok(VampireOutput {
-            stdout: String::from_utf8(value.stdout).map_err(VampireError::UnableToConvertOutput)?,
-            stderr: String::from_utf8(value.stderr).map_err(VampireError::UnableToConvertOutput)?,
+            stdout: String::from_utf8(value.stdout).map_err(VampireError::ConvertOutput)?,
+            stderr: String::from_utf8(value.stderr).map_err(VampireError::ConvertOutput)?,
         })
     }
 }
@@ -122,15 +122,15 @@ impl Prover for Vampire {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(VampireError::UnableToSpawn)?;
+            .map_err(VampireError::Spawn)?;
 
         let mut stdin = child.stdin.take().unwrap();
-        write!(stdin, "{problem}").map_err(VampireError::UnableToWrite)?;
+        write!(stdin, "{problem}").map_err(VampireError::Write)?;
         drop(stdin);
 
         let output = child
             .wait_with_output()
-            .map_err(VampireError::UnableToWait)?
+            .map_err(VampireError::Wait)?
             .try_into()?;
 
         Ok(VampireReport {
