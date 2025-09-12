@@ -12,7 +12,8 @@ use {
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{Node as _, asp, fol},
         translating::{
-            completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+            classical_reduction::{completion::completion, gamma::gamma},
+            formula_representation::{mu::mu, natural::natural, tau_star::tau_star},
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},

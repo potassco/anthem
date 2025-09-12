@@ -1,6 +1,6 @@
 use crate::{
     syntax_tree::{asp, fol},
-    translating::{natural, tau_star},
+    translating::formula_representation::{natural, tau_star},
 };
 
 pub fn mu(p: asp::Program) -> fol::Theory {

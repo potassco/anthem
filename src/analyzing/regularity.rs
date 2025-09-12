@@ -1,4 +1,4 @@
-use crate::{syntax_tree::asp::Program, translating::natural::natural};
+use crate::{syntax_tree::asp::Program, translating::formula_representation::natural::natural};
 
 pub trait Regularity {
     fn is_regular(&self) -> bool;

@@ -9,9 +9,8 @@ use {
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
         translating::{
-            gamma::{self, gamma},
-            mu::mu,
-            tau_star::tau_star,
+            classical_reduction::gamma::{self, gamma},
+            formula_representation::{mu::mu, tau_star::tau_star},
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},

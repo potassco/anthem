@@ -10,7 +10,9 @@ use {
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp, fol},
-        translating::{completion::completion, tau_star::tau_star},
+        translating::{
+            classical_reduction::completion::completion, formula_representation::tau_star::tau_star,
+        },
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
             problem::{self, Problem},
