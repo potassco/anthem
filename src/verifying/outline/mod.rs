@@ -1,7 +1,7 @@
 use {
     crate::{
         convenience::{
-            unbox::{Unbox as _, fol::UnboxedFormula},
+            unbox::{Unbox as _, fol::sigma_0::UnboxedFormula},
             with_warnings::{Result, WithWarnings},
         },
         syntax_tree::fol::sigma_0 as fol,
