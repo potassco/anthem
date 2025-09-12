@@ -30,7 +30,7 @@ A "regular program" is a program consisting only of regular rules (see below). T
 ```
     anthem analyze program.lp --property regularity
 ```
-A rule fulfilling the following restricitions is called "regular":
+A rule fulfilling the following restrictions is called "regular":
 Its body contains only terms regular of first kind and/or comparisons of first or second kind. No nested rules and aggregates are allowed.
 Its head is either empty (constraint), an atom (basic rule) or an atom in braces (choice rule). It contains only terms regular of first and/or second kind.
 

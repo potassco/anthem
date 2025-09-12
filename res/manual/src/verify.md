@@ -14,18 +14,11 @@ The property can be automatically verified with the command
     anthem verify --equivalence strong p1.lp p2.lp
 ```
 
-<<<<<<< HEAD
 Strong equivalence verification also allows users to select the transformation used for obtaining the formula representation of a program.
 The default option is `tau*`, but `mu` may also be selected:
 ```
     anthem verify --equivalence strong --formula-representation mu p1.lp p2.lp
-=======
-We can additionally specify the translation used to obtain the HTA representation of our programs.
-Valid options are `tau*` (the default) or `mu`, which can be enabled with the command
-```
-    anthem verify --equivalence strong <programs> --formula-representation mu
->>>>>>> update
-```
+
 
 
 ## External Equivalence
