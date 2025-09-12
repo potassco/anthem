@@ -18,7 +18,7 @@ Strong equivalence verification also allows users to select the transformation u
 The default option is `tau*`, but `mu` may also be selected:
 ```
     anthem verify --equivalence strong --formula-representation mu p1.lp p2.lp
-```
+
 
 
 ## External Equivalence
@@ -58,6 +58,9 @@ as `mu` is not guaranteed to produce [completable theories](https://doi.org/10.1
 Note that the `universal` direction is the default, and may be dropped.
 To verify that the program posesses a certain property expressed by the specification, set the direction to backward (`--direction backward`).
 To verify that the program's external behavior is a consequence of the specification, set the direction to forward (`--direction forward`).
+
+Currently, external equivalence only supports `tau*` as a valid option for `--formula-representation`.
+
 
 #### Tightness and Private Recursion
 External equivalence can only be verified automatically if the program(s) are tight.
