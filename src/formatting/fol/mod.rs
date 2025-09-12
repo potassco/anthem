@@ -1,2 +1,1 @@
-pub mod default;
-pub mod tptp;
+pub mod sigma_0;

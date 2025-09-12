@@ -233,9 +233,9 @@ impl Display for Format<'_, Rule> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::asp::default::Format,
-        syntax_tree::asp::mini_gringo::{
+    use {
+        super::Format,
+        crate::syntax_tree::asp::mini_gringo::{
             Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
             Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
         },

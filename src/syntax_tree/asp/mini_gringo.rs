@@ -1,6 +1,6 @@
 use {
     crate::{
-        formatting::asp::default::Format,
+        formatting::asp::mini_gringo::default::Format,
         parsing::asp::mini_gringo::pest::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
             HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,

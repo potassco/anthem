@@ -1,7 +1,7 @@
 use {
     crate::{
         convenience::apply::Apply as _,
-        formatting::fol::default::Format,
+        formatting::fol::sigma_0::default::Format,
         parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
