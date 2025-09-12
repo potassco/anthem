@@ -195,7 +195,7 @@ pub enum Decomposition {
     Sequential,
 }
 
-pub use crate::syntax_tree::fol::Direction;
+pub use crate::syntax_tree::fol::sigma_0::Direction;
 
 #[cfg(test)]
 mod tests {

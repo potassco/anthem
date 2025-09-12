@@ -10,7 +10,7 @@ use {
         },
         convenience::{apply::Apply, compose::Compose},
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{Node as _, asp, fol},
+        syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::{completion::completion, gamma::gamma},
             formula_representation::{mu::mu, natural::natural, tau_star::tau_star},

@@ -1,4 +1,4 @@
-use crate::syntax_tree::fol::Formula;
+use crate::syntax_tree::fol::sigma_0::Formula;
 
 use self::fol::UnboxedFormula;
 

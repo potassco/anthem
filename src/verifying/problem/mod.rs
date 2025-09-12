@@ -1,7 +1,7 @@
 use {
     crate::{
         command_line::arguments::Decomposition,
-        syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+        syntax_tree::fol::sigma_0::{Formula, FunctionConstant, Predicate, Sort, Theory},
     },
     anyhow::{Context as _, Result},
     indexmap::IndexSet,

@@ -1,6 +1,6 @@
 use crate::{
     convenience::unbox::{Unbox as _, fol::UnboxedFormula},
-    syntax_tree::fol::{
+    syntax_tree::fol::sigma_0::{
         AtomicFormula, BinaryConnective, Formula, GeneralTerm, IntegerTerm, Quantification,
         Quantifier, Relation, Sort, SymbolicTerm, UnaryConnective, Variable,
     },
@@ -100,7 +100,7 @@ pub fn substitute_defined_variables(formula: Formula) -> Formula {
 mod tests {
     use {
         super::{remove_double_negation, substitute_defined_variables},
-        crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula},
+        crate::{convenience::apply::Apply as _, syntax_tree::fol::sigma_0::Formula},
     };
 
     #[test]
@@ -168,7 +168,7 @@ mod unstable {
     use {
         crate::{
             convenience::unbox::{Unbox as _, fol::UnboxedFormula},
-            syntax_tree::fol::{
+            syntax_tree::fol::sigma_0::{
                 AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, Guard,
                 IntegerTerm, Quantification, Quantifier, Relation, Sort, SymbolicTerm, Variable,
             },
@@ -768,7 +768,7 @@ mod unstable {
 
     #[cfg(test)]
     mod tests {
-        use crate::{convenience::apply::Apply as _, syntax_tree::fol::Formula};
+        use crate::{convenience::apply::Apply as _, syntax_tree::fol::sigma_0::Formula};
 
         use super::{
             extend_quantifier_scope, restrict_quantifier_domain, simplify_transitive_equality,

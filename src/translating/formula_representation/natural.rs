@@ -5,7 +5,7 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     indexmap::IndexSet,
 };
 

@@ -1,5 +1,5 @@
 use crate::{
-    syntax_tree::{asp, fol},
+    syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     translating::formula_representation::{natural, tau_star},
 };
 
@@ -19,7 +19,7 @@ pub fn mu(p: asp::Program) -> fol::Theory {
 
 #[cfg(test)]
 mod tests {
-    use {super::mu, crate::syntax_tree::fol};
+    use {super::mu, crate::syntax_tree::fol::sigma_0 as fol};
 
     #[test]
     fn test_mu() {

@@ -1,6 +1,8 @@
 use crate::{
     convenience::apply::Apply as _,
-    syntax_tree::fol::{AtomicFormula, BinaryConnective, Formula, Theory, UnaryConnective},
+    syntax_tree::fol::sigma_0::{
+        AtomicFormula, BinaryConnective, Formula, Theory, UnaryConnective,
+    },
 };
 
 pub fn gamma(theory: Theory) -> Theory {

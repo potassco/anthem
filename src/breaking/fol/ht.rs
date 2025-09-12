@@ -1,6 +1,6 @@
 use crate::{
     convenience::unbox::{Unbox, fol::UnboxedFormula},
-    syntax_tree::fol::{
+    syntax_tree::fol::sigma_0::{
         AnnotatedFormula, BinaryConnective, Formula, Quantification, Quantifier, Specification,
         Theory,
     },
@@ -73,7 +73,7 @@ pub fn break_equivalences_formula(formula: Formula) -> Theory {
 mod tests {
     use {
         super::break_equivalences_formula,
-        crate::syntax_tree::fol::{Formula, Theory},
+        crate::syntax_tree::fol::sigma_0::{Formula, Theory},
     };
 
     #[test]
