@@ -8,13 +8,29 @@ use {
     itertools::Itertools,
 };
 
+pub trait Completion {
+    type Inputs;
+
+    fn completion(self, inputs: Self::Inputs) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl Completion for fol::Theory {
+    type Inputs = IndexSet<fol::Predicate>;
+
+    fn completion(self, inputs: Self::Inputs) -> Option<Self> {
+        completion(self, inputs)
+    }
+}
+
 // External Equivalence of Logic Programs and Verification of Refactoring, Appendix B:
 // The first-order completion of Π is the conjunction of the following first-order sentences
 // over the signature σ0(In ∪ Out ∪ Private ):
 // 1. the completed definitions of the predicate symbols from Out ∪ Private in Π
 // 2. the constraints of Π rewritten in the syntax of first-order logic.
 // This function implements this definition of completion (e.g. omitting input predicate completions)
-pub fn completion(theory: fol::Theory, inputs: IndexSet<fol::Predicate>) -> Option<fol::Theory> {
+fn completion(theory: fol::Theory, inputs: IndexSet<fol::Predicate>) -> Option<fol::Theory> {
     let theory_predicates = theory.predicates();
 
     // Retrieve the definitions and constraints present in the theory
@@ -226,7 +242,7 @@ mod tests {
     use crate::{
         syntax_tree::fol::sigma_0 as fol,
         translating::{
-            classical_reduction::completion::{atomic_formula_from, completion},
+            classical_reduction::completion::{atomic_formula_from, Completion as _},
             formula_representation::tau_star::tau_star,
         },
     };
@@ -319,7 +335,7 @@ mod tests {
                 IndexSet::new(),
             ),
         ] {
-            let left = completion(tau_star(src.parse().unwrap()), inputs).unwrap();
+            let left = tau_star(src.parse().unwrap()).completion(inputs).unwrap();
             let right = target.parse().unwrap();
 
             assert!(
@@ -339,7 +355,7 @@ mod tests {
         ] {
             let theory: fol::Theory = theory.parse().unwrap();
             assert!(
-                completion(theory.clone(), IndexSet::new()).is_none(),
+                theory.clone().completion(IndexSet::new()).is_none(),
                 "`{theory}` should not be completable"
             );
         }

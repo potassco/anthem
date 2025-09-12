@@ -11,7 +11,8 @@ use {
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            classical_reduction::completion::completion, formula_representation::tau_star::tau_star,
+            classical_reduction::completion::Completion as _,
+            formula_representation::tau_star::tau_star,
         },
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -528,11 +529,10 @@ impl Task for ExternalEquivalenceTask {
 
         let theory_translate = |program: asp::Program| {
             // TODO: allow more formula representations beyond tau-star
-            let mut theory = completion(
-                tau_star(program).replace_placeholders(&placeholders),
-                self.user_guide.input_predicates(),
-            )
-            .expect("tau_star did not create a completable theory");
+            let mut theory = tau_star(program)
+                .replace_placeholders(&placeholders)
+                .completion(self.user_guide.input_predicates())
+                .expect("tau_star did not create a completable theory");
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
