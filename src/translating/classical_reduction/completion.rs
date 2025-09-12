@@ -2,7 +2,7 @@ use {
     crate::{
         convenience::unbox::{Unbox, fol::UnboxedFormula},
         syntax_tree::fol,
-        translating::tau_star::choose_fresh_variable_names,
+        translating::formula_representation::tau_star::choose_fresh_variable_names,
     },
     indexmap::{IndexMap, IndexSet, map::Entry},
     itertools::Itertools,
@@ -226,8 +226,8 @@ mod tests {
     use crate::{
         syntax_tree::fol,
         translating::{
-            completion::{atomic_formula_from, completion},
-            tau_star::tau_star,
+            classical_reduction::completion::{atomic_formula_from, completion},
+            formula_representation::tau_star::tau_star,
         },
     };
 
