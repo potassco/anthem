@@ -10,7 +10,7 @@ use {
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::gamma::{Gamma as _, Here as _, There as _},
-            formula_representation::{mu::mu, tau_star::TauStar as _},
+            formula_representation::{mu::Mu as _, tau_star::TauStar as _},
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
@@ -69,12 +69,12 @@ impl Task for StrongEquivalenceTask {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
         let mut left = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.left),
+            FormulaRepresentation::Mu => self.left.mu(),
             FormulaRepresentation::TauStar => self.left.tau_star(),
         };
 
         let mut right = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.right),
+            FormulaRepresentation::Mu => self.right.mu(),
             FormulaRepresentation::TauStar => self.right.tau_star(),
         };
 

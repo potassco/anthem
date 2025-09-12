@@ -3,23 +3,36 @@ use crate::{
     translating::formula_representation::{natural, tau_star},
 };
 
-pub fn mu(p: asp::Program) -> fol::Theory {
-    let mut formulas: Vec<fol::Formula> = vec![];
-    let globals = tau_star::choose_fresh_global_variables(&p);
+pub trait Mu {
+    type Output;
 
-    for r in p.rules {
-        match natural::natural_rule(&r) {
-            Some(f) => formulas.push(f),
-            None => formulas.push(tau_star::tau_star_rule(&r, &globals)),
+    fn mu(self) -> Self::Output;
+}
+
+impl Mu for asp::Program {
+    type Output = fol::Theory;
+
+    fn mu(self) -> Self::Output {
+        let mut formulas: Vec<fol::Formula> = vec![];
+        let globals = tau_star::choose_fresh_global_variables(&self);
+
+        for r in self.rules {
+            match natural::natural_rule(&r) {
+                Some(f) => formulas.push(f),
+                None => formulas.push(tau_star::tau_star_rule(&r, &globals)),
+            }
         }
-    }
 
-    fol::Theory { formulas }
+        fol::Theory { formulas }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use {super::mu, crate::syntax_tree::fol::sigma_0 as fol};
+    use {
+        super::Mu as _,
+        crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    };
 
     #[test]
     fn test_mu() {
@@ -33,8 +46,8 @@ mod tests {
                 "forall V1 X (V1 = X and (exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z = K$i and I$i <= K$i <= J$i) and q(Z)) and exists Z (Z = X and a(Z))) -> p(V1)).\nforall X (p(X) -> forall N0$i (1 <= N0$i <= 3 -> q(N0$i))).",
             ),
         ] {
-            let rule = source.parse().unwrap();
-            let mu: fol::Theory = mu(rule);
+            let program = source.parse::<asp::Program>().unwrap();
+            let mu: fol::Theory = program.mu();
             let mu_string = mu.to_string();
             let target_theory: fol::Theory = target.parse().unwrap();
             let target = target_theory.to_string();
