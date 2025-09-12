@@ -1,5 +1,6 @@
 use crate::{
-    syntax_tree::asp::mini_gringo::Program, translating::formula_representation::natural::natural,
+    syntax_tree::asp::mini_gringo::Program,
+    translating::formula_representation::natural::Natural as _,
 };
 
 pub trait Regularity {
@@ -8,7 +9,7 @@ pub trait Regularity {
 
 impl Regularity for Program {
     fn is_regular(&self) -> bool {
-        natural(self.clone()).is_some()
+        self.clone().natural().is_some()
     }
 }
 
