@@ -413,10 +413,10 @@ impl ExternalEquivalenceTask {
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         for formula in formulas {
-            if !(matches!(formula.role, fol::Role::Assumption)
-                || matches!(formula.role, fol::Role::Spec)
-                || matches!(formula.role, fol::Role::Definition))
-            {
+            if !(matches!(
+                formula.role,
+                fol::Role::Assumption | fol::Role::Spec | fol::Role::Definition
+            )) {
                 return Err(
                     ExternalEquivalenceTaskError::SpecificationContainsUnsupportedRoles(
                         formula.clone(),
