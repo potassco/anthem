@@ -240,10 +240,10 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::{
-        syntax_tree::fol::sigma_0 as fol,
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            classical_reduction::completion::{atomic_formula_from, Completion as _},
-            formula_representation::tau_star::tau_star,
+            classical_reduction::completion::{Completion as _, atomic_formula_from},
+            formula_representation::tau_star::TauStar as _,
         },
     };
 
@@ -335,7 +335,12 @@ mod tests {
                 IndexSet::new(),
             ),
         ] {
-            let left = tau_star(src.parse().unwrap()).completion(inputs).unwrap();
+            let left = src
+                .parse::<asp::Program>()
+                .unwrap()
+                .tau_star()
+                .completion(inputs)
+                .unwrap();
             let right = target.parse().unwrap();
 
             assert!(

@@ -13,7 +13,7 @@ use {
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::{completion::Completion as _, gamma::Gamma as _},
-            formula_representation::{mu::mu, natural::natural, tau_star::tau_star},
+            formula_representation::{mu::mu, natural::natural, tau_star::TauStar as _},
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -161,7 +161,7 @@ pub fn main() -> Result<()> {
                 Translation::TauStar => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = tau_star(program);
+                    let theory = program.tau_star();
                     print!("{theory}")
                 }
             }
