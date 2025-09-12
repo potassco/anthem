@@ -69,6 +69,7 @@ pub fn evaluate_comparisons(formula: Formula) -> Formula {
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_negation_definition(formula: Formula) -> Formula {
     // Apply the definition for negation
     // e.g. not F => F -> #false
@@ -127,6 +128,7 @@ pub fn apply_reverse_implication_definition(formula: Formula) -> Formula {
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
     // Apply the definition for reverse implication in reverse
     // Yeah, that sounds terrible -- but is actually what happens here...
@@ -148,6 +150,7 @@ pub fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_equivalence_definition(formula: Formula) -> Formula {
     // Apply the definition for equivalence
     // e.g. F <-> G => (F -> G) and (G -> F)
