@@ -1,6 +1,6 @@
 use {
     crate::{
-        convenience::unbox::{Unbox, fol::UnboxedFormula},
+        convenience::unbox::{Unbox, fol::sigma_0::UnboxedFormula},
         syntax_tree::fol::sigma_0 as fol,
         translating::formula_representation::tau_star::choose_fresh_variable_names,
     },

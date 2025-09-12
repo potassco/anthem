@@ -1,5 +1,5 @@
 use crate::{
-    convenience::unbox::{Unbox as _, fol::UnboxedFormula},
+    convenience::unbox::{Unbox as _, fol::sigma_0::UnboxedFormula},
     syntax_tree::fol::sigma_0::{
         AtomicFormula, BinaryConnective, Formula, GeneralTerm, IntegerTerm, Quantification,
         Quantifier, Relation, Sort, SymbolicTerm, UnaryConnective, Variable,
@@ -167,7 +167,7 @@ mod tests {
 mod unstable {
     use {
         crate::{
-            convenience::unbox::{Unbox as _, fol::UnboxedFormula},
+            convenience::unbox::{Unbox as _, fol::sigma_0::UnboxedFormula},
             syntax_tree::fol::sigma_0::{
                 AtomicFormula, BinaryConnective, Comparison, Formula, GeneralTerm, Guard,
                 IntegerTerm, Quantification, Quantifier, Relation, Sort, SymbolicTerm, Variable,
