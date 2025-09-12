@@ -12,7 +12,7 @@ use {
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            classical_reduction::{completion::completion, gamma::Gamma as _},
+            classical_reduction::{completion::Completion as _, gamma::Gamma as _},
             formula_representation::{mu::mu, natural::natural, tau_star::tau_star},
         },
         verifying::{
@@ -131,7 +131,8 @@ pub fn main() -> Result<()> {
                 Translation::Completion => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let completed_theory = completion(theory, IndexSet::new())
+                    let completed_theory = theory
+                        .completion(IndexSet::new())
                         .context("the given theory is not completable")?;
                     print!("{completed_theory}")
                 }
