@@ -325,9 +325,9 @@ impl Display for Format<'_, Formula> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::fol::tptp::Format,
-        syntax_tree::fol::sigma_0::{
+    use {
+        super::Format,
+        crate::syntax_tree::fol::sigma_0::{
             Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
             GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation, Sort,
             SymbolicTerm, UnaryOperator, Variable,
