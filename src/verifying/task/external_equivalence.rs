@@ -258,6 +258,12 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following placeholder is given conflicting sorts within the user guide: {s}"
                 )
             }
+            ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(formula) => {
+                writeln!(
+                    f,
+                    "the following assumption contains a predicate that is not an input symbol: {formula}"
+                )
+            }
             ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(content) => {
                 let content = &**content;
                 let predicate = &content.predicate;
@@ -485,7 +491,7 @@ impl ExternalEquivalenceTask {
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let base_predicates = self.user_guide.input_predicates();
         let sequence =
-            ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
+            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
 
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
@@ -515,7 +521,7 @@ impl ExternalEquivalenceTask {
         // let base_predicates = self.user_guide.public_predicates();
         let base_predicates = self.user_guide.input_predicates();
         let sequence =
-            ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
+            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
 
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
