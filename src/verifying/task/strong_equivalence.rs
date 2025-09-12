@@ -9,7 +9,7 @@ use {
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            classical_reduction::gamma::{self, gamma},
+            classical_reduction::gamma::{Gamma as _, Here as _, There as _},
             formula_representation::{mu::mu, tau_star::tau_star},
         },
         verifying::{
@@ -39,8 +39,8 @@ impl StrongEquivalenceTask {
         fn transition(p: asp::Predicate) -> fol::Formula {
             let p: fol::Predicate = p.into();
 
-            let hp = gamma::here(p.clone().to_formula());
-            let tp = gamma::there(p.to_formula());
+            let hp = p.clone().to_formula().here();
+            let tp = p.to_formula().there();
 
             let variables = hp.free_variables();
 
@@ -90,8 +90,8 @@ impl Task for StrongEquivalenceTask {
                 .collect();
         }
 
-        left = gamma(left);
-        right = gamma(right);
+        left = left.gamma();
+        right = right.gamma();
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
