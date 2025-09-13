@@ -1068,7 +1068,7 @@ impl Task for AssembledExternalEquivalenceTask {
 mod tests {
     use {
         super::{DefinitionSequence, DefinitionSequenceNode, valid},
-        crate::syntax_tree::fol,
+        crate::syntax_tree::fol::sigma_0,
         indexmap::IndexSet,
     };
 
@@ -1076,11 +1076,11 @@ mod tests {
     fn test_valid_case_1() {
         // input predicates: p
         // defined predicates: q
-        let p = fol::Predicate {
+        let p = sigma_0::Predicate {
             symbol: "p".to_string(),
             arity: 1,
         };
-        let q = fol::Predicate {
+        let q = sigma_0::Predicate {
             symbol: "q".to_string(),
             arity: 1,
         };
@@ -1104,19 +1104,19 @@ mod tests {
     fn test_valid_case_2() {
         // input predicates: p
         // defined predicates: q, r, t
-        let p = fol::Predicate {
+        let p = sigma_0::Predicate {
             symbol: "p".to_string(),
             arity: 1,
         };
-        let q = fol::Predicate {
+        let q = sigma_0::Predicate {
             symbol: "q".to_string(),
             arity: 1,
         };
-        let r = fol::Predicate {
+        let r = sigma_0::Predicate {
             symbol: "r".to_string(),
             arity: 1,
         };
-        let t = fol::Predicate {
+        let t = sigma_0::Predicate {
             symbol: "t".to_string(),
             arity: 1,
         };
@@ -1149,7 +1149,7 @@ mod tests {
         assert!(valid(&sequence, r));
         assert!(valid(&sequence, t));
 
-        let x = fol::Predicate {
+        let x = sigma_0::Predicate {
             symbol: "x".to_string(),
             arity: 1,
         };
@@ -1161,19 +1161,19 @@ mod tests {
         // input predicates: p
         // defined predicates: r, t
         // missing definitions: q
-        let p = fol::Predicate {
+        let p = sigma_0::Predicate {
             symbol: "p".to_string(),
             arity: 1,
         };
-        let q = fol::Predicate {
+        let q = sigma_0::Predicate {
             symbol: "q".to_string(),
             arity: 1,
         };
-        let r = fol::Predicate {
+        let r = sigma_0::Predicate {
             symbol: "r".to_string(),
             arity: 1,
         };
-        let t = fol::Predicate {
+        let t = sigma_0::Predicate {
             symbol: "r".to_string(),
             arity: 1,
         };
