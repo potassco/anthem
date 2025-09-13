@@ -1,9 +1,9 @@
 use crate::{
-    syntax_tree::{asp, fol},
+    syntax_tree::{asp::mini_gringo, fol},
     translating::{natural, tau_star},
 };
 
-pub fn mu(p: asp::Program) -> fol::Theory {
+pub fn mu(p: mini_gringo::Program) -> fol::Theory {
     let mut formulas: Vec<fol::Formula> = vec![];
     let globals = tau_star::choose_fresh_global_variables(&p);
 

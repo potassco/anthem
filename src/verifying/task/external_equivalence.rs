@@ -9,7 +9,7 @@ use {
             with_warnings::{Result, WithWarnings},
         },
         simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        syntax_tree::{asp, asp::mini_gringo, fol},
         translating::{completion::completion, tau_star::tau_star},
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -80,7 +80,7 @@ impl RenamePredicates for fol::Atom {
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskWarning {
-    NonTightProgram(asp::Program),
+    NonTightProgram(mini_gringo::Program),
     InconsistentDirectionAnnotation(fol::AnnotatedFormula),
     InvalidRoleWithinUserGuide(fol::AnnotatedFormula),
     DefinitionWithWarning(#[from] ProofOutlineWarning),
@@ -117,8 +117,8 @@ impl Display for ExternalEquivalenceTaskWarning {
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     UnsupportedFormulaRepresentation,
-    NonTightProgram(asp::Program),
-    ProgramContainsPrivateRecursion(asp::Program),
+    NonTightProgram(mini_gringo::Program),
+    ProgramContainsPrivateRecursion(mini_gringo::Program),
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
@@ -234,8 +234,8 @@ impl Display for ExternalEquivalenceTaskError {
 
 #[derive(Debug)]
 pub struct ExternalEquivalenceTask {
-    pub specification: Either<asp::Program, fol::Specification>,
-    pub program: asp::Program,
+    pub specification: Either<mini_gringo::Program, fol::Specification>,
+    pub program: mini_gringo::Program,
     pub user_guide: fol::UserGuide,
     pub proof_outline: fol::Specification,
     pub decomposition: Decomposition,
@@ -249,7 +249,7 @@ pub struct ExternalEquivalenceTask {
 impl ExternalEquivalenceTask {
     fn ensure_program_tightness(
         &self,
-        program: &asp::Program,
+        program: &mini_gringo::Program,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         if program.is_tight() {
             Ok(WithWarnings::flawless(()))
@@ -266,7 +266,7 @@ impl ExternalEquivalenceTask {
 
     fn ensure_absence_of_private_recursion(
         &self,
-        program: &asp::Program,
+        program: &mini_gringo::Program,
         private_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let private_predicates = private_predicates
@@ -304,7 +304,7 @@ impl ExternalEquivalenceTask {
 
     fn ensure_rule_heads_do_not_contain_input_predicates(
         &self,
-        program: &asp::Program,
+        program: &mini_gringo::Program,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         let input_predicates = self.user_guide.input_predicates();
         let head_predicates: IndexSet<_> = program
@@ -524,7 +524,7 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
-        let theory_translate = |program: asp::Program| {
+        let theory_translate = |program: mini_gringo::Program| {
             // TODO: allow more formula representations beyond tau-star
             let mut theory = completion(
                 tau_star(program).replace_placeholders(&placeholders),

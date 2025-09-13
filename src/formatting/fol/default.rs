@@ -21,6 +21,7 @@ impl Display for Format<'_, UnaryOperator> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.0 {
             UnaryOperator::Negative => write!(f, "-"),
+            UnaryOperator::AbsoluteValue => write!(f, "|"),
         }
     }
 }
@@ -41,10 +42,7 @@ impl Precedence for Format<'_, IntegerTerm> {
     fn precedence(&self) -> usize {
         match self.0 {
             IntegerTerm::Numeral(1..) => 1,
-            IntegerTerm::UnaryOperation {
-                op: UnaryOperator::Negative,
-                ..
-            }
+            IntegerTerm::UnaryOperation { .. }
             | IntegerTerm::Numeral(_)
             | IntegerTerm::FunctionConstant(_)
             | IntegerTerm::Variable(_) => 0,
@@ -80,7 +78,20 @@ impl Display for Format<'_, IntegerTerm> {
             IntegerTerm::Numeral(n) => write!(f, "{n}"),
             IntegerTerm::FunctionConstant(c) => write!(f, "{c}$i"),
             IntegerTerm::Variable(v) => write!(f, "{v}$i"),
-            IntegerTerm::UnaryOperation { arg, .. } => self.fmt_unary(Format(arg.as_ref()), f),
+            IntegerTerm::UnaryOperation {
+                op: UnaryOperator::Negative,
+                arg,
+            } => self.fmt_unary(Format(arg.as_ref()), f),
+            IntegerTerm::UnaryOperation {
+                op: UnaryOperator::AbsoluteValue,
+                arg,
+            } => write!(
+                f,
+                "{}{}{}",
+                Format(&UnaryOperator::AbsoluteValue),
+                Format(arg.as_ref()),
+                Format(&UnaryOperator::AbsoluteValue)
+            ),
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }

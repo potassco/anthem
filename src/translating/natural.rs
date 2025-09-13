@@ -5,7 +5,7 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp, asp::mini_gringo, fol},
     indexmap::IndexSet,
 };
 
@@ -17,7 +17,7 @@ fn contains_symbol_or_infimum_or_supremum(t: &asp::Term) -> bool {
         asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Supremum) => true,
         asp::Term::PrecomputedTerm(asp::PrecomputedTerm::Numeral(_)) => false,
         asp::Term::UnaryOperation {
-            op: asp::UnaryOperator::Negative,
+            op: asp::UnaryOperator::Negative | asp::UnaryOperator::AbsoluteValue,
             arg,
         } => contains_symbol_or_infimum_or_supremum(arg),
         asp::Term::BinaryOperation { lhs, rhs, .. } => {
@@ -129,7 +129,7 @@ fn p2f_int_term(t: &asp::Term) -> Option<fol::IntegerTerm> {
     }
 }
 
-fn int_variables(r: &asp::Rule) -> IndexSet<String> {
+fn int_variables(r: &mini_gringo::Rule) -> IndexSet<String> {
     // Parse rule and return all variables appearing at least once in the scope of unary/binary operations/comparison
     let mut vars = IndexSet::<String>::new();
     // iterate over all terms in the rule and then over all variables in the term
@@ -237,7 +237,10 @@ fn natural_b_literal(
     })
 }
 
-fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
+fn natural_body(
+    b: &mini_gringo::Body,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::Formula> {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         match f {
@@ -437,15 +440,18 @@ fn natural_constraint() -> fol::Formula {
     fol::Formula::AtomicFormula(fol::AtomicFormula::Falsity)
 }
 
-fn natural_head(h: &asp::Head, int_vars: &IndexSet<std::string::String>) -> Option<fol::Formula> {
+fn natural_head(
+    h: &mini_gringo::Head,
+    int_vars: &IndexSet<std::string::String>,
+) -> Option<fol::Formula> {
     match h {
-        asp::Head::Basic(a) => natural_basic_head(a, int_vars),
-        asp::Head::Choice(a) => natural_choice_head(a, int_vars),
-        asp::Head::Falsity => Some(natural_constraint()),
+        mini_gringo::Head::Basic(a) => natural_basic_head(a, int_vars),
+        mini_gringo::Head::Choice(a) => natural_choice_head(a, int_vars),
+        mini_gringo::Head::Falsity => Some(natural_constraint()),
     }
 }
 
-pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
+pub(crate) fn natural_rule(r: &mini_gringo::Rule) -> Option<fol::Formula> {
     let int_vars = int_variables(r);
     let head = natural_head(&r.head, &int_vars)?;
     let body = natural_body(&r.body, &int_vars)?;
@@ -459,7 +465,7 @@ pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
     )
 }
 
-pub fn natural(program: asp::Program) -> Option<fol::Theory> {
+pub fn natural(program: mini_gringo::Program) -> Option<fol::Theory> {
     let mut formulas = Vec::<fol::Formula>::new();
     for r in program.rules {
         if let Some(f) = natural_rule(&r) {
@@ -519,6 +525,8 @@ mod tests {
             ("3+5", true),
             ("3-5", true),
             ("X*5", true),
+            ("|X|", false),
+            ("3-|5|", false),
             ("3/5", false),
             ("3..5", false),
             ("X..Y", false),
@@ -988,6 +996,7 @@ mod tests {
             "p(X) :- X <= 3..5.",
             "p(X) :- X = 5*(2..3).",
             " :- X..5 = 3..5.",
+            "p(X) :- q(Y), Y = |X|.",
         ] {
             let rule = rule.parse().unwrap();
             assert!(
