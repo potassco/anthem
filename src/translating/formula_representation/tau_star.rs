@@ -1,5 +1,5 @@
 use {
-    crate::syntax_tree::{asp, fol},
+    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -898,13 +898,27 @@ pub(crate) fn tau_star_rule(r: &asp::Rule, globals: &[String]) -> fol::Formula {
 // For each rule, produce a formula: forall G V ( val_t(V) & tau_body(Body) -> p(V) )
 // Where G is all variables from the original rule
 // and V is the set of fresh variables replacing t within p
-pub fn tau_star(p: asp::Program) -> fol::Theory {
+fn tau_star(p: asp::Program) -> fol::Theory {
     let globals = choose_fresh_global_variables(&p);
     let mut formulas: Vec<fol::Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules.iter() {
         formulas.push(tau_star_rule(r, &globals));
     }
     fol::Theory { formulas }
+}
+
+pub trait TauStar {
+    type Output;
+
+    fn tau_star(self) -> Self::Output;
+}
+
+impl TauStar for asp::Program {
+    type Output = fol::Theory;
+
+    fn tau_star(self) -> Self::Output {
+        tau_star(self)
+    }
 }
 
 #[cfg(test)]

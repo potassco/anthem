@@ -1,16 +1,19 @@
 use {
     crate::{
         analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
-        breaking::fol::ht::break_equivalences_annotated_formula,
+        breaking::fol::sigma_0::ht::break_equivalences_annotated_formula,
         command_line::arguments::{Decomposition, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
-        translating::{completion::completion, tau_star::tau_star},
+        simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+        translating::{
+            classical_reduction::completion::Completion as _,
+            formula_representation::tau_star::TauStar as _,
+        },
         verifying::{
             outline::{
                 CheckInternal, GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning,
@@ -733,11 +736,11 @@ impl Task for ExternalEquivalenceTask {
 
         let theory_translate = |program: asp::Program| {
             // TODO: allow more formula representations beyond tau-star
-            let mut theory = completion(
-                tau_star(program).replace_placeholders(&placeholders),
-                self.user_guide.input_predicates(),
-            )
-            .expect("tau_star did not create a completable theory");
+            let mut theory = program
+                .tau_star()
+                .replace_placeholders(&placeholders)
+                .completion(self.user_guide.input_predicates())
+                .expect("tau_star did not create a completable theory");
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
@@ -867,7 +870,7 @@ impl Task for ValidatedExternalEquivalenceTask {
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         use crate::{
-            syntax_tree::fol::{Direction::*, Role::*},
+            syntax_tree::fol::sigma_0::{Direction::*, Role::*},
             verifying::problem::Role::*,
         };
 

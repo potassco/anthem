@@ -9,10 +9,11 @@ use {
             files::Files,
         },
         convenience::{apply::Apply, compose::Compose},
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{Node as _, asp, fol},
+        simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            completion::completion, gamma::gamma, mu::mu, natural::natural, tau_star::tau_star,
+            classical_reduction::{completion::Completion as _, gamma::Gamma as _},
+            formula_representation::{mu::Mu as _, natural::Natural as _, tau_star::TauStar as _},
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -130,7 +131,8 @@ pub fn main() -> Result<()> {
                 Translation::Completion => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let completed_theory = completion(theory, IndexSet::new())
+                    let completed_theory = theory
+                        .completion(IndexSet::new())
                         .context("the given theory is not completable")?;
                     print!("{completed_theory}")
                 }
@@ -138,28 +140,30 @@ pub fn main() -> Result<()> {
                 Translation::Gamma => {
                     let theory =
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
-                    let gamma_theory = gamma(theory);
+                    let gamma_theory = theory.gamma();
                     print!("{gamma_theory}")
                 }
 
                 Translation::Mu => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = mu(program);
+                    let theory = program.mu();
                     print!("{theory}")
                 }
 
                 Translation::Natural => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = natural(program).context("the given program is not regular")?;
+                    let theory = program
+                        .natural()
+                        .context("the given program is not regular")?;
                     print!("{theory}")
                 }
 
                 Translation::TauStar => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = tau_star(program);
+                    let theory = program.tau_star();
                     print!("{theory}")
                 }
             }

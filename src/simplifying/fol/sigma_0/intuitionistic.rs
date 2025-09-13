@@ -1,6 +1,6 @@
 use crate::{
-    convenience::unbox::{Unbox as _, fol::UnboxedFormula},
-    syntax_tree::fol::{
+    convenience::unbox::{Unbox as _, fol::sigma_0::UnboxedFormula},
+    syntax_tree::fol::sigma_0::{
         AtomicFormula, BinaryConnective, Comparison, Formula, Guard, Quantification, Relation,
         UnaryConnective,
     },
@@ -69,6 +69,7 @@ pub fn evaluate_comparisons(formula: Formula) -> Formula {
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_negation_definition(formula: Formula) -> Formula {
     // Apply the definition for negation
     // e.g. not F => F -> #false
@@ -127,6 +128,7 @@ pub fn apply_reverse_implication_definition(formula: Formula) -> Formula {
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula {
     // Apply the definition for reverse implication in reverse
     // Yeah, that sounds terrible -- but is actually what happens here...
@@ -148,6 +150,7 @@ pub fn apply_reverse_implication_definition_inverse(formula: Formula) -> Formula
     }
 }
 
+#[allow(dead_code)]
 pub fn apply_equivalence_definition(formula: Formula) -> Formula {
     // Apply the definition for equivalence
     // e.g. F <-> G => (F -> G) and (G -> F)
@@ -416,7 +419,7 @@ mod tests {
         },
         crate::{
             convenience::{apply::Apply as _, compose::Compose as _},
-            syntax_tree::fol::Formula,
+            syntax_tree::fol::sigma_0::Formula,
         },
     };
 
@@ -602,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_remove_empty_quantifications() {
-        use crate::syntax_tree::fol::{Atom, AtomicFormula, Quantification, Quantifier};
+        use crate::syntax_tree::fol::sigma_0::{Atom, AtomicFormula, Quantification, Quantifier};
 
         let src = Formula::QuantifiedFormula {
             quantification: Quantification {

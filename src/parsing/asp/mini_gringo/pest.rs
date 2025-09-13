@@ -1,6 +1,6 @@
 use crate::{
     parsing::PestParser,
-    syntax_tree::asp::{
+    syntax_tree::asp::mini_gringo::{
         Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal, PrecomputedTerm,
         Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator, Variable,
     },
@@ -10,7 +10,7 @@ mod internal {
     use pest::pratt_parser::PrattParser;
 
     #[derive(pest_derive::Parser)]
-    #[grammar = "parsing/asp/grammar.pest"]
+    #[grammar = "parsing/asp/mini_gringo/grammar.pest"]
     pub struct Parser;
 
     lazy_static::lazy_static! {
@@ -453,7 +453,7 @@ mod tests {
         },
         crate::{
             parsing::TestedParser,
-            syntax_tree::asp::{
+            syntax_tree::asp::mini_gringo::{
                 Atom, AtomicFormula, BinaryOperator, Body, Comparison, Head, Literal,
                 PrecomputedTerm, Predicate, Program, Relation, Rule, Sign, Term, UnaryOperator,
                 Variable,

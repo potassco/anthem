@@ -1,7 +1,7 @@
 use {
     crate::{
         command_line::arguments::Decomposition,
-        syntax_tree::fol::{Formula, FunctionConstant, Predicate, Sort, Theory},
+        syntax_tree::fol::sigma_0::{Formula, FunctionConstant, Predicate, Sort, Theory},
     },
     anyhow::{Context as _, Result},
     indexmap::IndexSet,
@@ -68,7 +68,7 @@ impl fmt::Display for AnnotatedFormula {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = &self.name;
         let role = &self.role;
-        let formula = crate::formatting::fol::tptp::Format(&self.formula);
+        let formula = crate::formatting::fol::sigma_0::tptp::Format(&self.formula);
         writeln!(f, "tff({name}, {role}, {formula}).")
     }
 }
@@ -267,7 +267,7 @@ impl fmt::Display for Problem {
         }
 
         for (i, constant) in self.function_constants().into_iter().enumerate() {
-            let name = crate::formatting::fol::tptp::Format(&constant);
+            let name = crate::formatting::fol::sigma_0::tptp::Format(&constant);
             let sort = match constant.sort {
                 Sort::General => "general",
                 Sort::Integer => "$int",

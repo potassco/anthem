@@ -1,12 +1,28 @@
 use {
     crate::{
-        convenience::unbox::{Unbox, fol::UnboxedFormula},
-        syntax_tree::fol,
-        translating::tau_star::choose_fresh_variable_names,
+        convenience::unbox::{Unbox, fol::sigma_0::UnboxedFormula},
+        syntax_tree::fol::sigma_0 as fol,
+        translating::formula_representation::tau_star::choose_fresh_variable_names,
     },
     indexmap::{IndexMap, IndexSet, map::Entry},
     itertools::Itertools,
 };
+
+pub trait Completion {
+    type Inputs;
+
+    fn completion(self, inputs: Self::Inputs) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl Completion for fol::Theory {
+    type Inputs = IndexSet<fol::Predicate>;
+
+    fn completion(self, inputs: Self::Inputs) -> Option<Self> {
+        completion(self, inputs)
+    }
+}
 
 // External Equivalence of Logic Programs and Verification of Refactoring, Appendix B:
 // The first-order completion of Π is the conjunction of the following first-order sentences
@@ -14,7 +30,7 @@ use {
 // 1. the completed definitions of the predicate symbols from Out ∪ Private in Π
 // 2. the constraints of Π rewritten in the syntax of first-order logic.
 // This function implements this definition of completion (e.g. omitting input predicate completions)
-pub fn completion(theory: fol::Theory, inputs: IndexSet<fol::Predicate>) -> Option<fol::Theory> {
+fn completion(theory: fol::Theory, inputs: IndexSet<fol::Predicate>) -> Option<fol::Theory> {
     let theory_predicates = theory.predicates();
 
     // Retrieve the definitions and constraints present in the theory
@@ -224,10 +240,10 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::{
-        syntax_tree::fol,
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            completion::{atomic_formula_from, completion},
-            tau_star::tau_star,
+            classical_reduction::completion::{Completion as _, atomic_formula_from},
+            formula_representation::tau_star::TauStar as _,
         },
     };
 
@@ -319,7 +335,12 @@ mod tests {
                 IndexSet::new(),
             ),
         ] {
-            let left = completion(tau_star(src.parse().unwrap()), inputs).unwrap();
+            let left = src
+                .parse::<asp::Program>()
+                .unwrap()
+                .tau_star()
+                .completion(inputs)
+                .unwrap();
             let right = target.parse().unwrap();
 
             assert!(
@@ -339,7 +360,7 @@ mod tests {
         ] {
             let theory: fol::Theory = theory.parse().unwrap();
             assert!(
-                completion(theory.clone(), IndexSet::new()).is_none(),
+                theory.clone().completion(IndexSet::new()).is_none(),
                 "`{theory}` should not be completable"
             );
         }

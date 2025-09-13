@@ -6,12 +6,11 @@ use {
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
-        simplifying::fol::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp, fol},
+        simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
-            gamma::{self, gamma},
-            mu::mu,
-            tau_star::tau_star,
+            classical_reduction::gamma::{Gamma as _, Here as _, There as _},
+            formula_representation::{mu::Mu as _, tau_star::TauStar as _},
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
@@ -40,8 +39,8 @@ impl StrongEquivalenceTask {
         fn transition(p: asp::Predicate) -> fol::Formula {
             let p: fol::Predicate = p.into();
 
-            let hp = gamma::here(p.clone().to_formula());
-            let tp = gamma::there(p.to_formula());
+            let hp = p.clone().to_formula().here();
+            let tp = p.to_formula().there();
 
             let variables = hp.free_variables();
 
@@ -70,13 +69,13 @@ impl Task for StrongEquivalenceTask {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
         let mut left = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.left),
-            FormulaRepresentation::TauStar => tau_star(self.left),
+            FormulaRepresentation::Mu => self.left.mu(),
+            FormulaRepresentation::TauStar => self.left.tau_star(),
         };
 
         let mut right = match self.formula_representation {
-            FormulaRepresentation::Mu => mu(self.right),
-            FormulaRepresentation::TauStar => tau_star(self.right),
+            FormulaRepresentation::Mu => self.right.mu(),
+            FormulaRepresentation::TauStar => self.right.tau_star(),
         };
 
         if self.simplify {
@@ -91,8 +90,8 @@ impl Task for StrongEquivalenceTask {
                 .collect();
         }
 
-        left = gamma(left);
-        right = gamma(right);
+        left = left.gamma();
+        right = right.gamma();
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
@@ -107,8 +106,8 @@ impl Task for StrongEquivalenceTask {
         }
 
         if self.break_equivalences {
-            left = crate::breaking::fol::ht::break_equivalences_theory(left);
-            right = crate::breaking::fol::ht::break_equivalences_theory(right);
+            left = crate::breaking::fol::sigma_0::ht::break_equivalences_theory(left);
+            right = crate::breaking::fol::sigma_0::ht::break_equivalences_theory(right);
         }
 
         let mut problems = Vec::new();

@@ -1,7 +1,7 @@
 use {
     crate::{
-        formatting::asp::default::Format,
-        parsing::asp::pest::{
+        formatting::asp::mini_gringo::default::Format,
+        parsing::asp::mini_gringo::pest::{
             AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
             HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
@@ -111,8 +111,8 @@ pub struct Predicate {
 
 impl_node!(Predicate, Format, PredicateParser);
 
-impl From<crate::syntax_tree::fol::Predicate> for Predicate {
-    fn from(value: crate::syntax_tree::fol::Predicate) -> Self {
+impl From<crate::syntax_tree::fol::sigma_0::Predicate> for Predicate {
+    fn from(value: crate::syntax_tree::fol::sigma_0::Predicate) -> Self {
         Predicate {
             symbol: value.symbol,
             arity: value.arity,

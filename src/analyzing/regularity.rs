@@ -1,4 +1,7 @@
-use crate::{syntax_tree::asp::Program, translating::natural::natural};
+use crate::{
+    syntax_tree::asp::mini_gringo::Program,
+    translating::formula_representation::natural::Natural as _,
+};
 
 pub trait Regularity {
     fn is_regular(&self) -> bool;
@@ -6,13 +9,13 @@ pub trait Regularity {
 
 impl Regularity for Program {
     fn is_regular(&self) -> bool {
-        natural(self.clone()).is_some()
+        self.clone().natural().is_some()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use {super::Regularity, crate::syntax_tree::asp::Program, std::str::FromStr};
+    use {super::Regularity, crate::syntax_tree::asp::mini_gringo::Program, std::str::FromStr};
 
     #[test]
     fn test_regularity() {

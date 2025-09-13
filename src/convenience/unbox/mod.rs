@@ -1,6 +1,4 @@
-use crate::syntax_tree::fol::Formula;
-
-use self::fol::UnboxedFormula;
+use {self::fol::sigma_0::UnboxedFormula, crate::syntax_tree::fol::sigma_0::Formula};
 
 pub mod fol;
 

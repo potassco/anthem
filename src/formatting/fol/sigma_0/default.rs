@@ -3,7 +3,7 @@ use {
         formatting::{Associativity, Precedence},
         syntax_tree::{
             Node,
-            fol::{
+            fol::sigma_0::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
                 Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
                 PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
@@ -434,9 +434,9 @@ impl Display for Format<'_, UserGuide> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        formatting::fol::default::Format,
-        syntax_tree::fol::{
+    use {
+        super::Format,
+        crate::syntax_tree::fol::sigma_0::{
             AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
             Direction, Formula, GeneralTerm, Guard, IntegerTerm, PlaceholderDeclaration, Predicate,
             Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
