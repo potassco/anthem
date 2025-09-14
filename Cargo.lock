@@ -69,7 +69,7 @@ dependencies = [
 
 [[package]]
 name = "anthem"
-version = "2.0.0-rc.2"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
