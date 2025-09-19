@@ -15,7 +15,9 @@ use {
             formula_representation::tau_star::TauStar as _,
         },
         verifying::{
-            outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
+            outline::{
+                CheckInternal, GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning,
+            },
             problem::{self, Problem},
             task::Task,
         },
@@ -81,6 +83,46 @@ impl RenamePredicates for fol::Atom {
     }
 }
 
+#[derive(Clone, Debug)]
+struct DefinitionSequenceNode {
+    lhs: fol::Predicate,
+    rhs: IndexSet<fol::Predicate>,
+}
+
+#[derive(Clone, Debug)]
+struct DefinitionSequence {
+    nodes: Vec<DefinitionSequenceNode>,
+    base_predicates: IndexSet<fol::Predicate>,
+}
+
+impl DefinitionSequence {
+    fn previously_defined_predicates(&self, index: usize) -> IndexSet<fol::Predicate> {
+        if index == 0 {
+            self.base_predicates.clone()
+        } else {
+            let parent = self.nodes[index - 1].clone();
+            let mut previous = self.previously_defined_predicates(index - 1);
+            previous.insert(parent.lhs);
+            previous
+        }
+    }
+
+    fn index(&self, p: &fol::Predicate) -> Option<i64> {
+        if self.base_predicates.contains(p) {
+            return Some(-1);
+        }
+
+        for (i, predicate) in self.nodes.iter().enumerate() {
+            if predicate.lhs == *p {
+                let index: i64 = i.try_into().unwrap();
+                return Some(index);
+            }
+        }
+
+        None
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskWarning {
     NonTightProgram(asp::Program),
@@ -117,6 +159,12 @@ impl Display for ExternalEquivalenceTaskWarning {
     }
 }
 
+#[derive(Debug)]
+pub struct InvalidPredicateErrorContent {
+    pub formula: fol::AnnotatedFormula,
+    pub predicate: fol::Predicate,
+}
+
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     UnsupportedFormulaRepresentation,
@@ -127,8 +175,11 @@ pub enum ExternalEquivalenceTaskError {
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
     OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
+    AssumptionContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
+    SpecContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
     AssumptionContainsNonInputSymbols(fol::AnnotatedFormula),
     SpecificationContainsUnsupportedRoles(fol::AnnotatedFormula),
+    SpecificationDefinesOutputPredicates(Vec<fol::Predicate>),
     ProofOutlineError(#[from] ProofOutlineError),
 }
 
@@ -216,8 +267,26 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following assumption contains a predicate that is not an input symbol: {formula}"
                 )
             }
+            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
+                writeln!(
+                    f,
+                    "the following assumption contains a predicate ({predicate}) that is not valid for use within assumptions: {formula}"
+                )
+            }
+            ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
+                writeln!(
+                    f,
+                    "the following spec contains a predicate ({predicate}) that is not valid for use within specs: {formula}"
+                )
+            }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
-                writeln!(f, "the given proof outline contains errors")
+                writeln!(f, "a definition or lemma contains errors")
             }
             ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
                 writeln!(
@@ -231,7 +300,49 @@ impl Display for ExternalEquivalenceTaskError {
                     "the role of the following formula is not supported in specifications: {formula}"
                 )
             }
+            ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(predicates) => {
+                write!(
+                    f,
+                    "the specification defines the following output predicates: "
+                )?;
+
+                let mut iter = predicates.iter().peekable();
+                for predicate in predicates {
+                    write!(f, "{predicate}")?;
+                    if iter.peek().is_some() {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                writeln!(f)
+            }
         }
+    }
+}
+
+// A predicate is valid for use in a (spec or assumption) based on a valid sequence if
+// 1. it occurs in the set of base predicates or
+// 2. it is defined in the sequence and the RHS contains only previously defined predicates and each ancestor is valid.
+fn valid(sequence: &DefinitionSequence, p: fol::Predicate) -> bool {
+    match sequence.index(&p) {
+        Some(index) => {
+            if index == -1 {
+                true
+            } else {
+                let index: usize = index.try_into().unwrap();
+                let node = sequence.nodes[index].clone();
+                let pdp = sequence.previously_defined_predicates(index);
+                if node.rhs.difference(&pdp).next().is_some() {
+                    false
+                } else if index == 0 {
+                    true
+                } else {
+                    let parent = sequence.nodes[index - 1].clone();
+                    valid(sequence, parent.lhs)
+                }
+            }
+        }
+        None => false,
     }
 }
 
@@ -377,18 +488,74 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
-    fn ensure_assumptions_only_contain_input_symbols(
+    fn ensure_assumptions_only_contain_valid_predicates(
         &self,
-        program_input_symbols: &IndexSet<fol::Predicate>,
+        formulas: &Vec<fol::AnnotatedFormula>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let base_predicates = self.user_guide.input_predicates();
+        let sequence =
+            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
+
+        for formula in formulas {
+            if matches!(formula.role, fol::Role::Assumption) {
+                for p in formula.formula.predicates() {
+                    if !valid(&sequence.data, p.clone()) {
+                        return Err(
+                            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(
+                                Box::new(InvalidPredicateErrorContent {
+                                    formula: formula.clone(),
+                                    predicate: p,
+                                }),
+                            ),
+                        );
+                    }
+                }
+            }
+        }
+
+        Ok(WithWarnings::flawless(()).preface_warnings(sequence.warnings))
+    }
+
+    fn ensure_specs_only_contain_valid_predicates(
+        &self,
+        formulas: &Vec<fol::AnnotatedFormula>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        // TODO: should output predicates be allowed in the set of base predicates?
+        // let base_predicates = self.user_guide.public_predicates();
+        let base_predicates = self.user_guide.input_predicates();
+        let sequence =
+            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
+
+        for formula in formulas {
+            if matches!(formula.role, fol::Role::Assumption) {
+                for p in formula.formula.predicates() {
+                    if !valid(&sequence.data, p.clone()) {
+                        return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
+                            Box::new(InvalidPredicateErrorContent {
+                                formula: formula.clone(),
+                                predicate: p,
+                            }),
+                        ));
+                    }
+                }
+            }
+        }
+
+        Ok(WithWarnings::flawless(()).preface_warnings(sequence.warnings))
+    }
+
+    fn ensure_user_guide_assumptions_only_contain_input_symbols(
+        &self,
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
-                let mut input_symbols = program_input_symbols.clone();
-                input_symbols.append(&mut self.user_guide.input_predicates());
-
                 let predicates = formula.formula.predicates();
-                if predicates.difference(&input_symbols).next().is_some() {
+                if predicates
+                    .difference(&self.user_guide.input_predicates())
+                    .next()
+                    .is_some()
+                {
                     return Err(
                         ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
                             formula.clone(),
@@ -429,6 +596,51 @@ impl ExternalEquivalenceTask {
         }
 
         Ok(WithWarnings::flawless(()))
+    }
+
+    fn ensure_valid_definition_sequence(
+        specification: &Vec<fol::AnnotatedFormula>,
+        user_guide: &fol::UserGuide,
+        base_predicates: IndexSet<fol::Predicate>,
+    ) -> Result<DefinitionSequence, ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError>
+    {
+        let mut warnings = Vec::new();
+        let mut nodes = Vec::new();
+
+        let mut taken_predicates = base_predicates.clone();
+        for anf in specification {
+            if matches!(anf.role, fol::Role::Definition) {
+                let predicate = anf.formula.definition(&taken_predicates)?;
+                warnings.extend(predicate.warnings);
+
+                let p = predicate.data;
+                taken_predicates.insert(p.clone());
+
+                let rhs = anf.formula.definition_rhs()?;
+                warnings.extend(rhs.warnings);
+                nodes.push(DefinitionSequenceNode {
+                    lhs: p,
+                    rhs: rhs.data.predicates(),
+                });
+            }
+        }
+
+        // check for no overlap with output predicates
+        let output_predicates = user_guide.output_predicates();
+        let overlap: Vec<_> = taken_predicates
+            .into_iter()
+            .filter(|p| output_predicates.contains(p))
+            .collect();
+        if !overlap.is_empty() {
+            return Err(
+                ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(overlap),
+            );
+        }
+
+        Ok(WithWarnings::flawless(DefinitionSequence {
+            nodes,
+            base_predicates,
+        }))
     }
 }
 
@@ -477,10 +689,7 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
         self.ensure_placeholder_name_uniqueness()?;
-        self.ensure_assumptions_only_contain_input_symbols(
-            &IndexSet::new(),
-            &self.user_guide.formulas(),
-        )?;
+        self.ensure_user_guide_assumptions_only_contain_input_symbols(&self.user_guide.formulas())?;
 
         match self.specification {
             Either::Left(ref program) => {
@@ -495,11 +704,9 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     specification,
                 )?;
-                self.ensure_assumptions_only_contain_input_symbols(
-                    &program_private_predicates,
-                    &specification.formulas,
-                )?;
+                self.ensure_assumptions_only_contain_valid_predicates(&specification.formulas)?;
                 self.ensure_specification_roles_are_supported(&specification.formulas)?;
+                self.ensure_specs_only_contain_valid_predicates(&specification.formulas)?;
             }
         }
 
@@ -682,7 +889,7 @@ impl Task for ValidatedExternalEquivalenceTask {
 
         for formula in self.left {
             match formula.role {
-                Assumption => match formula.direction {
+                Assumption | Definition => match formula.direction {
                     Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
                     Forward => forward_premises.push(formula.into_problem_formula(Axiom)),
                     Backward => warnings.push(
@@ -703,7 +910,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                         }
                     }
                 }
-                Lemma | Definition | InductiveLemma => unreachable!(),
+                Lemma | InductiveLemma => unreachable!(),
             }
         }
 
@@ -854,5 +1061,143 @@ impl Task for AssembledExternalEquivalenceTask {
         }
 
         Ok(WithWarnings::flawless(problems))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{DefinitionSequence, DefinitionSequenceNode, valid},
+        crate::syntax_tree::fol::sigma_0,
+        indexmap::IndexSet,
+    };
+
+    #[test]
+    fn test_valid_case_1() {
+        // input predicates: p
+        // defined predicates: q
+        let p = sigma_0::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = sigma_0::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+
+        // q(X) <-> p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: q.clone(),
+            rhs: IndexSet::from_iter([p.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(valid(&sequence, q));
+    }
+
+    #[test]
+    fn test_valid_case_2() {
+        // input predicates: p
+        // defined predicates: q, r, t
+        let p = sigma_0::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = sigma_0::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+        let r = sigma_0::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+        let t = sigma_0::Predicate {
+            symbol: "t".to_string(),
+            arity: 1,
+        };
+
+        // q(X) <-> p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: q.clone(),
+            rhs: IndexSet::from_iter([p.clone()]),
+        };
+
+        // r(X) <-> q(X)
+        let n2 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        // t(X) <-> p(X) & q(X)
+        let n3 = DefinitionSequenceNode {
+            lhs: t.clone(),
+            rhs: IndexSet::from_iter([p.clone(), q.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1, n2, n3],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(valid(&sequence, q));
+        assert!(valid(&sequence, r));
+        assert!(valid(&sequence, t));
+
+        let x = sigma_0::Predicate {
+            symbol: "x".to_string(),
+            arity: 1,
+        };
+        assert!(!valid(&sequence, x));
+    }
+
+    #[test]
+    fn test_valid_case_3() {
+        // input predicates: p
+        // defined predicates: r, t
+        // missing definitions: q
+        let p = sigma_0::Predicate {
+            symbol: "p".to_string(),
+            arity: 1,
+        };
+        let q = sigma_0::Predicate {
+            symbol: "q".to_string(),
+            arity: 1,
+        };
+        let r = sigma_0::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+        let t = sigma_0::Predicate {
+            symbol: "r".to_string(),
+            arity: 1,
+        };
+
+        // r(X) <-> q(X) & p(X)
+        let n1 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        // t(X) <-> r(X)
+        let n2 = DefinitionSequenceNode {
+            lhs: r.clone(),
+            rhs: IndexSet::from_iter([q.clone()]),
+        };
+
+        let sequence = DefinitionSequence {
+            nodes: vec![n1, n2],
+            base_predicates: IndexSet::from_iter([p.clone()]),
+        };
+
+        assert!(valid(&sequence, p));
+        assert!(!valid(&sequence, q));
+        assert!(!valid(&sequence, r));
+        assert!(!valid(&sequence, t));
     }
 }
