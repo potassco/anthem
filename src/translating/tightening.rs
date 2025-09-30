@@ -160,6 +160,10 @@ mod tests {
                 "p(X,Y) :- q(X,Y). q(X,Y) :- p(X,Y).",
                 "p(X, Y, N + 1) :- q(X, Y, N), N >= 0. q(X, Y, N + 1) :- p(X, Y, N), N >= 0. p(X, X1) :- p(X, X1, N), N >= 0. q(X, X1) :- q(X, X1, N), N >= 0.",
             ),
+            (
+                "{ p(X) } :- q(X). { q(X) } :- p(X). :- p(X), not q(X).",
+                "{ p(X, N + 1) } :- q(X, N), N >= 0. { q(X, N + 1) } :- p(X, N), N >= 0. :- p(X), not q(X). p(X) :- p(X, N), N >= 0. q(X) :- q(X, N), N >= 0.",
+            ),
         ] {
             let program: asp::Program = src.parse().unwrap();
             let left = tightening(program);
