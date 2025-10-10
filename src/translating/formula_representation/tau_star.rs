@@ -1,5 +1,8 @@
 use {
-    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    crate::{
+        convenience::variable_selection::VariableSelection,
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    },
     indexmap::IndexSet,
     lazy_static::lazy_static,
     regex::Regex,
@@ -12,70 +15,52 @@ lazy_static! {
 /// Choose fresh variants of `Vn` by incrementing `n`
 pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
     let mut max_arity = 0;
-    let mut head_arity;
     for rule in program.rules.iter() {
-        head_arity = rule.head.arity();
+        let head_arity = rule.head.arity();
         if head_arity > max_arity {
             max_arity = head_arity;
         }
     }
-    let mut max_taken_var = 0;
-    let taken_vars = program.variables();
-    for var in taken_vars {
-        if let Some(caps) = RE.captures(&var.0) {
-            let taken: usize = (caps["number"]).parse().unwrap_or(0);
-            if taken > max_taken_var {
-                max_taken_var = taken;
-            }
-        }
-    }
-    let mut globals = Vec::<String>::new();
-    for i in 1..max_arity + 1 {
-        let mut v: String = "V".to_owned();
-        let counter: &str = &(max_taken_var + i).to_string();
-        v.push_str(counter);
-        globals.push(v);
-    }
-    globals
+    program.choose_fresh_variables("V", max_arity)
 }
 
-/// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-pub(crate) fn choose_fresh_variable_names(
-    variables: &IndexSet<fol::Variable>,
-    variant: &str,
-    arity: usize,
-) -> Vec<String> {
-    if arity < 1 {
-        return Vec::new();
-    }
+// /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
+// pub(crate) fn choose_fresh_variable_names(
+//     variables: &IndexSet<fol::Variable>,
+//     variant: &str,
+//     arity: usize,
+// ) -> Vec<String> {
+//     if arity < 1 {
+//         return Vec::new();
+//     }
 
-    let mut taken_vars = Vec::<String>::new();
-    for var in variables.iter() {
-        taken_vars.push(var.name.to_string());
-    }
-    let mut fresh_vars = Vec::<String>::new();
-    let arity_bound = match taken_vars.contains(&variant.to_string()) {
-        true => arity + 1,
-        false => {
-            fresh_vars.push(variant.to_string());
-            arity
-        }
-    };
-    for n in 1..arity_bound {
-        let mut candidate: String = variant.to_owned();
-        let number: &str = &n.to_string();
-        candidate.push_str(number);
-        let mut m = n;
-        while taken_vars.contains(&candidate) || fresh_vars.contains(&candidate) {
-            variant.clone_into(&mut candidate);
-            m += 1;
-            let number = &m.to_string();
-            candidate.push_str(number);
-        }
-        fresh_vars.push(candidate.to_string());
-    }
-    fresh_vars
-}
+//     let mut taken_vars = Vec::<String>::new();
+//     for var in variables.iter() {
+//         taken_vars.push(var.name.to_string());
+//     }
+//     let mut fresh_vars = Vec::<String>::new();
+//     let arity_bound = match taken_vars.contains(&variant.to_string()) {
+//         true => arity + 1,
+//         false => {
+//             fresh_vars.push(variant.to_string());
+//             arity
+//         }
+//     };
+//     for n in 1..arity_bound {
+//         let mut candidate: String = variant.to_owned();
+//         let number: &str = &n.to_string();
+//         candidate.push_str(number);
+//         let mut m = n;
+//         while taken_vars.contains(&candidate) || fresh_vars.contains(&candidate) {
+//             variant.clone_into(&mut candidate);
+//             m += 1;
+//             let number = &m.to_string();
+//             candidate.push_str(number);
+//         }
+//         fresh_vars.push(candidate.to_string());
+//     }
+//     fresh_vars
+// }
 
 // Z = t
 fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
@@ -211,12 +196,8 @@ fn construct_partial_function_formula(
     };
 
     // I = J * Q + R
-    let qvar = choose_fresh_variable_names(&taken_vars, "Q", 1)
-        .pop()
-        .unwrap();
-    let rvar = choose_fresh_variable_names(&taken_vars, "R", 1)
-        .pop()
-        .unwrap();
+    let qvar = taken_vars.choose_fresh_variable("Q");
+    let rvar = taken_vars.choose_fresh_variable("R");
     let iequals = fol::Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
         term: fol::GeneralTerm::IntegerTerm(fol::IntegerTerm::Variable(i.clone())),
         guards: vec![fol::Guard {
@@ -417,21 +398,21 @@ fn val(t: asp::Term, z: fol::Variable) -> fol::Formula {
     }
     taken_vars.insert(z.clone());
 
-    let mut fresh_ivar = choose_fresh_variable_names(&taken_vars, "I", 1);
-    let mut fresh_jvar = choose_fresh_variable_names(&taken_vars, "J", 1);
-    let mut fresh_kvar = choose_fresh_variable_names(&taken_vars, "K", 1);
+    let fresh_ivar = taken_vars.choose_fresh_variable("I");
+    let fresh_jvar = taken_vars.choose_fresh_variable("J");
+    let fresh_kvar = taken_vars.choose_fresh_variable("K");
 
     // Fresh integer variables
     let var1 = fol::Variable {
-        name: fresh_ivar.pop().unwrap(),
+        name: fresh_ivar,
         sort: fol::Sort::Integer,
     };
     let var2 = fol::Variable {
-        name: fresh_jvar.pop().unwrap(),
+        name: fresh_jvar,
         sort: fol::Sort::Integer,
     };
     let var3 = fol::Variable {
-        name: fresh_kvar.pop().unwrap(),
+        name: fresh_kvar,
         sort: fol::Sort::Integer,
     };
     match t {
@@ -520,7 +501,7 @@ fn tau_b_first_order_literal(l: asp::Literal, taken_vars: IndexSet<fol::Variable
     let atom = l.atom;
     let terms = atom.terms;
     let arity = terms.len();
-    let varnames = choose_fresh_variable_names(&taken_vars, "Z", arity);
+    let varnames = taken_vars.choose_fresh_variables("Z", arity);
 
     // Compute val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
     let mut var_terms: Vec<fol::GeneralTerm> = Vec::with_capacity(arity);
@@ -630,7 +611,7 @@ fn tau_b_propositional_literal(l: asp::Literal) -> fol::Formula {
 
 // Translate a body comparison
 fn tau_b_comparison(c: asp::Comparison, taken_vars: IndexSet<fol::Variable>) -> fol::Formula {
-    let varnames = choose_fresh_variable_names(&taken_vars, "Z", 2);
+    let varnames = taken_vars.choose_fresh_variables("Z", 2);
 
     // Compute val_t1(Z1) & val_t2(Z2)
     let term_z1 = fol::GeneralTerm::Variable(varnames[0].clone());
