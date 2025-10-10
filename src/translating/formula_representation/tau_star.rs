@@ -1011,7 +1011,19 @@ impl TauStar for Program {
 
 #[cfg(test)]
 mod tests {
-    use super::{tau_b, tau_star, val};
+    use super::{choose_fresh_global_variables, tau_b, tau_star, val};
+
+    #[test]
+    fn test_choose_variables() {
+        for (program, variables) in [
+            ("p(X) :- q(X,Y).", Vec::from_iter(["V1"])),
+            ("p(X,V1) :- q(X,V3).", Vec::from_iter(["V4", "V5"])),
+        ] {
+            let chosen = choose_fresh_global_variables(&program.parse().unwrap());
+            let target: Vec<String> = variables.iter().map(|v| v.to_string()).collect();
+            assert_eq!(chosen, target);
+        }
+    }
 
     #[test]
     fn test_val() {
