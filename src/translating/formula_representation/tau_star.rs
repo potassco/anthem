@@ -4,13 +4,7 @@ use {
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     },
     indexmap::IndexSet,
-    lazy_static::lazy_static,
-    regex::Regex,
 };
-
-lazy_static! {
-    static ref RE: Regex = Regex::new(r"^V(?<number>[0-9]*)$").unwrap();
-}
 
 /// Choose fresh variants of `Vn` by incrementing `n`
 pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
@@ -23,44 +17,6 @@ pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<Strin
     }
     program.choose_fresh_variables("V", max_arity)
 }
-
-// /// Choose `arity` variable names by incrementing `variant`, disjoint from `variables`
-// pub(crate) fn choose_fresh_variable_names(
-//     variables: &IndexSet<fol::Variable>,
-//     variant: &str,
-//     arity: usize,
-// ) -> Vec<String> {
-//     if arity < 1 {
-//         return Vec::new();
-//     }
-
-//     let mut taken_vars = Vec::<String>::new();
-//     for var in variables.iter() {
-//         taken_vars.push(var.name.to_string());
-//     }
-//     let mut fresh_vars = Vec::<String>::new();
-//     let arity_bound = match taken_vars.contains(&variant.to_string()) {
-//         true => arity + 1,
-//         false => {
-//             fresh_vars.push(variant.to_string());
-//             arity
-//         }
-//     };
-//     for n in 1..arity_bound {
-//         let mut candidate: String = variant.to_owned();
-//         let number: &str = &n.to_string();
-//         candidate.push_str(number);
-//         let mut m = n;
-//         while taken_vars.contains(&candidate) || fresh_vars.contains(&candidate) {
-//             variant.clone_into(&mut candidate);
-//             m += 1;
-//             let number = &m.to_string();
-//             candidate.push_str(number);
-//         }
-//         fresh_vars.push(candidate.to_string());
-//     }
-//     fresh_vars
-// }
 
 // Z = t
 fn construct_equality_formula(term: asp::Term, z: fol::Variable) -> fol::Formula {
@@ -904,7 +860,19 @@ impl TauStar for asp::Program {
 
 #[cfg(test)]
 mod tests {
-    use super::{tau_b, tau_star, val};
+    use super::{choose_fresh_global_variables, tau_b, tau_star, val};
+
+    #[test]
+    fn test_choose_variables() {
+        for (program, variables) in [
+            ("p(X) :- q(X,Y).", Vec::from_iter(["V1"])),
+            ("p(X,V1) :- q(X,V3).", Vec::from_iter(["V4", "V5"])),
+        ] {
+            let chosen = choose_fresh_global_variables(&program.parse().unwrap());
+            let target: Vec<String> = variables.iter().map(|v| v.to_string()).collect();
+            assert_eq!(chosen, target);
+        }
+    }
 
     #[test]
     fn test_val() {

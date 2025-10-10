@@ -103,9 +103,26 @@ impl VariableSelection for mini_gringo::Program {
                 }
             }
         }
-        let variables = (max_taken_var + 1..max_taken_var + n)
+        ((max_taken_var + 1)..(max_taken_var + n + 1))
             .map(|i| format!("{variant}{i}"))
-            .collect();
-        variables
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{convenience::variable_selection::VariableSelection, syntax_tree::asp};
+
+    #[test]
+    fn test_choose_variables_program() {
+        for (program, arity, variables) in [
+            ("p(X) :- q(X,Y).", 1, Vec::from_iter(["V1"])),
+            ("p(X,V1) :- q(X,V3).", 2, Vec::from_iter(["V4", "V5"])),
+        ] {
+            let program: asp::mini_gringo::Program = program.parse().unwrap();
+            let chosen = program.choose_fresh_variables("V", arity);
+            let target: Vec<String> = variables.iter().map(|v| v.to_string()).collect();
+            assert_eq!(chosen, target);
+        }
     }
 }
