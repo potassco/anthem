@@ -754,6 +754,7 @@ fn tau_b_literal(l: asp::Literal, taken_vars: IndexSet<Variable>, dialect: Diale
     let terms = atom.terms;
     let arity = terms.len();
     let varnames = taken_vars.choose_fresh_variables("Z", arity);
+    let varnames = taken_vars.choose_fresh_variables("Z", arity);
 
     // val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
     let vars: Vec<Variable> = varnames
