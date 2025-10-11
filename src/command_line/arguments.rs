@@ -166,6 +166,7 @@ pub enum Translation {
     Gamma,
     Mu,
     Natural,
+    OrderedCompletion,
     TauStar,
 }
 

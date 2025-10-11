@@ -97,7 +97,7 @@ pub(crate) fn has_head_mismatches(definitions: &Definitions) -> bool {
     false
 }
 
-fn atomic_formula_from(predicate: &fol::Predicate) -> fol::AtomicFormula {
+pub(crate) fn atomic_formula_from(predicate: &fol::Predicate) -> fol::AtomicFormula {
     // Make 'V' off-limits for consistency with global variable selection strategy
     let taken_variables = IndexSet::from_iter(vec![fol::Variable {
         name: "V".to_string(),
@@ -154,7 +154,7 @@ pub(crate) fn components(theory: fol::Theory) -> Option<(Definitions, Constraint
     Some((definitions, constraints))
 }
 
-type Definitions = IndexMap<fol::AtomicFormula, Vec<fol::Formula>>;
+pub(crate) type Definitions = IndexMap<fol::AtomicFormula, Vec<fol::Formula>>;
 type Constraints = Vec<fol::Formula>;
 
 fn split(formula: fol::Formula) -> Option<Component> {
