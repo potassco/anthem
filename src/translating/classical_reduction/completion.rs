@@ -1,8 +1,10 @@
 use {
     crate::{
-        convenience::unbox::{Unbox, fol::sigma_0::UnboxedFormula},
+        convenience::{
+            unbox::{Unbox, fol::sigma_0::UnboxedFormula},
+            variable_selection::VariableSelection,
+        },
         syntax_tree::fol::sigma_0 as fol,
-        translating::formula_representation::tau_star::choose_fresh_variable_names,
     },
     indexmap::{IndexMap, IndexSet, map::Entry},
     itertools::Itertools,
@@ -103,7 +105,7 @@ fn atomic_formula_from(predicate: &fol::Predicate) -> fol::AtomicFormula {
         name: "V".to_string(),
         sort: fol::Sort::General,
     }]);
-    let variables = choose_fresh_variable_names(&taken_variables, "V", predicate.arity);
+    let variables = taken_variables.choose_fresh_variables("V", predicate.arity);
     let terms = variables
         .into_iter()
         .map(fol::GeneralTerm::Variable)
