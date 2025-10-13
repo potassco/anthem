@@ -68,7 +68,7 @@ impl VariableSelection for IndexSet<fol::Variable> {
 impl VariableSelection for IndexSet<mini_gringo::Variable> {
     fn choose_fresh_variable(&self, variant: &str) -> String {
         let prefix = variant.to_string();
-        sequence(1, &prefix)
+        sequence(0, &prefix)
             .find(|candidate| !self.contains(&mini_gringo::Variable(candidate.to_string())))
             .unwrap()
     }

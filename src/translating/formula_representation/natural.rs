@@ -944,11 +944,11 @@ mod tests {
             ), // example from paper [1]
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z).",
-                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N1$i N2$i (1 <= N1$i <= X$i and (1 <= N2$i <= Y$i) -> q(N1$i, N2$i)))",
+                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))",
             ), //( example from paper [1]
             (
                 "{q(1..X, Y)} :- p(X,Y).",
-                "forall X$i Y (p(X$i, Y) -> forall N1$i (1 <= N1$i <= X$i -> q(N1$i, Y) or not q(N1$i, Y)))",
+                "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))",
             ), // example from paper [1]
             (
                 "p(X,Y) :- X = 1..2, Y = 1..2.",
@@ -960,7 +960,7 @@ mod tests {
             ), // example (7) from paper [2]
             (
                 "{h(1..10,1..10-2)}.",
-                "#true -> forall N1$ N2$ ( 1 <= N1$ <= 10 and (1 <= N2$ <= 10-2) -> (h(N1$, N2$) or not h(N1$, N2$)))",
+                "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))",
             ), // Inspired by Tiling example
             (
                 "{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
@@ -1006,14 +1006,14 @@ mod tests {
             ("p(a)", vec![], vec![], Some("p(a)")),
             ("p(X)", vec![], vec![], Some("p(X)")),
             ("p(X)", vec!["X"], vec![], Some("p(X$i)")),
-            ("p(1..4)", vec![], vec!["N1"], Some("p(N1$i)")),
+            ("p(1..4)", vec![], vec!["N0"], Some("p(N0$i)")),
             ("p(1/5)", vec![], vec![], None),
-            ("p(1..Y, X)", vec!["Y"], vec!["N1"], Some("p(N1$i, X)")),
+            ("p(1..Y, X)", vec!["Y"], vec!["N0"], Some("p(N0$i, X)")),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                vec!["N1"],
-                Some("p(N1$i, X$i)"),
+                vec!["N0"],
+                Some("p(N0$i, X$i)"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
@@ -1131,7 +1131,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) ->q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1140,7 +1140,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) ->q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
@@ -1154,8 +1154,8 @@ mod tests {
                     assert_eq!(
                         natural_head.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_basic_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
-                        natural_head,
+                        "assertion `natural_basic_head({atom}) == target` failed:\n natural_head:\n{}\n target:\n{}",
+                        natural_head.clone().unwrap(),
                         &target_formula
                     );
                 }
@@ -1201,7 +1201,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) -> q(N0$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1210,7 +1210,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) -> q(N0$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
@@ -1224,9 +1224,9 @@ mod tests {
                     assert_eq!(
                         natural_head.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_choice_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
-                        natural_head,
-                        &target_formula
+                        "assertion `natural_choice_head({atom}) == target` failed:\n natural_head:\n{}\n target:\n{}",
+                        natural_head.clone().unwrap(),
+                        target_formula
                     );
                 }
                 None => {
@@ -1267,8 +1267,8 @@ mod tests {
                     assert_eq!(
                         body.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_b_atom({atom}) == target` failed:\n body:\n{:?}\n target:\n{:?}",
-                        body,
+                        "assertion `natural_b_atom({atom}) == target` failed:\n body:\n{}\n target:\n{}",
+                        body.clone().unwrap(),
                         &target_formula
                     );
                 }
