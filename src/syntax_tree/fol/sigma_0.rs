@@ -1,6 +1,6 @@
 use {
     crate::{
-        convenience::apply::Apply as _,
+        convenience::{apply::Apply as _, variable_selection::VariableSelection},
         formatting::fol::sigma_0::default::Format,
         parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
@@ -657,15 +657,6 @@ pub struct Variable {
 
 impl_node!(Variable, Format, VariableParser);
 
-impl Variable {
-    fn sequence(prefix: &Variable) -> impl Iterator<Item = Self> {
-        (1..).map(|i| Variable {
-            name: format!("{}{}", prefix.name, i),
-            sort: prefix.sort,
-        })
-    }
-}
-
 impl TryFrom<GeneralTerm> for Variable {
     type Error = GeneralTerm;
 
@@ -873,15 +864,15 @@ impl Formula {
 
                 let term_variables = term.variables();
                 let formula_variables = formula.free_variables();
+                let taken_variables: IndexSet<Variable> =
+                    term_variables.union(&formula_variables).cloned().collect();
 
                 for variable in quantification.variables {
                     if term_variables.contains(&variable) {
-                        let fresh_variable = Variable::sequence(&variable)
-                            .find(|candidate| {
-                                !term_variables.contains(candidate)
-                                    && !formula_variables.contains(candidate)
-                            })
-                            .unwrap();
+                        let fresh_variable = Variable {
+                            name: taken_variables.choose_fresh_variable(&variable.name),
+                            sort: variable.sort,
+                        };
 
                         formula = formula.substitute(variable, fresh_variable.clone().into());
                         variables.push(fresh_variable);

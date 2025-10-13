@@ -867,6 +867,10 @@ mod tests {
         for (program, variables) in [
             ("p(X) :- q(X,Y).", Vec::from_iter(["V1"])),
             ("p(X,V1) :- q(X,V3).", Vec::from_iter(["V4", "V5"])),
+            (
+                "p(V2) :- q(X,Y). q(X,Y,Z) :- X = Y, Y = Z.",
+                Vec::from_iter(["V3", "V4", "V5"]),
+            ),
         ] {
             let chosen = choose_fresh_global_variables(&program.parse().unwrap());
             let target: Vec<String> = variables.iter().map(|v| v.to_string()).collect();

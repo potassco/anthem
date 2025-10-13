@@ -111,7 +111,25 @@ impl VariableSelection for mini_gringo::Program {
 
 #[cfg(test)]
 mod tests {
-    use crate::{convenience::variable_selection::VariableSelection, syntax_tree::asp};
+    use indexmap::IndexSet;
+
+    use crate::{
+        convenience::variable_selection::VariableSelection,
+        syntax_tree::{asp, fol::sigma_0 as fol},
+    };
+
+    #[test]
+    fn test_choose_variables_indexset_fol() {
+        let taken_vars: IndexSet<fol::Variable> =
+            IndexSet::from_iter(["I", "J", "J1", "V1"].iter().map(|name| fol::Variable {
+                name: name.to_string(),
+                sort: fol::Sort::General,
+            }));
+
+        assert_eq!(taken_vars.choose_fresh_variable("I"), "I1".to_string());
+        assert_eq!(taken_vars.choose_fresh_variable("J"), "J2".to_string());
+        assert_eq!(taken_vars.choose_fresh_variable("V"), "V".to_string());
+    }
 
     #[test]
     fn test_choose_variables_program() {

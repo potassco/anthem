@@ -5,7 +5,10 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    crate::{
+        convenience::variable_selection::VariableSelection,
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    },
     indexmap::IndexSet,
 };
 
@@ -253,33 +256,15 @@ fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Opti
 }
 
 fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
-    let mut fresh_vars = Vec::<String>::new();
-    let taken_vars = a.variables();
-    let terms = &a.terms;
-    for (i, term) in terms.iter().enumerate() {
+    let mut fresh_vars = Vec::new();
+    let mut taken_vars = a.variables();
+    for term in a.terms.iter() {
         if !is_term_regular_of_first_kind(term) {
-            // create a new variable with N_i if not of first kind
-            let var_name = format!("N{i}");
-            // check if var_name is already taken
-            if !taken_vars.contains(&asp::Variable(var_name.clone())) {
-                // add var_name to fresh_vars
-                fresh_vars.push(var_name);
-            } else {
-                // var is taken already
-                // add a new variable with name N_i_j to fresh_vars
-                let mut j = 0;
-                loop {
-                    let var_name = format!("N{i}_{j}");
-                    if !taken_vars.contains(&asp::Variable(var_name.clone())) {
-                        fresh_vars.push(var_name);
-                        break;
-                    }
-                    j += 1;
-                }
-            }
+            let fresh_var = taken_vars.choose_fresh_variable("N");
+            fresh_vars.push(fresh_var.clone());
+            taken_vars.insert(asp::Variable(fresh_var));
         }
     }
-
     fresh_vars
 }
 
@@ -950,7 +935,7 @@ mod tests {
             ("{p(X)} :- X = 3.", "forall X (X = 3 -> p(X) or not p(X))"),
             (
                 "p(1..2, N0).",
-                "forall N0 (#true -> forall N0_0$i (1 <= N0_0$i <= 2-> p(N0_0$i, N0)))",
+                "forall N0 (#true -> forall N1$i (1 <= N1$i <= 2-> p(N1$i, N0)))",
             ),
             ("q(X+1) :- p(X).", "forall X$i (p(X$i) -> q(X$i + 1))"), // example (1) from paper [1]
             (
@@ -959,11 +944,11 @@ mod tests {
             ), // example from paper [1]
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z).",
-                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))",
+                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N1$i N2$i (1 <= N1$i <= X$i and (1 <= N2$i <= Y$i) -> q(N1$i, N2$i)))",
             ), //( example from paper [1]
             (
                 "{q(1..X, Y)} :- p(X,Y).",
-                "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))",
+                "forall X$i Y (p(X$i, Y) -> forall N1$i (1 <= N1$i <= X$i -> q(N1$i, Y) or not q(N1$i, Y)))",
             ), // example from paper [1]
             (
                 "p(X,Y) :- X = 1..2, Y = 1..2.",
@@ -975,7 +960,7 @@ mod tests {
             ), // example (7) from paper [2]
             (
                 "{h(1..10,1..10-2)}.",
-                "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))",
+                "#true -> forall N1$ N2$ ( 1 <= N1$ <= 10 and (1 <= N2$ <= 10-2) -> (h(N1$, N2$) or not h(N1$, N2$)))",
             ), // Inspired by Tiling example
             (
                 "{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
@@ -1021,14 +1006,14 @@ mod tests {
             ("p(a)", vec![], vec![], Some("p(a)")),
             ("p(X)", vec![], vec![], Some("p(X)")),
             ("p(X)", vec!["X"], vec![], Some("p(X$i)")),
-            ("p(1..4)", vec![], vec!["N0"], Some("p(N0$i)")),
+            ("p(1..4)", vec![], vec!["N1"], Some("p(N1$i)")),
             ("p(1/5)", vec![], vec![], None),
-            ("p(1..Y, X)", vec!["Y"], vec!["N0"], Some("p(N0$i, X)")),
+            ("p(1..Y, X)", vec!["Y"], vec!["N1"], Some("p(N1$i, X)")),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                vec!["N0"],
-                Some("p(N0$i, X$i)"),
+                vec!["N1"],
+                Some("p(N1$i, X$i)"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
