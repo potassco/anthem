@@ -21,40 +21,45 @@ fn tighten_rule(rule: Rule) -> Rule {
     // get a new variable new_var
     let new_var: Variable = rule.choose_fresh_variables("N", 1).first().unwrap().clone();
 
-    match rule.head.clone() {
-        Head::Basic(a) | Head::Choice(a) => {
-            let mut terms = a.terms;
-
-            // build the term new_var + 1
-            let new_var_successor = Term::BinaryOperation {
-                op: BinaryOperator::Add,
-                lhs: Term::Variable(new_var.clone()).into(),
-                rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
-            };
-            // add this term to the terms of the head predicate
-            terms.push(new_var_successor);
-
-            // head predicate is the same, only new_var + 1 is added as a new term
-            let head = match rule.head {
-                Head::Basic(_) => Head::Basic(Atom {
-                    predicate_symbol: a.predicate_symbol,
-                    terms,
-                }),
-                Head::Choice(_) => Head::Choice(Atom {
-                    predicate_symbol: a.predicate_symbol,
-                    terms,
-                }),
-                Head::Falsity => unreachable!(),
-            };
-
-            // tighten the rule body
-            let body = tighten_body(rule.body, new_var);
-
-            Rule { head, body }
-        }
-        // constraints are not changed by tightening
+    match rule.head {
         Head::Falsity => rule,
+        Head::Basic(a) => Rule {
+            head: tighten_head_atom(a, new_var.clone()),
+            body: tighten_body(rule.body, new_var),
+        },
+        Head::Choice(a) => {
+            let mut body = tighten_body(rule.body, new_var.clone());
+
+            // add original head atom double negated to the body
+            body.formulas.push(AtomicFormula::Literal(Literal {
+                sign: Sign::DoubleNegation,
+                atom: a.clone(),
+            }));
+
+            Rule {
+                head: tighten_head_atom(a, new_var),
+                body,
+            }
+        }
     }
+}
+
+fn tighten_head_atom(atom: Atom, new_var: Variable) -> Head {
+    let mut terms = atom.terms;
+
+    // build the term new_var + 1
+    let new_var_successor = Term::BinaryOperation {
+        op: BinaryOperator::Add,
+        lhs: Term::Variable(new_var).into(),
+        rhs: Term::PrecomputedTerm(PrecomputedTerm::Numeral(1)).into(),
+    };
+    // add this term to the terms of the head predicate
+    terms.push(new_var_successor);
+
+    Head::Basic(Atom {
+        predicate_symbol: atom.predicate_symbol,
+        terms,
+    })
 }
 
 fn tighten_body(body: Body, new_var: Variable) -> Body {
@@ -162,7 +167,7 @@ mod tests {
             ),
             (
                 "{ p(X) } :- q(X). { q(X) } :- p(X). :- p(X), not q(X).",
-                "{ p(X, N + 1) } :- q(X, N), N >= 0. { q(X, N + 1) } :- p(X, N), N >= 0. :- p(X), not q(X). p(X) :- p(X, N), N >= 0. q(X) :- q(X, N), N >= 0.",
+                "p(X, N + 1) :- q(X, N), N >= 0, not not p(X). q(X, N + 1) :- p(X, N), N >= 0, not not q(X). :- p(X), not q(X). p(X) :- p(X, N), N >= 0. q(X) :- q(X, N), N >= 0.",
             ),
         ] {
             let program: asp::Program = src.parse().unwrap();
