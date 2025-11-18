@@ -51,6 +51,10 @@ pub enum IntegerTerm {
         lhs: Box<IntegerTerm>,
         rhs: Box<IntegerTerm>,
     },
+    FunctionApplication {
+        function: String,
+        arguments: Vec<GeneralTerm>,
+    },
 }
 
 impl_node!(IntegerTerm, Format, IntegerTermParser);
@@ -69,6 +73,10 @@ impl IntegerTerm {
                 vars.extend(rhs.variables());
                 vars
             }
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
@@ -85,6 +93,10 @@ impl IntegerTerm {
                 constants.extend(rhs.function_constants());
                 constants
             }
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
@@ -103,6 +115,10 @@ impl IntegerTerm {
                 lhs: lhs.substitute(var.clone(), term.clone()).into(),
                 rhs: rhs.substitute(var, term).into(),
             },
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 }
@@ -112,6 +128,10 @@ pub enum SymbolicTerm {
     Symbol(String),
     FunctionConstant(String),
     Variable(String),
+    FunctionApplication {
+        function: String,
+        arguments: Vec<GeneralTerm>,
+    },
 }
 
 impl_node!(SymbolicTerm, Format, SymbolicTermParser);
@@ -124,6 +144,10 @@ impl SymbolicTerm {
                 name: v.to_string(),
                 sort: Sort::Symbol,
             }]),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
@@ -131,6 +155,10 @@ impl SymbolicTerm {
         match &self {
             SymbolicTerm::Symbol(s) => IndexSet::from([s.clone()]),
             SymbolicTerm::FunctionConstant(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
@@ -141,12 +169,20 @@ impl SymbolicTerm {
                 sort: Sort::Symbol,
             }]),
             SymbolicTerm::Symbol(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
     pub fn substitute(self, var: Variable, term: SymbolicTerm) -> Self {
         match self {
             SymbolicTerm::Variable(s) if var.name == s && var.sort == Sort::Symbol => term,
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
             _ => self,
         }
     }
@@ -160,6 +196,10 @@ pub enum GeneralTerm {
     Variable(String),
     IntegerTerm(IntegerTerm),
     SymbolicTerm(SymbolicTerm),
+    FunctionApplication {
+        function: String,
+        arguments: Vec<GeneralTerm>,
+    },
 }
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
@@ -176,12 +216,20 @@ impl GeneralTerm {
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
             GeneralTerm::SymbolicTerm(t) => t.variables(),
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
     pub fn symbols(&self) -> IndexSet<String> {
         match &self {
             GeneralTerm::SymbolicTerm(t) => t.symbols(),
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
             _ => IndexSet::new(),
         }
     }
@@ -197,6 +245,10 @@ impl GeneralTerm {
             GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Variable(_) => {
                 IndexSet::new()
             }
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 
@@ -217,6 +269,10 @@ impl GeneralTerm {
                     "cannot substitute general term `{term}` for the symbolic variable `{var}`"
                 ),
             },
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
             t => t,
         }
     }
@@ -235,6 +291,10 @@ impl GeneralTerm {
                     GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s))
                 }
             }
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
             x => x,
         }
     }
@@ -254,6 +314,10 @@ impl GeneralTerm {
                     GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s))
                 }
             }
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
             x => x,
         }
     }
