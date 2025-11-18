@@ -47,7 +47,8 @@ impl Precedence for Format<'_, IntegerTerm> {
             }
             | IntegerTerm::Numeral(_)
             | IntegerTerm::FunctionConstant(_)
-            | IntegerTerm::Variable(_) => 0,
+            | IntegerTerm::Variable(_)
+            | IntegerTerm::FunctionApplication { .. } => 0,
             IntegerTerm::BinaryOperation {
                 op: BinaryOperator::Multiply,
                 ..
@@ -69,7 +70,8 @@ impl Precedence for Format<'_, IntegerTerm> {
             IntegerTerm::BinaryOperation { op, .. } => write!(f, " {} ", Format(op)),
             IntegerTerm::Numeral(_)
             | IntegerTerm::Variable(_)
-            | IntegerTerm::FunctionConstant(_) => unreachable!(),
+            | IntegerTerm::FunctionConstant(_)
+            | IntegerTerm::FunctionApplication { .. } => unreachable!(),
         }
     }
 }
@@ -84,6 +86,19 @@ impl Display for Format<'_, IntegerTerm> {
             IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
                 self.fmt_binary(Format(lhs.as_ref()), Format(rhs.as_ref()), f)
             }
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                write!(f, "{function}$i(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
@@ -94,6 +109,19 @@ impl Display for Format<'_, SymbolicTerm> {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
             SymbolicTerm::FunctionConstant(c) => write!(f, "{c}$s"),
             SymbolicTerm::Variable(v) => write!(f, "{v}$s"),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                write!(f, "{function}$s(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
@@ -107,6 +135,19 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Variable(v) => write!(f, "{v}"),
             GeneralTerm::IntegerTerm(t) => Format(t).fmt(f),
             GeneralTerm::SymbolicTerm(t) => Format(t).fmt(f),
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                write!(f, "{function}(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
@@ -522,6 +563,17 @@ mod tests {
             Format(&IntegerTerm::Variable("A".into())).to_string(),
             "A$i"
         );
+        assert_eq!(
+            Format(&IntegerTerm::FunctionApplication {
+                function: "f".to_string(),
+                arguments: vec![
+                    GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".to_string()))
+                ]
+            })
+            .to_string(),
+            "f$i(1,a)"
+        );
     }
 
     #[test]
@@ -547,6 +599,42 @@ mod tests {
             }))
             .to_string(),
             "1 * 5"
+        );
+        assert_eq!(
+            Format(&GeneralTerm::FunctionApplication {
+                function: "f".to_string(),
+                arguments: vec![
+                    GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1)),
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".to_string()))
+                ]
+            })
+            .to_string(),
+            "f(1,a)"
+        );
+        assert_eq!(
+            Format(&GeneralTerm::FunctionApplication {
+                function: "f".to_string(),
+                arguments: vec![
+                    GeneralTerm::FunctionApplication {
+                        function: "f".to_string(),
+                        arguments: vec![GeneralTerm::IntegerTerm(IntegerTerm::Variable(
+                            "X".to_string()
+                        ))]
+                    },
+                    GeneralTerm::IntegerTerm(IntegerTerm::FunctionApplication {
+                        function: "g".to_string(),
+                        arguments: vec![GeneralTerm::IntegerTerm(IntegerTerm::Numeral(3))]
+                    }),
+                    GeneralTerm::SymbolicTerm(SymbolicTerm::FunctionApplication {
+                        function: "h".to_string(),
+                        arguments: vec![GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(
+                            "a".to_string()
+                        ))]
+                    })
+                ]
+            })
+            .to_string(),
+            "f(f(X$i),g$i(3),h$s(a))"
         );
     }
 

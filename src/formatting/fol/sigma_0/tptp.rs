@@ -59,6 +59,10 @@ impl Display for Format<'_, IntegerTerm> {
                 let rhs = Format(rhs.as_ref());
                 write!(f, "{op}({lhs}, {rhs})")
             }
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 }
@@ -69,6 +73,10 @@ impl Display for Format<'_, SymbolicTerm> {
             SymbolicTerm::Symbol(s) => write!(f, "{s}"),
             SymbolicTerm::FunctionConstant(c) => write!(f, "{c}_s"),
             SymbolicTerm::Variable(v) => write!(f, "{v}_s"),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 }
@@ -82,6 +90,10 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::Variable(v) => write!(f, "{v}_g"),
             GeneralTerm::IntegerTerm(t) => write!(f, "f__integer__({})", Format(t)),
             GeneralTerm::SymbolicTerm(t) => write!(f, "f__symbolic__({})", Format(t)),
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => todo!(),
         }
     }
 }
