@@ -73,10 +73,13 @@ impl IntegerTerm {
                 vars.extend(rhs.variables());
                 vars
             }
-            IntegerTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            IntegerTerm::FunctionApplication { arguments, .. } => {
+                let mut vars = IndexSet::new();
+                for argument in arguments {
+                    vars.extend(argument.variables());
+                }
+                vars
+            }
         }
     }
 
@@ -93,10 +96,13 @@ impl IntegerTerm {
                 constants.extend(rhs.function_constants());
                 constants
             }
-            IntegerTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            IntegerTerm::FunctionApplication { arguments, .. } => {
+                let mut constants = IndexSet::new();
+                for argument in arguments {
+                    constants.extend(argument.function_constants());
+                }
+                constants
+            }
         }
     }
 
@@ -115,10 +121,17 @@ impl IntegerTerm {
                 lhs: lhs.substitute(var.clone(), term.clone()).into(),
                 rhs: rhs.substitute(var, term).into(),
             },
+            // TODO: check if this is correct
             IntegerTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => IntegerTerm::FunctionApplication {
+                function,
+                arguments: arguments
+                    .into_iter()
+                    .map(|arg| arg.substitute(var.clone(), GeneralTerm::IntegerTerm(term.clone())))
+                    .collect(),
+            },
         }
     }
 }
@@ -144,10 +157,13 @@ impl SymbolicTerm {
                 name: v.to_string(),
                 sort: Sort::Symbol,
             }]),
-            SymbolicTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            SymbolicTerm::FunctionApplication { arguments, .. } => {
+                let mut vars = IndexSet::new();
+                for argument in arguments {
+                    vars.extend(argument.variables());
+                }
+                vars
+            }
         }
     }
 
@@ -155,10 +171,13 @@ impl SymbolicTerm {
         match &self {
             SymbolicTerm::Symbol(s) => IndexSet::from([s.clone()]),
             SymbolicTerm::FunctionConstant(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
-            SymbolicTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            SymbolicTerm::FunctionApplication { arguments, .. } => {
+                let mut symbs = IndexSet::new();
+                for argument in arguments {
+                    symbs.extend(argument.symbols());
+                }
+                symbs
+            }
         }
     }
 
@@ -169,10 +188,13 @@ impl SymbolicTerm {
                 sort: Sort::Symbol,
             }]),
             SymbolicTerm::Symbol(_) | SymbolicTerm::Variable(_) => IndexSet::new(),
-            SymbolicTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            SymbolicTerm::FunctionApplication { arguments, .. } => {
+                let mut constants = IndexSet::new();
+                for argument in arguments {
+                    constants.extend(argument.function_constants());
+                }
+                constants
+            }
         }
     }
 
@@ -182,7 +204,13 @@ impl SymbolicTerm {
             SymbolicTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => SymbolicTerm::FunctionApplication {
+                function,
+                arguments: arguments
+                    .into_iter()
+                    .map(|arg| arg.substitute(var.clone(), GeneralTerm::SymbolicTerm(term.clone())))
+                    .collect(),
+            },
             _ => self,
         }
     }
@@ -216,20 +244,26 @@ impl GeneralTerm {
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
             GeneralTerm::SymbolicTerm(t) => t.variables(),
-            GeneralTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            GeneralTerm::FunctionApplication { arguments, .. } => {
+                let mut vars = IndexSet::new();
+                for argument in arguments {
+                    vars.extend(argument.variables());
+                }
+                vars
+            }
         }
     }
 
     pub fn symbols(&self) -> IndexSet<String> {
         match &self {
             GeneralTerm::SymbolicTerm(t) => t.symbols(),
-            GeneralTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            GeneralTerm::FunctionApplication { arguments, .. } => {
+                let mut symbs = IndexSet::new();
+                for argument in arguments {
+                    symbs.extend(argument.symbols());
+                }
+                symbs
+            }
             _ => IndexSet::new(),
         }
     }
@@ -245,10 +279,13 @@ impl GeneralTerm {
             GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Variable(_) => {
                 IndexSet::new()
             }
-            GeneralTerm::FunctionApplication {
-                function,
-                arguments,
-            } => todo!(),
+            GeneralTerm::FunctionApplication { arguments, .. } => {
+                let mut constants = IndexSet::new();
+                for argument in arguments {
+                    constants.extend(argument.function_constants());
+                }
+                constants
+            }
         }
     }
 
@@ -272,7 +309,13 @@ impl GeneralTerm {
             GeneralTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => GeneralTerm::FunctionApplication {
+                function,
+                arguments: arguments
+                    .into_iter()
+                    .map(|arg| arg.substitute(var.clone(), term.clone()))
+                    .collect(),
+            },
             t => t,
         }
     }
@@ -294,7 +337,13 @@ impl GeneralTerm {
             GeneralTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => GeneralTerm::FunctionApplication {
+                function,
+                arguments: arguments
+                    .into_iter()
+                    .map(|arg| arg.rename_conflicting_symbols(possible_conflicts))
+                    .collect(),
+            },
             x => x,
         }
     }
@@ -317,7 +366,13 @@ impl GeneralTerm {
             GeneralTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => GeneralTerm::FunctionApplication {
+                function,
+                arguments: arguments
+                    .into_iter()
+                    .map(|arg| arg.replace_placeholders(mapping))
+                    .collect(),
+            },
             x => x,
         }
     }
