@@ -488,9 +488,10 @@ mod tests {
         super::Format,
         crate::syntax_tree::fol::sigma_0::{
             AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
-            Direction, Formula, GeneralTerm, Guard, IntegerTerm, PlaceholderDeclaration, Predicate,
-            Quantification, Quantifier, Relation, Role, Sort, Specification, SymbolicTerm, Theory,
-            UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry, Variable,
+            Direction, Formula, Function, GeneralTerm, Guard, IntegerTerm, PlaceholderDeclaration,
+            Predicate, Quantification, Quantifier, Relation, Role, Sort, Specification,
+            SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide, UserGuideEntry,
+            Variable,
         },
     };
 
@@ -644,6 +645,37 @@ mod tests {
             })
             .to_string(),
             "f(f(X$i),g$i(3),h$s(a))"
+        );
+    }
+
+    #[test]
+    fn format_function() {
+        assert_eq!(
+            Format(&Function {
+                symbol: "f".to_string(),
+                arity: 2,
+                sort: Sort::General,
+            })
+            .to_string(),
+            "f/2: g"
+        );
+        assert_eq!(
+            Format(&Function {
+                symbol: "f".to_string(),
+                arity: 1,
+                sort: Sort::Integer,
+            })
+            .to_string(),
+            "f/1: i"
+        );
+        assert_eq!(
+            Format(&Function {
+                symbol: "f".to_string(),
+                arity: 3,
+                sort: Sort::Symbol,
+            })
+            .to_string(),
+            "f/3: s"
         );
     }
 
