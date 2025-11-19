@@ -5,10 +5,10 @@ use {
             Node,
             fol::sigma_0::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
-                Comparison, Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
-                PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
-                Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
-                UserGuide, UserGuideEntry, Variable,
+                Comparison, Direction, Formula, Function, FunctionConstant, GeneralTerm, Guard,
+                IntegerTerm, PlaceholderDeclaration, Predicate, Quantification, Quantifier,
+                Relation, Role, Sort, Specification, SymbolicTerm, Theory, UnaryConnective,
+                UnaryOperator, UserGuide, UserGuideEntry, Variable,
             },
         },
     },
@@ -149,6 +149,15 @@ impl Display for Format<'_, GeneralTerm> {
                 write!(f, ")")
             }
         }
+    }
+}
+
+impl Display for Format<'_, Function> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let symbol = &self.0.symbol;
+        let sort = &self.0.sort;
+        let arity = &self.0.arity;
+        write!(f, "{symbol}/{arity}: {sort}")
     }
 }
 

@@ -49,6 +49,10 @@ function_constant_eoi = _{ function_constant ~ EOI }
 variable = { integer_variable | symbolic_variable | general_variable }
 variable_eoi = _{ variable ~ EOI }
 
+function = { function_symbol ~ "/" ~ arity ~ ":" ~ sort }
+function_eoi = _{ function ~ EOI }
+    function_symbol = _{ symbolic_constant }
+
 predicate = { predicate_symbol ~ "/" ~ arity }
 predicate_eoi = _{ predicate ~ EOI }
     predicate_symbol  = _{ symbolic_constant }

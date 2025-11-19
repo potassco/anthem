@@ -5,11 +5,11 @@ use {
         parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
-            FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PlaceholderDeclarationParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, RoleParser, SortParser, SpecificationParser, SymbolicTermParser,
-            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser,
-            UserGuideParser, VariableParser,
+            FunctionConstantParser, FunctionParser, GeneralTermParser, GuardParser,
+            IntegerTermParser, PlaceholderDeclarationParser, PredicateParser, QuantificationParser,
+            QuantifierParser, RelationParser, RoleParser, SortParser, SpecificationParser,
+            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            UserGuideEntryParser, UserGuideParser, VariableParser,
         },
         simplifying::fol::sigma_0::intuitionistic::join_nested_quantifiers,
         syntax_tree::{Node, impl_node},
@@ -332,6 +332,15 @@ impl From<Variable> for GeneralTerm {
         }
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Function {
+    pub symbol: String,
+    pub arity: usize,
+    pub sort: Sort,
+}
+
+impl_node!(Function, Format, FunctionParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Predicate {
