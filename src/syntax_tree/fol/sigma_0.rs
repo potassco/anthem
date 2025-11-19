@@ -106,6 +106,34 @@ impl IntegerTerm {
         }
     }
 
+    pub fn functions(&self) -> IndexSet<Function> {
+        match &self {
+            IntegerTerm::Numeral(_)
+            | IntegerTerm::Variable(_)
+            | IntegerTerm::FunctionConstant(_) => IndexSet::new(),
+            IntegerTerm::UnaryOperation { arg, .. } => arg.functions(),
+            IntegerTerm::BinaryOperation { lhs, rhs, .. } => {
+                let mut funs = lhs.functions();
+                funs.extend(rhs.functions());
+                funs
+            }
+            IntegerTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                let mut funs = IndexSet::from([Function {
+                    symbol: function.into(),
+                    arity: arguments.len(),
+                    sort: Sort::Integer,
+                }]);
+                for argument in arguments {
+                    funs.extend(argument.functions())
+                }
+                funs
+            }
+        }
+    }
+
     pub fn substitute(self, var: Variable, term: IntegerTerm) -> Self {
         match self {
             IntegerTerm::Variable(s) if var.name == s && var.sort == Sort::Integer => term,
@@ -198,6 +226,28 @@ impl SymbolicTerm {
         }
     }
 
+    pub fn functions(&self) -> IndexSet<Function> {
+        match &self {
+            SymbolicTerm::Symbol(_)
+            | SymbolicTerm::Variable(_)
+            | SymbolicTerm::FunctionConstant(_) => IndexSet::new(),
+            SymbolicTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                let mut funs = IndexSet::from([Function {
+                    symbol: function.into(),
+                    arity: arguments.len(),
+                    sort: Sort::Symbol,
+                }]);
+                for argument in arguments {
+                    funs.extend(argument.functions())
+                }
+                funs
+            }
+        }
+    }
+
     pub fn substitute(self, var: Variable, term: SymbolicTerm) -> Self {
         match self {
             SymbolicTerm::Variable(s) if var.name == s && var.sort == Sort::Symbol => term,
@@ -285,6 +335,31 @@ impl GeneralTerm {
                     constants.extend(argument.function_constants());
                 }
                 constants
+            }
+        }
+    }
+
+    pub fn functions(&self) -> IndexSet<Function> {
+        match &self {
+            GeneralTerm::Infimum
+            | GeneralTerm::Supremum
+            | GeneralTerm::Variable(_)
+            | GeneralTerm::FunctionConstant(_) => IndexSet::new(),
+            GeneralTerm::IntegerTerm(t) => t.functions(),
+            GeneralTerm::SymbolicTerm(t) => t.functions(),
+            GeneralTerm::FunctionApplication {
+                function,
+                arguments,
+            } => {
+                let mut funs = IndexSet::from([Function {
+                    symbol: function.into(),
+                    arity: arguments.len(),
+                    sort: Sort::General,
+                }]);
+                for argument in arguments {
+                    funs.extend(argument.functions())
+                }
+                funs
             }
         }
     }
@@ -396,6 +471,55 @@ pub struct Function {
 }
 
 impl_node!(Function, Format, FunctionParser);
+
+impl Function {
+    pub fn to_general_term(self) -> GeneralTerm {
+        match self.sort {
+            Sort::General => GeneralTerm::FunctionApplication {
+                function: self.symbol,
+                arguments: (1..=self.arity)
+                    .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                    .collect(),
+            },
+            Sort::Integer => GeneralTerm::IntegerTerm(IntegerTerm::FunctionApplication {
+                function: self.symbol,
+                arguments: (1..=self.arity)
+                    .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                    .collect(),
+            }),
+            Sort::Symbol => GeneralTerm::SymbolicTerm(SymbolicTerm::FunctionApplication {
+                function: self.symbol,
+                arguments: (1..=self.arity)
+                    .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                    .collect(),
+            }),
+        }
+    }
+
+    pub fn to_integer_term(self) -> Option<IntegerTerm> {
+        match self.sort {
+            Sort::Integer => Some(IntegerTerm::FunctionApplication {
+                function: self.symbol,
+                arguments: (1..=self.arity)
+                    .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                    .collect(),
+            }),
+            _ => None,
+        }
+    }
+
+    pub fn to_symbolic_term(self) -> Option<SymbolicTerm> {
+        match self.sort {
+            Sort::Symbol => Some(SymbolicTerm::FunctionApplication {
+                function: self.symbol,
+                arguments: (1..=self.arity)
+                    .map(|i| GeneralTerm::Variable(format!("X{i}")))
+                    .collect(),
+            }),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Predicate {
@@ -654,6 +778,21 @@ impl AtomicFormula {
                 IndexSet::new()
             }
             AtomicFormula::Atom(a) => IndexSet::from([a.predicate()]),
+        }
+    }
+
+    pub fn functions(&self) -> IndexSet<Function> {
+        match &self {
+            AtomicFormula::Falsity | AtomicFormula::Truth | AtomicFormula::Comparison(_) => {
+                IndexSet::new()
+            }
+            AtomicFormula::Atom(a) => {
+                let mut funs = IndexSet::new();
+                for term in &a.terms {
+                    funs.extend(term.functions())
+                }
+                funs
+            }
         }
     }
 
@@ -946,6 +1085,19 @@ impl Formula {
         }
     }
 
+    pub fn functions(&self) -> IndexSet<Function> {
+        match &self {
+            Formula::AtomicFormula(f) => f.functions(),
+            Formula::UnaryFormula { formula, .. } => formula.functions(),
+            Formula::BinaryFormula { lhs, rhs, .. } => {
+                let mut funs = lhs.functions();
+                funs.extend(rhs.functions());
+                funs
+            }
+            Formula::QuantifiedFormula { formula, .. } => formula.functions(),
+        }
+    }
+
     pub fn symbols(&self) -> IndexSet<String> {
         match &self {
             Formula::AtomicFormula(f) => f.symbols(),
@@ -1114,6 +1266,14 @@ impl Theory {
         preds
     }
 
+    pub fn functions(&self) -> IndexSet<Function> {
+        let mut funs = IndexSet::new();
+        for formula in self {
+            funs.extend(formula.functions())
+        }
+        funs
+    }
+
     pub fn replace_placeholders(self, mapping: &IndexMap<String, FunctionConstant>) -> Self {
         self.into_iter()
             .map(|f| f.replace_placeholders(mapping))
@@ -1128,6 +1288,8 @@ impl FromIterator<Formula> for Theory {
         }
     }
 }
+
+// TODO: is .functions() needed for beyond theory?
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Role {
