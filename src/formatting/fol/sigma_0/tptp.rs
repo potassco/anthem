@@ -62,7 +62,16 @@ impl Display for Format<'_, IntegerTerm> {
             IntegerTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => {
+                write!(f, "{function}$i(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ",")
+            }
         }
     }
 }
@@ -76,7 +85,16 @@ impl Display for Format<'_, SymbolicTerm> {
             SymbolicTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => {
+                write!(f, "{function}$s(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ",")
+            }
         }
     }
 }
@@ -93,7 +111,16 @@ impl Display for Format<'_, GeneralTerm> {
             GeneralTerm::FunctionApplication {
                 function,
                 arguments,
-            } => todo!(),
+            } => {
+                write!(f, "{function}$g(")?;
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", Format(arg))?;
+                }
+                write!(f, ",")
+            }
         }
     }
 }
