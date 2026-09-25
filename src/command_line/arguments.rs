@@ -164,14 +164,11 @@ pub enum SimplificationStrategy {
 pub enum Translation {
     Completion,
     Gamma,
-    Mu,
-    Natural,
     TauStar,
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum FormulaRepresentation {
-    Mu,
     #[default]
     TauStar,
 }

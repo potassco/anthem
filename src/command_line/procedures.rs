@@ -13,7 +13,7 @@ use {
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::{completion::Completion as _, gamma::Gamma as _},
-            formula_representation::{mu::Mu as _, natural::Natural as _, tau_star::TauStar as _},
+            formula_representation::tau_star::TauStar as _,
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -142,22 +142,6 @@ pub fn main() -> Result<()> {
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let gamma_theory = theory.gamma();
                     print!("{gamma_theory}")
-                }
-
-                Translation::Mu => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = program.mu();
-                    print!("{theory}")
-                }
-
-                Translation::Natural => {
-                    let program =
-                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = program
-                        .natural()
-                        .context("the given program is not regular")?;
-                    print!("{theory}")
                 }
 
                 Translation::TauStar => {
