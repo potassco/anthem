@@ -22,6 +22,16 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Normalize a logic program
+    Normalize {
+        /// The normalization to apply
+        #[arg(long, value_enum, default_value_t)]
+        with: Normalization,
+
+        /// The file to normalize
+        input: Option<PathBuf>,
+    },
+
     /// Parse a file and print its debug or output representation
     Parse {
         /// What to parse the input as
@@ -134,6 +144,12 @@ pub enum Command {
         #[arg(verbatim_doc_comment)]
         files: Vec<PathBuf>,
     },
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Normalization {
+    #[default]
+    NumericNormal,
 }
 
 #[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

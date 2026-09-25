@@ -3,12 +3,13 @@ use {
         analyzing::{regularity::Regularity as _, tightness::Tightness},
         command_line::{
             arguments::{
-                Arguments, Command, Equivalence, Output, ParseAs, Property,
+                Arguments, Command, Equivalence, Normalization, Output, ParseAs, Property,
                 SimplificationPortfolio, SimplificationStrategy, Translation,
             },
             files::Files,
         },
         convenience::{apply::Apply, compose::Compose},
+        normalizing::asp::numeric_normal::numeric_normal_form,
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
@@ -48,6 +49,16 @@ pub fn main() -> Result<()> {
                     println!("{is_tight}");
                 }
             }
+
+            Ok(())
+        }
+
+        Command::Normalize { with, input } => {
+            let program = input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+            let normalized_program = match with {
+                Normalization::NumericNormal => numeric_normal_form(program),
+            };
+            print!("{normalized_program}");
 
             Ok(())
         }
