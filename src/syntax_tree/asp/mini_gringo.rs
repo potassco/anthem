@@ -2,8 +2,8 @@ use {
     crate::{
         formatting::asp::mini_gringo::default::Format,
         parsing::asp::mini_gringo::pest::{
-            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
+            AtomParser, AtomicFormulaParser, BasicSymbolParser, BinaryOperatorParser, BodyParser,
+            ComparisonParser, HeadParser, LiteralParser, PredicateParser, ProgramParser,
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
             VariableParser,
         },
@@ -14,25 +14,25 @@ use {
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub enum PrecomputedTerm {
+pub enum BasicSymbol {
     Infimum,
     Numeral(isize),
     Symbol(String),
     Supremum,
 }
 
-impl PrecomputedTerm {
+impl BasicSymbol {
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
-            PrecomputedTerm::Infimum => IndexSet::new(),
-            PrecomputedTerm::Numeral(_) => IndexSet::new(),
-            PrecomputedTerm::Symbol(s) => IndexSet::from([s.clone()]),
-            PrecomputedTerm::Supremum => IndexSet::new(),
+            BasicSymbol::Infimum => IndexSet::new(),
+            BasicSymbol::Numeral(_) => IndexSet::new(),
+            BasicSymbol::Symbol(s) => IndexSet::from([s.clone()]),
+            BasicSymbol::Supremum => IndexSet::new(),
         }
     }
 }
 
-impl_node!(PrecomputedTerm, Format, PrecomputedTermParser);
+impl_node!(BasicSymbol, Format, BasicSymbolParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Variable(pub String);
@@ -42,6 +42,7 @@ impl_node!(Variable, Format, VariableParser);
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Negative,
+    AbsoluteValue,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
@@ -60,7 +61,11 @@ impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Term {
-    PrecomputedTerm(PrecomputedTerm),
+    BasicSymbol(BasicSymbol),
+    HerbrandFunction {
+        symbol: String,
+        terms: Vec<Term>,
+    },
     Variable(Variable),
     UnaryOperation {
         op: UnaryOperator,
@@ -78,7 +83,7 @@ impl_node!(Term, Format, TermParser);
 impl Term {
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
-            Term::PrecomputedTerm(_) => IndexSet::new(),
+            Term::BasicSymbol(_) => IndexSet::new(),
             Term::Variable(v) => IndexSet::from([v.clone()]),
             Term::UnaryOperation { arg, .. } => arg.variables(),
             Term::BinaryOperation { lhs, rhs, .. } => {
@@ -86,17 +91,31 @@ impl Term {
                 vars.extend(rhs.variables());
                 vars
             }
+            Term::HerbrandFunction { terms, .. } => {
+                let mut vars = IndexSet::new();
+                for term in terms {
+                    vars.extend(term.variables());
+                }
+                vars
+            }
         }
     }
 
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
-            Term::PrecomputedTerm(t) => t.function_constants(),
+            Term::BasicSymbol(t) => t.function_constants(),
             Term::Variable(_) => IndexSet::new(),
             Term::UnaryOperation { arg, .. } => arg.function_constants(),
             Term::BinaryOperation { lhs, rhs, .. } => {
                 let mut functions = lhs.function_constants();
                 functions.extend(rhs.function_constants());
+                functions
+            }
+            Term::HerbrandFunction { terms, .. } => {
+                let mut functions = IndexSet::new();
+                for term in terms {
+                    functions.extend(term.function_constants());
+                }
                 functions
             }
         }
@@ -474,8 +493,7 @@ impl FromIterator<Rule> for Program {
 mod tests {
     use {
         super::{
-            Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
-            Term,
+            Atom, AtomicFormula, BasicSymbol, Body, Comparison, Head, Program, Relation, Rule, Term,
         },
         indexmap::IndexSet,
     };
@@ -491,8 +509,8 @@ mod tests {
                 }),
                 body: Body {
                     formulas: vec![AtomicFormula::Comparison(Comparison {
-                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
-                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                        lhs: Term::BasicSymbol(BasicSymbol::Symbol("a".into())),
+                        rhs: Term::BasicSymbol(BasicSymbol::Symbol("b".into())),
                         relation: Relation::NotEqual,
                     })],
                 },
