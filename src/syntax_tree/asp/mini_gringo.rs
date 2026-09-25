@@ -246,6 +246,14 @@ impl Atom {
         }
         functions
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for term in self.terms.iter() {
+            functions.extend(term.indefinite_functions())
+        }
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -276,6 +284,10 @@ impl Literal {
 
     pub fn function_constants(&self) -> IndexSet<String> {
         self.atom.function_constants()
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        self.atom.indefinite_functions()
     }
 }
 
@@ -319,6 +331,28 @@ impl Comparison {
         match self.relation {
             Relation::Equal => self.lhs.numeric() && self.rhs.numeric(),
             _ => false,
+        }
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = self.lhs.indefinite_functions();
+        functions.extend(self.rhs.indefinite_functions());
+        functions
+    }
+
+    pub(crate) fn indefinite_equality(self) -> bool {
+        if matches!(self.relation, Relation::Equal) && matches!(self.lhs, Term::Variable(_)) {
+            match self.rhs {
+                Term::BinaryOperation { op, .. } => {
+                    matches!(
+                        op,
+                        BinaryOperator::Divide | BinaryOperator::Modulo | BinaryOperator::Interval
+                    )
+                }
+                _ => false,
+            }
+        } else {
+            false
         }
     }
 }
@@ -367,6 +401,13 @@ impl AtomicFormula {
         match &self {
             AtomicFormula::Literal(l) => l.atom.terms.iter().cloned().collect(),
             AtomicFormula::Comparison(c) => IndexSet::from([c.lhs.clone(), c.rhs.clone()]),
+        }
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        match &self {
+            AtomicFormula::Literal(l) => l.indefinite_functions(),
+            AtomicFormula::Comparison(c) => c.indefinite_functions(),
         }
     }
 }
@@ -420,6 +461,13 @@ impl Head {
             Head::Falsity => IndexSet::new(),
         }
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        match &self {
+            Head::Basic(a) | Head::Choice(a) => a.indefinite_functions(),
+            Head::Falsity => IndexSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -469,6 +517,14 @@ impl Body {
             terms.extend(formula.terms())
         }
         terms
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for formula in self.formulas.iter() {
+            functions.extend(formula.indefinite_functions())
+        }
+        functions
     }
 }
 
@@ -528,6 +584,12 @@ impl Rule {
     pub fn is_choice_rule(&self) -> bool {
         matches!(self.head, Head::Choice(_))
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = self.head.indefinite_functions();
+        functions.extend(self.body.indefinite_functions());
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -582,6 +644,14 @@ impl Program {
             }
         }
         max_arity
+    }
+
+    pub fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for rule in self.rules.iter() {
+            functions.extend(rule.indefinite_functions());
+        }
+        functions
     }
 }
 
