@@ -462,11 +462,8 @@ pub(crate) fn natural_rule(r: &asp::Rule) -> Option<fol::Formula> {
 fn natural(program: asp::Program) -> Option<fol::Theory> {
     let mut formulas = Vec::<fol::Formula>::new();
     for r in program.rules {
-        if let Some(f) = natural_rule(&r) {
-            formulas.push(f);
-        } else {
-            return None;
-        }
+        let f = natural_rule(&r)?;
+        formulas.push(f);
     }
     Some(fol::Theory { formulas })
 }
