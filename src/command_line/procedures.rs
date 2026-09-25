@@ -14,7 +14,7 @@ use {
         syntax_tree::{Node as _, asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::{completion::Completion as _, gamma::Gamma as _},
-            formula_representation::tau_star::TauStar as _,
+            formula_representation::{numeric_natural::numeric_natural, tau_star::TauStar as _},
         },
         verifying::{
             prover::{Prover, Report, Status, Success, vampire::Vampire},
@@ -157,6 +157,14 @@ pub fn main() -> Result<()> {
                         input.map_or_else(fol::Theory::from_stdin, fol::Theory::from_file)?;
                     let gamma_theory = theory.gamma();
                     print!("{gamma_theory}")
+                }
+
+                Translation::NumericNatural => {
+                    let program =
+                        input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
+                    let normalized_program = numeric_normal_form(program);
+                    let theory = numeric_natural(normalized_program, dialect);
+                    print!("{theory}")
                 }
 
                 Translation::TauStar => {
