@@ -1,18 +1,18 @@
 use {
     crate::{
-        convenience::apply::Apply as _,
+        convenience::{apply::Apply as _, variable_selection::VariableSelection},
         formatting::fol::sigma_0::default::Format,
         parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,
             BinaryOperatorParser, ComparisonParser, DirectionParser, FormulaParser,
-            FunctionConstantParser, GeneralTermParser, GuardParser, IntegerTermParser,
-            PlaceholderDeclarationParser, PredicateParser, QuantificationParser, QuantifierParser,
-            RelationParser, RoleParser, SortParser, SpecificationParser, SymbolicTermParser,
-            TheoryParser, UnaryConnectiveParser, UnaryOperatorParser, UserGuideEntryParser,
-            UserGuideParser, VariableParser,
+            FunctionConstantParser, FunctionParser, GeneralTermParser, GuardParser,
+            IntegerTermParser, PlaceholderDeclarationParser, PredicateParser, QuantificationParser,
+            QuantifierParser, RelationParser, RoleParser, SortParser, SpecificationParser,
+            SymbolicTermParser, TheoryParser, UnaryConnectiveParser, UnaryOperatorParser,
+            UserGuideEntryParser, UserGuideParser, VariableParser,
         },
         simplifying::fol::sigma_0::intuitionistic::join_nested_quantifiers,
-        syntax_tree::{Node, impl_node},
+        syntax_tree::{Node, asp::mini_gringo as asp, impl_node},
         verifying::problem,
     },
     clap::ValueEnum,
@@ -24,6 +24,16 @@ use {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Negative,
+    AbsoluteValue,
+}
+
+impl From<asp::UnaryOperator> for UnaryOperator {
+    fn from(value: asp::UnaryOperator) -> Self {
+        match value {
+            asp::UnaryOperator::Negative => UnaryOperator::Negative,
+            asp::UnaryOperator::AbsoluteValue => UnaryOperator::AbsoluteValue,
+        }
+    }
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
@@ -153,6 +163,33 @@ impl SymbolicTerm {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Function {
+    pub function_symbol: String,
+    pub sort: Sort,
+    pub terms: Vec<GeneralTerm>,
+}
+
+impl_node!(Function, Format, FunctionParser);
+
+impl Function {
+    pub fn variables(&self) -> IndexSet<Variable> {
+        let mut vars = IndexSet::new();
+        for term in self.terms.iter() {
+            vars.extend(term.variables());
+        }
+        vars
+    }
+
+    pub fn function_constants(&self) -> IndexSet<FunctionConstant> {
+        let mut constants = IndexSet::new();
+        for term in self.terms.iter() {
+            constants.extend(term.function_constants());
+        }
+        constants
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum GeneralTerm {
     Infimum,
     Supremum,
@@ -160,6 +197,7 @@ pub enum GeneralTerm {
     Variable(String),
     IntegerTerm(IntegerTerm),
     SymbolicTerm(SymbolicTerm),
+    Function(Function),
 }
 
 impl_node!(GeneralTerm, Format, GeneralTermParser);
@@ -176,12 +214,14 @@ impl GeneralTerm {
             }]),
             GeneralTerm::IntegerTerm(t) => t.variables(),
             GeneralTerm::SymbolicTerm(t) => t.variables(),
+            GeneralTerm::Function(f) => f.variables(),
         }
     }
 
     pub fn symbols(&self) -> IndexSet<String> {
         match &self {
             GeneralTerm::SymbolicTerm(t) => t.symbols(),
+            GeneralTerm::Function { .. } => todo!(),
             _ => IndexSet::new(),
         }
     }
@@ -197,6 +237,7 @@ impl GeneralTerm {
             GeneralTerm::Infimum | GeneralTerm::Supremum | GeneralTerm::Variable(_) => {
                 IndexSet::new()
             }
+            GeneralTerm::Function(f) => f.function_constants(),
         }
     }
 
@@ -269,13 +310,22 @@ impl From<Variable> for GeneralTerm {
     }
 }
 
+impl From<asp::BasicSymbol> for GeneralTerm {
+    fn from(value: asp::BasicSymbol) -> Self {
+        match value {
+            asp::BasicSymbol::Infimum => GeneralTerm::Infimum,
+            asp::BasicSymbol::Numeral(n) => GeneralTerm::IntegerTerm(IntegerTerm::Numeral(n)),
+            asp::BasicSymbol::Symbol(s) => GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol(s)),
+            asp::BasicSymbol::Supremum => GeneralTerm::Supremum,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Predicate {
     pub symbol: String,
     pub arity: usize,
 }
-
-impl_node!(Predicate, Format, PredicateParser);
 
 impl Predicate {
     pub fn to_formula(self) -> Formula {
@@ -297,6 +347,8 @@ impl From<crate::syntax_tree::asp::mini_gringo::Predicate> for Predicate {
     }
 }
 
+impl_node!(Predicate, Format, PredicateParser);
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Atom {
     pub predicate_symbol: String,
@@ -304,6 +356,13 @@ pub struct Atom {
 }
 
 impl Atom {
+    pub fn new(predicate_symbol: String, terms: Vec<GeneralTerm>) -> Self {
+        Atom {
+            predicate_symbol,
+            terms,
+        }
+    }
+
     pub fn predicate(&self) -> Predicate {
         Predicate {
             symbol: self.predicate_symbol.clone(),
@@ -332,11 +391,7 @@ impl Atom {
                 .collect(),
         }
     }
-}
 
-impl_node!(Atom, Format, AtomParser);
-
-impl Atom {
     pub fn substitute(self, var: Variable, term: GeneralTerm) -> Self {
         let predicate_symbol = self.predicate_symbol;
 
@@ -351,6 +406,8 @@ impl Atom {
         }
     }
 }
+
+impl_node!(Atom, Format, AtomParser);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Relation {
@@ -657,15 +714,6 @@ pub struct Variable {
 
 impl_node!(Variable, Format, VariableParser);
 
-impl Variable {
-    fn sequence(prefix: &Variable) -> impl Iterator<Item = Self> {
-        (1..).map(|i| Variable {
-            name: format!("{}{}", prefix.name, i),
-            sort: prefix.sort,
-        })
-    }
-}
-
 impl TryFrom<GeneralTerm> for Variable {
     type Error = GeneralTerm;
 
@@ -718,6 +766,12 @@ pub enum Formula {
 }
 
 impl_node!(Formula, Format, FormulaParser);
+
+impl From<Theory> for Formula {
+    fn from(theory: Theory) -> Self {
+        Formula::conjoin(theory.formulas)
+    }
+}
 
 impl Formula {
     /// Recursively turn a list of formulas into a conjunction tree
@@ -873,15 +927,15 @@ impl Formula {
 
                 let term_variables = term.variables();
                 let formula_variables = formula.free_variables();
+                let taken_variables: IndexSet<Variable> =
+                    term_variables.union(&formula_variables).cloned().collect();
 
                 for variable in quantification.variables {
                     if term_variables.contains(&variable) {
-                        let fresh_variable = Variable::sequence(&variable)
-                            .find(|candidate| {
-                                !term_variables.contains(candidate)
-                                    && !formula_variables.contains(candidate)
-                            })
-                            .unwrap();
+                        let fresh_variable = Variable {
+                            name: taken_variables.choose_fresh_variable(&variable.name),
+                            sort: variable.sort,
+                        };
 
                         formula = formula.substitute(variable, fresh_variable.clone().into());
                         variables.push(fresh_variable);
@@ -918,7 +972,8 @@ impl Formula {
     }
 
     pub fn universal_closure(self) -> Formula {
-        let variables = self.free_variables().into_iter().collect();
+        let mut variables: Vec<Variable> = self.free_variables().into_iter().collect();
+        variables.sort();
         self.quantify(Quantifier::Forall, variables)
     }
 
@@ -990,6 +1045,14 @@ impl Theory {
         self.into_iter()
             .map(|f| f.replace_placeholders(mapping))
             .collect()
+    }
+
+    pub fn variables(&self) -> IndexSet<Variable> {
+        let mut vars = IndexSet::new();
+        for formula in self {
+            vars.extend(formula.variables())
+        }
+        vars
     }
 }
 

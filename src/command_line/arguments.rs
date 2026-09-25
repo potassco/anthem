@@ -22,6 +22,16 @@ pub enum Command {
         input: Option<PathBuf>,
     },
 
+    /// Normalize a logic program
+    Normalize {
+        /// The normalization to apply
+        #[arg(long, value_enum, default_value_t)]
+        with: Normalization,
+
+        /// The file to normalize
+        input: Option<PathBuf>,
+    },
+
     /// Parse a file and print its debug or output representation
     Parse {
         /// What to parse the input as
@@ -56,6 +66,10 @@ pub enum Command {
         #[arg(long, value_enum)]
         with: Translation,
 
+        /// The dialect governs which tau-star variant is applied in translation
+        #[arg(long, value_enum, default_value_t)]
+        dialect: Dialect,
+
         /// The file to translate
         input: Option<PathBuf>,
     },
@@ -77,6 +91,14 @@ pub enum Command {
         /// The ASP-to-target-language translation to use
         #[arg(long, value_enum, default_value_t)]
         formula_representation: FormulaRepresentation,
+
+        /// The dialect of the program
+        #[arg(long, value_enum, default_value_t)]
+        program_dialect: Dialect,
+
+        /// The dialect of the specification (if it is a logic program)
+        #[arg(long, value_enum, default_value_t)]
+        spec_dialect: Dialect,
 
         /// Bypass the tightness checks during verification of external equivalence
         #[arg(long, action)]
@@ -124,6 +146,19 @@ pub enum Command {
     },
 }
 
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Normalization {
+    #[default]
+    NumericNormal,
+}
+
+#[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Dialect {
+    #[default]
+    GringoFive,
+    GringoSix,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Property {
     Regularity,
@@ -164,14 +199,13 @@ pub enum SimplificationStrategy {
 pub enum Translation {
     Completion,
     Gamma,
-    Mu,
-    Natural,
+    NumericNatural,
     TauStar,
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum FormulaRepresentation {
-    Mu,
+    NumericNatural,
     #[default]
     TauStar,
 }

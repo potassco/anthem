@@ -2,8 +2,8 @@ use {
     crate::{
         formatting::asp::mini_gringo::default::Format,
         parsing::asp::mini_gringo::pest::{
-            AtomParser, AtomicFormulaParser, BinaryOperatorParser, BodyParser, ComparisonParser,
-            HeadParser, LiteralParser, PrecomputedTermParser, PredicateParser, ProgramParser,
+            AtomParser, AtomicFormulaParser, BasicSymbolParser, BinaryOperatorParser, BodyParser,
+            ComparisonParser, HeadParser, LiteralParser, PredicateParser, ProgramParser,
             RelationParser, RuleParser, SignParser, TermParser, UnaryOperatorParser,
             VariableParser,
         },
@@ -14,25 +14,25 @@ use {
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub enum PrecomputedTerm {
+pub enum BasicSymbol {
     Infimum,
     Numeral(isize),
     Symbol(String),
     Supremum,
 }
 
-impl PrecomputedTerm {
+impl BasicSymbol {
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
-            PrecomputedTerm::Infimum => IndexSet::new(),
-            PrecomputedTerm::Numeral(_) => IndexSet::new(),
-            PrecomputedTerm::Symbol(s) => IndexSet::from([s.clone()]),
-            PrecomputedTerm::Supremum => IndexSet::new(),
+            BasicSymbol::Infimum => IndexSet::new(),
+            BasicSymbol::Numeral(_) => IndexSet::new(),
+            BasicSymbol::Symbol(s) => IndexSet::from([s.clone()]),
+            BasicSymbol::Supremum => IndexSet::new(),
         }
     }
 }
 
-impl_node!(PrecomputedTerm, Format, PrecomputedTermParser);
+impl_node!(BasicSymbol, Format, BasicSymbolParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Variable(pub String);
@@ -42,6 +42,7 @@ impl_node!(Variable, Format, VariableParser);
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Negative,
+    AbsoluteValue,
 }
 
 impl_node!(UnaryOperator, Format, UnaryOperatorParser);
@@ -56,11 +57,24 @@ pub enum BinaryOperator {
     Interval,
 }
 
+impl BinaryOperator {
+    pub fn definite(&self) -> bool {
+        matches!(
+            self,
+            BinaryOperator::Add | BinaryOperator::Subtract | BinaryOperator::Multiply
+        )
+    }
+}
+
 impl_node!(BinaryOperator, Format, BinaryOperatorParser);
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Term {
-    PrecomputedTerm(PrecomputedTerm),
+    BasicSymbol(BasicSymbol),
+    HerbrandFunction {
+        symbol: String,
+        terms: Vec<Term>,
+    },
     Variable(Variable),
     UnaryOperation {
         op: UnaryOperator,
@@ -76,9 +90,40 @@ pub enum Term {
 impl_node!(Term, Format, TermParser);
 
 impl Term {
+    pub fn ground(&self) -> bool {
+        self.variables().is_empty()
+    }
+
+    pub fn contains_arithmetic(&self) -> bool {
+        match &self {
+            Term::BasicSymbol(_) | Term::Variable(_) => false,
+            Term::HerbrandFunction { terms, .. } => {
+                let mut flag = false;
+                for term in terms {
+                    if term.contains_arithmetic() {
+                        flag = true;
+                    }
+                }
+                flag
+            }
+            Term::UnaryOperation { .. } | Term::BinaryOperation { .. } => true,
+        }
+    }
+
+    pub fn precomputed(&self) -> bool {
+        self.ground() && !self.contains_arithmetic()
+    }
+
     pub fn variables(&self) -> IndexSet<Variable> {
         match &self {
-            Term::PrecomputedTerm(_) => IndexSet::new(),
+            Term::BasicSymbol(_) => IndexSet::new(),
+            Term::HerbrandFunction { terms, .. } => {
+                let mut vars = IndexSet::new();
+                for term in terms {
+                    vars.extend(term.variables());
+                }
+                vars
+            }
             Term::Variable(v) => IndexSet::from([v.clone()]),
             Term::UnaryOperation { arg, .. } => arg.variables(),
             Term::BinaryOperation { lhs, rhs, .. } => {
@@ -91,7 +136,14 @@ impl Term {
 
     pub fn function_constants(&self) -> IndexSet<String> {
         match &self {
-            Term::PrecomputedTerm(t) => t.function_constants(),
+            Term::BasicSymbol(t) => t.function_constants(),
+            Term::HerbrandFunction { terms, .. } => {
+                let mut functions = IndexSet::new();
+                for term in terms {
+                    functions.extend(term.function_constants());
+                }
+                functions
+            }
             Term::Variable(_) => IndexSet::new(),
             Term::UnaryOperation { arg, .. } => arg.function_constants(),
             Term::BinaryOperation { lhs, rhs, .. } => {
@@ -99,6 +151,49 @@ impl Term {
                 functions.extend(rhs.function_constants());
                 functions
             }
+        }
+    }
+
+    pub fn numeric(&self) -> bool {
+        match &self {
+            Term::BasicSymbol(t) => matches!(t, &BasicSymbol::Numeral(_)),
+            Term::HerbrandFunction { .. } => false,
+            Term::Variable(_) => true,
+            Term::UnaryOperation { arg, .. } => (**arg).numeric(),
+            Term::BinaryOperation { lhs, rhs, .. } => (**lhs).numeric() && (**rhs).numeric(),
+        }
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        match &self {
+            Term::BasicSymbol(_) | Term::Variable(_) => IndexSet::new(),
+            Term::HerbrandFunction { terms, .. } => {
+                let mut functions = IndexSet::new();
+                for term in terms {
+                    functions.extend(term.indefinite_functions());
+                }
+                functions
+            }
+            Term::UnaryOperation { arg, .. } => arg.indefinite_functions(),
+            Term::BinaryOperation { op, lhs, rhs } => {
+                let mut functions = IndexSet::new();
+                if matches!(
+                    op,
+                    BinaryOperator::Divide | BinaryOperator::Modulo | BinaryOperator::Interval
+                ) {
+                    functions.insert(*op);
+                }
+                functions.extend(lhs.indefinite_functions());
+                functions.extend(rhs.indefinite_functions());
+                functions
+            }
+        }
+    }
+
+    pub(crate) fn destructure_binary_operation(self) -> Option<(BinaryOperator, Term, Term)> {
+        match self {
+            Term::BinaryOperation { op, lhs, rhs } => Some((op, *lhs, *rhs)),
+            _ => None,
         }
     }
 }
@@ -151,6 +246,14 @@ impl Atom {
         }
         functions
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for term in self.terms.iter() {
+            functions.extend(term.indefinite_functions())
+        }
+        functions
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -181,6 +284,10 @@ impl Literal {
 
     pub fn function_constants(&self) -> IndexSet<String> {
         self.atom.function_constants()
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        self.atom.indefinite_functions()
     }
 }
 
@@ -216,6 +323,37 @@ impl Comparison {
         let mut functions = self.lhs.function_constants();
         functions.extend(self.rhs.function_constants());
         functions
+    }
+
+    // An equation is a comparison of the form t1 = t2.
+    // An equation is numeric if all basic symbols occurring in it are numerals.
+    pub fn numeric_equation(&self) -> bool {
+        match self.relation {
+            Relation::Equal => self.lhs.numeric() && self.rhs.numeric(),
+            _ => false,
+        }
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = self.lhs.indefinite_functions();
+        functions.extend(self.rhs.indefinite_functions());
+        functions
+    }
+
+    pub(crate) fn indefinite_equality(self) -> bool {
+        if matches!(self.relation, Relation::Equal) && matches!(self.lhs, Term::Variable(_)) {
+            match self.rhs {
+                Term::BinaryOperation { op, .. } => {
+                    matches!(
+                        op,
+                        BinaryOperator::Divide | BinaryOperator::Modulo | BinaryOperator::Interval
+                    )
+                }
+                _ => false,
+            }
+        } else {
+            false
+        }
     }
 }
 
@@ -263,6 +401,13 @@ impl AtomicFormula {
         match &self {
             AtomicFormula::Literal(l) => l.atom.terms.iter().cloned().collect(),
             AtomicFormula::Comparison(c) => IndexSet::from([c.lhs.clone(), c.rhs.clone()]),
+        }
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        match &self {
+            AtomicFormula::Literal(l) => l.indefinite_functions(),
+            AtomicFormula::Comparison(c) => c.indefinite_functions(),
         }
     }
 }
@@ -316,6 +461,13 @@ impl Head {
             Head::Falsity => IndexSet::new(),
         }
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        match &self {
+            Head::Basic(a) | Head::Choice(a) => a.indefinite_functions(),
+            Head::Falsity => IndexSet::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, IntoIterator)]
@@ -366,6 +518,14 @@ impl Body {
         }
         terms
     }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for formula in self.formulas.iter() {
+            functions.extend(formula.indefinite_functions())
+        }
+        functions
+    }
 }
 
 impl FromIterator<AtomicFormula> for Body {
@@ -400,6 +560,10 @@ impl Rule {
         vars
     }
 
+    pub fn global_variables(&self) -> IndexSet<Variable> {
+        self.variables()
+    }
+
     pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
@@ -415,6 +579,16 @@ impl Rule {
         }
         terms.extend(self.body.terms());
         terms
+    }
+
+    pub fn is_choice_rule(&self) -> bool {
+        matches!(self.head, Head::Choice(_))
+    }
+
+    fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = self.head.indefinite_functions();
+        functions.extend(self.body.indefinite_functions());
+        functions
     }
 }
 
@@ -460,6 +634,25 @@ impl Program {
         }
         functions
     }
+
+    pub fn max_arity(&self) -> usize {
+        let mut max_arity = 0;
+        for rule in self.rules.iter() {
+            let head_arity = rule.head.arity();
+            if head_arity > max_arity {
+                max_arity = head_arity;
+            }
+        }
+        max_arity
+    }
+
+    pub fn indefinite_functions(&self) -> IndexSet<BinaryOperator> {
+        let mut functions = IndexSet::new();
+        for rule in self.rules.iter() {
+            functions.extend(rule.indefinite_functions());
+        }
+        functions
+    }
 }
 
 impl FromIterator<Rule> for Program {
@@ -474,8 +667,7 @@ impl FromIterator<Rule> for Program {
 mod tests {
     use {
         super::{
-            Atom, AtomicFormula, Body, Comparison, Head, PrecomputedTerm, Program, Relation, Rule,
-            Term,
+            Atom, AtomicFormula, BasicSymbol, Body, Comparison, Head, Program, Relation, Rule, Term,
         },
         indexmap::IndexSet,
     };
@@ -491,8 +683,8 @@ mod tests {
                 }),
                 body: Body {
                     formulas: vec![AtomicFormula::Comparison(Comparison {
-                        lhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("a".into())),
-                        rhs: Term::PrecomputedTerm(PrecomputedTerm::Symbol("b".into())),
+                        lhs: Term::BasicSymbol(BasicSymbol::Symbol("a".into())),
+                        rhs: Term::BasicSymbol(BasicSymbol::Symbol("b".into())),
                         relation: Relation::NotEqual,
                     })],
                 },

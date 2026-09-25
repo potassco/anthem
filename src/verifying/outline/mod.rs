@@ -73,12 +73,14 @@ impl TryFrom<fol::AnnotatedFormula> for GeneralLemma {
 // TODO: Think about the name
 trait CheckInternal {
     // Returns the predicate defined in the LHS of the formula if it is a valid definition, else returns an error
+    #[allow(clippy::result_large_err)]
     fn definition(
         &self,
         taken_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<fol::Predicate, ProofOutlineWarning, ProofOutlineError>;
 
     // Returns the base case and inductive step formulas if the formula is a valid inductive lemma, else returns an error
+    #[allow(clippy::result_large_err)]
     fn inductive_lemma(
         self,
     ) -> Result<(fol::Formula, fol::Formula), ProofOutlineWarning, ProofOutlineError>;
@@ -333,6 +335,7 @@ impl Display for ProofOutlineWarning {
 }
 
 impl ProofOutline {
+    #[allow(clippy::result_large_err)]
     pub fn from_specification(
         specification: fol::Specification,
         mut taken_predicates: IndexSet<fol::Predicate>,
@@ -504,7 +507,7 @@ mod tests {
             (
                 "forall M$i N$i ( N$i >= 0 -> N$i + M$i >= M$i )",
                 "forall M$i ( 0 + M$i >= M$i )",
-                "forall N$i M$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
+                "forall M$i N$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
             ),
         ] {
             let formula: fol::Formula = src.parse().unwrap();

@@ -2,17 +2,23 @@ use {
     crate::{
         analyzing::{private_recursion::PrivateRecursion, tightness::Tightness},
         breaking::fol::sigma_0::ht::break_equivalences_annotated_formula,
-        command_line::arguments::{Decomposition, FormulaRepresentation},
+        command_line::arguments::{Decomposition, Dialect, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
+        normalizing::{
+            asp::numeric_normal::numeric_normal_form, fol::completable::MakeCompletable,
+        },
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
         translating::{
             classical_reduction::completion::Completion as _,
-            formula_representation::tau_star::TauStar as _,
+            formula_representation::{
+                numeric_natural::{AxiomatizedTheory, numeric_natural},
+                tau_star::{TauStar as _, choose_fresh_global_variables},
+            },
         },
         verifying::{
             outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
@@ -241,6 +247,8 @@ pub struct ExternalEquivalenceTask {
     pub program: asp::Program,
     pub user_guide: fol::UserGuide,
     pub proof_outline: fol::Specification,
+    pub program_dialect: Dialect,
+    pub spec_dialect: Dialect,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub formula_representation: FormulaRepresentation,
@@ -250,6 +258,7 @@ pub struct ExternalEquivalenceTask {
 }
 
 impl ExternalEquivalenceTask {
+    #[allow(clippy::result_large_err)]
     fn ensure_program_tightness(
         &self,
         program: &asp::Program,
@@ -267,6 +276,7 @@ impl ExternalEquivalenceTask {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_absence_of_private_recursion(
         &self,
         program: &asp::Program,
@@ -285,6 +295,7 @@ impl ExternalEquivalenceTask {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_input_and_output_predicates_are_disjoint(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -305,6 +316,7 @@ impl ExternalEquivalenceTask {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_rule_heads_do_not_contain_input_predicates(
         &self,
         program: &asp::Program,
@@ -330,6 +342,7 @@ impl ExternalEquivalenceTask {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_specification_assumptions_do_not_contain_output_predicates(
         &self,
         specification: &fol::Specification,
@@ -357,6 +370,7 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_placeholder_name_uniqueness(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -377,6 +391,7 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_assumptions_only_contain_input_symbols(
         &self,
         program_input_symbols: &IndexSet<fol::Predicate>,
@@ -401,6 +416,7 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_valid_formula_representation(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -411,6 +427,7 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
+    #[allow(clippy::result_large_err)]
     fn ensure_specification_roles_are_supported(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
@@ -527,28 +544,93 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
-        let theory_translate = |program: asp::Program| {
-            // TODO: allow more formula representations beyond tau-star
-            let mut theory = program
-                .tau_star()
-                .replace_placeholders(&placeholders)
-                .completion(self.user_guide.input_predicates())
-                .expect("tau_star did not create a completable theory");
+        #[allow(clippy::result_large_err)]
+        let theory_translate = |program: asp::Program, dialect: Dialect| {
+            let mut translation = match self.formula_representation {
+                FormulaRepresentation::NumericNatural => {
+                    let var_names = choose_fresh_global_variables(&program);
+                    let nnf = numeric_natural(numeric_normal_form(program), dialect);
+
+                    // Predicates for which a completion formula should not be generated
+                    let mut no_completion_predicates = self.user_guide.input_predicates();
+                    let mut arithmetic_predicates: IndexSet<fol::Predicate> =
+                        IndexSet::from_iter(vec![
+                            fol::Predicate {
+                                symbol: "intervalGraph".into(),
+                                arity: 3,
+                            },
+                            fol::Predicate {
+                                symbol: "divisionGraphG5".into(),
+                                arity: 3,
+                            },
+                            fol::Predicate {
+                                symbol: "divisionGraphG6".into(),
+                                arity: 3,
+                            },
+                            fol::Predicate {
+                                symbol: "moduloGraphG5".into(),
+                                arity: 3,
+                            },
+                            fol::Predicate {
+                                symbol: "moduloGraphG6".into(),
+                                arity: 3,
+                            },
+                        ]);
+                    no_completion_predicates.append(&mut arithmetic_predicates);
+
+                    AxiomatizedTheory {
+                        axioms: nnf.axioms.replace_placeholders(&placeholders),
+                        theory: nnf
+                            .theory
+                            .replace_placeholders(&placeholders)
+                            .make_completable(&var_names)
+                            .expect("numeric-natural did not create a completable theory")
+                            .completion(no_completion_predicates)
+                            .expect("make-completable did not create a completable theory"),
+                    }
+                }
+                FormulaRepresentation::TauStar => AxiomatizedTheory {
+                    axioms: fol::Theory {
+                        formulas: Vec::new(),
+                    },
+                    theory: program
+                        .tau_star(dialect)
+                        .replace_placeholders(&placeholders)
+                        .completion(self.user_guide.input_predicates())
+                        .expect("tau_star did not create a completable theory"),
+                },
+            };
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                theory = theory
+                translation.theory = translation
+                    .theory
                     .into_iter()
                     .map(|f| f.apply_fixpoint(&mut portfolio))
                     .collect();
             }
 
-            theory
+            translation
         };
 
-        let control_translate = |theory: fol::Theory| {
+        let control_translate = |ax_theory: AxiomatizedTheory| {
+            let mut axiom_counter = 0..;
             let mut constraint_counter = 0..;
-            let formulas = theory
+
+            let mut formulas: Vec<fol::AnnotatedFormula> = ax_theory
+                .axioms
+                .formulas
+                .into_iter()
+                .map(|formula| fol::AnnotatedFormula {
+                    role: fol::Role::Assumption,
+                    direction: fol::Direction::Universal,
+                    name: format!("general_axiom_{}", axiom_counter.next().unwrap()),
+                    formula,
+                })
+                .collect();
+
+            let mut theory_formulas: Vec<fol::AnnotatedFormula> = ax_theory
+                .theory
                 .formulas
                 .into_iter()
                 .map(|formula| match head_predicate(&formula) {
@@ -572,15 +654,20 @@ impl Task for ExternalEquivalenceTask {
                     },
                 })
                 .collect();
+
+            formulas.append(&mut theory_formulas);
+
             fol::Specification { formulas }
         };
 
         let left = match self.specification {
-            Either::Left(program) => control_translate(theory_translate(program)),
+            Either::Left(program) => {
+                control_translate(theory_translate(program, self.spec_dialect))
+            }
             Either::Right(specification) => specification.replace_placeholders(&placeholders),
         };
 
-        let right = control_translate(theory_translate(self.program));
+        let right = control_translate(theory_translate(self.program, self.program_dialect));
 
         // TODO: Warn when a conflict between private predicates is encountered
         // TODO: Check if renaming creates new conflicts
