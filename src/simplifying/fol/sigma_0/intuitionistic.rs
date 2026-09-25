@@ -213,6 +213,26 @@ pub fn apply_equivalence_definition_inverse(formula: Formula) -> Formula {
     }
 }
 
+pub fn remove_conjunctive_identities(formula: Formula) -> Formula {
+    match formula.unbox() {
+        // F and #true => F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Conjunction,
+            lhs,
+            rhs: Formula::AtomicFormula(AtomicFormula::Truth),
+        } => lhs,
+
+        // #true and F => F
+        UnboxedFormula::BinaryFormula {
+            connective: BinaryConnective::Conjunction,
+            lhs: Formula::AtomicFormula(AtomicFormula::Truth),
+            rhs,
+        } => rhs,
+
+        x => x.rebox(),
+    }
+}
+
 pub fn remove_identities(formula: Formula) -> Formula {
     // Remove identities
     // e.g. F op E => F

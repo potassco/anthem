@@ -124,6 +124,13 @@ pub enum Command {
     },
 }
 
+#[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Dialect {
+    #[default]
+    GringoFive,
+    GringoSix,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Property {
     Regularity,
