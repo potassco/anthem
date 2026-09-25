@@ -126,7 +126,11 @@ pub fn main() -> Result<()> {
             Ok(())
         }
 
-        Command::Translate { with, input } => {
+        Command::Translate {
+            with,
+            input,
+            dialect,
+        } => {
             match with {
                 Translation::Completion => {
                     let theory =
@@ -147,7 +151,7 @@ pub fn main() -> Result<()> {
                 Translation::TauStar => {
                     let program =
                         input.map_or_else(asp::Program::from_stdin, asp::Program::from_file)?;
-                    let theory = program.tau_star();
+                    let theory = program.tau_star(dialect);
                     print!("{theory}")
                 }
             }
@@ -160,6 +164,8 @@ pub fn main() -> Result<()> {
             decomposition,
             direction,
             formula_representation,
+            program_dialect,
+            spec_dialect,
             bypass_tightness,
             no_simplify,
             no_eq_break,
@@ -188,6 +194,8 @@ pub fn main() -> Result<()> {
                             .right()
                             .ok_or(anyhow!("no right program was provided"))?,
                     )?,
+                    program_dialect,
+                    spec_dialect,
                     decomposition,
                     formula_representation,
                     direction,
@@ -219,6 +227,8 @@ pub fn main() -> Result<()> {
                         .proof_outline()
                         .map(fol::Specification::from_file)
                         .unwrap_or_else(|| Ok(fol::Specification::empty()))?,
+                    program_dialect,
+                    spec_dialect,
                     decomposition,
                     formula_representation,
                     direction,

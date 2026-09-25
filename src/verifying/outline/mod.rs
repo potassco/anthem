@@ -504,7 +504,7 @@ mod tests {
             (
                 "forall M$i N$i ( N$i >= 0 -> N$i + M$i >= M$i )",
                 "forall M$i ( 0 + M$i >= M$i )",
-                "forall N$i M$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
+                "forall M$i N$i ( N$i >= 0 and N$i + M$i >= M$i -> (N$i+1 + M$i >= M$i) )",
             ),
         ] {
             let formula: fol::Formula = src.parse().unwrap();

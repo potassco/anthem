@@ -1,16 +1,20 @@
 use {
-    crate::{syntax_tree::{
-        asp::mini_gringo::{self as asp, Program},
-        fol::sigma_0::{self as fol, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison, Formula,
-                GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier, Relation,
-                Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,},
+    crate::{
+        command_line::arguments::Dialect,
+        convenience::{apply::Apply, compose::Compose, variable_selection::VariableSelection},
+        simplifying::fol::sigma_0::intuitionistic::{
+            remove_conjunctive_identities, remove_empty_quantifications, remove_orphaned_variables,
+        },
+        syntax_tree::{
+            asp::mini_gringo::{self as asp, Program},
+            fol::sigma_0::{
+                self as fol, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
+                Formula, Function, GeneralTerm, Guard, IntegerTerm, Quantification, Quantifier,
+                Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
+            },
+        },
     },
-    command_line::arguments::Dialect,
-    simplifying::fol::sigma_0::intuitionistic::{
-        remove_conjunctive_identities, remove_empty_quantifications, remove_orphaned_variables,
-    },
-    convenience::{apply::Apply, compose::Compose, variable_selection::VariableSelection},
-}, indexmap::{IndexMap, IndexSet},
+    indexmap::{IndexMap, IndexSet},
 };
 
 pub const PREPROCESS: &[fn(Formula) -> Formula] = &[
@@ -20,7 +24,7 @@ pub const PREPROCESS: &[fn(Formula) -> Formula] = &[
 ];
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+pub(crate) fn choose_fresh_global_variables(program: &Program) -> Vec<String> {
     let max_arity = program.max_arity();
     program.choose_fresh_variables("V", max_arity)
 }
@@ -754,7 +758,6 @@ fn tau_b_literal(l: asp::Literal, taken_vars: IndexSet<Variable>, dialect: Diale
     let terms = atom.terms;
     let arity = terms.len();
     let varnames = taken_vars.choose_fresh_variables("Z", arity);
-    let varnames = taken_vars.choose_fresh_variables("Z", arity);
 
     // val_t1(Z1) & val_t2(Z2) & ... & val_tk(Zk)
     let vars: Vec<Variable> = varnames
@@ -883,7 +886,7 @@ fn tau_b(f: asp::AtomicFormula, dialect: Dialect) -> Formula {
 }
 
 // Translate a rule body
-fn tau_body(b: asp::Body, z: IndexSet<asp::Variable>, dialect: Dialect) -> fol::Formula {
+fn tau_body(b: asp::Body, dialect: Dialect) -> fol::Formula {
     let mut formulas = Vec::<fol::Formula>::new();
     for f in b.formulas.iter() {
         formulas.push(tau_b(f.clone(), dialect));
@@ -895,7 +898,7 @@ fn tau_body(b: asp::Body, z: IndexSet<asp::Variable>, dialect: Dialect) -> fol::
 pub(crate) fn tau_star_rule(r: asp::Rule, globals: &[String], dialect: Dialect) -> Formula {
     let mut prep = [PREPROCESS].concat().into_iter().compose();
 
-    let body = tau_body(r.body.clone(), r.global_variables(), dialect);
+    let body = tau_body(r.body.clone(), dialect);
 
     match r.head.predicate() {
         Some(predicate) => {
@@ -986,7 +989,7 @@ pub(crate) fn tau_star_rule(r: asp::Rule, globals: &[String], dialect: Dialect) 
 // For each rule, produce a formula: forall G V ( val_t(V) & tau_body(Body) -> p(V) )
 // Where G is all variables from the original rule
 // and V is the set of fresh variables replacing t within p
-fn tau_star(p: asp::Program, dialect: Dialect) -> Theory {
+fn tau_star(p: Program, dialect: Dialect) -> Theory {
     let globals = choose_fresh_global_variables(&p);
     let mut formulas: Vec<Formula> = vec![]; // { forall G V ( val_t(V) & tau^B(Body) -> p(V) ), ... }
     for r in p.rules {
@@ -998,7 +1001,7 @@ fn tau_star(p: asp::Program, dialect: Dialect) -> Theory {
 pub trait TauStar {
     type Output;
 
-    fn tau_star(self) -> Self::Output;
+    fn tau_star(self, dialect: Dialect) -> Self::Output;
 }
 
 impl TauStar for Program {
@@ -1011,6 +1014,12 @@ impl TauStar for Program {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+
+    use crate::{
+        command_line::arguments::Dialect, translating::formula_representation::tau_star::valtz,
+    };
+
     use super::{choose_fresh_global_variables, tau_b, tau_star, val};
 
     #[test]
@@ -1031,39 +1040,86 @@ mod tests {
 
     #[test]
     fn test_val() {
-        for (term, var, target) in [
+        for (term, dialect, var, target) in [
+            (
+                "f(a)",
+                Dialect::GringoFive,
+                "Z1",
+                "exists X$g (X$g = a and Z1$g = f$s(X$g))",
+            ),
             (
                 "X + 1",
+                Dialect::GringoFive,
                 "Z1",
                 "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)",
             ),
             (
                 "3 - 5",
+                Dialect::GringoFive,
                 "Z1",
                 "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and J$i = 5)",
             ),
             (
                 "Xanadu/Yak",
+                Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = Xanadu and J$i = Yak) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = Q$i)",
+                "exists I$i J$i K$i (I$i = Xanadu and J$i = Yak and K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i| and ((I$i * J$i >= 0 and Z1 = K$i) or (I$i * J$i < 0 and Z1 = -K$i)))",
             ),
             (
                 "X \\ 3",
+                Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 3) and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z1$g = R$i)",
+                "exists I$i J$i K$i (I$i = X and J$i = 3 and K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i| and ((I$i * J$i >= 0 and Z1 = I$i - K$i * J$i) or (I$i * J$i < 0 and Z1 = I$i + K$i * J$i)))",
             ),
             (
                 "X..Y",
+                Dialect::GringoFive,
                 "Z",
                 "exists I$i J$i K$i (I$i = X and J$i = Y and Z$g = K$i and I$i <= K$i <= J$i)",
             ),
             (
                 "X+1..Y",
+                Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
+                "exists I$i J$i K$i ((exists I1$i J1$i (I$i = I1$i + J1$i and I1$i = X and J1$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
             ),
         ] {
-            let left = val(term.parse().unwrap(), var.parse().unwrap());
+            let left = val(
+                term.parse().unwrap(),
+                var.parse().unwrap(),
+                IndexSet::new(),
+                dialect,
+            );
+            let right = target.parse().unwrap();
+
+            assert!(
+                left == right,
+                "assertion `left == right` failed:\n left:\n{left}\n right:\n{right}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_valtz() {
+        for (term, dialect, var, target) in [
+            (
+                "X + 1",
+                Dialect::GringoFive,
+                "Z1",
+                "exists I$i J$i (Z1$g = I$i + J$i and I$i = X and J$i = 1)",
+            ),
+            (
+                "3 - (1..5)",
+                Dialect::GringoFive,
+                "Z1",
+                "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5 and J$i = K1$i and I1$i <= K1$i <= J1$i))",
+            ),
+        ] {
+            let left = valtz(
+                vec![term.parse().unwrap()],
+                vec![var.parse().unwrap()],
+                dialect,
+            );
             let right = target.parse().unwrap();
 
             assert!(
@@ -1075,33 +1131,61 @@ mod tests {
 
     #[test]
     fn test_tau_b() {
-        for (src, target) in [
-            ("p(t)", "exists Z (Z = t and p(Z))"),
-            ("not p(t)", "exists Z (Z = t and not p(Z))"),
+        for (src, dialect, target) in [
+            ("p(t)", Dialect::GringoFive, "exists Z (Z = t and p(Z))"),
+            (
+                "not p(t)",
+                Dialect::GringoFive,
+                "exists Z (Z = t and not p(Z))",
+            ),
             (
                 "X < 1..5",
+                Dialect::GringoFive,
                 "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and Z < Z1)",
             ),
-            ("not not p(t)", "exists Z (Z = t and not not p(Z))"),
-            ("not not x", "not not x"),
+            (
+                "not not p(t)",
+                Dialect::GringoFive,
+                "exists Z (Z = t and not not p(Z))",
+            ),
+            ("not not x", Dialect::GringoFive, "not not x"),
             (
                 "not p(X,5)",
+                Dialect::GringoFive,
                 "exists Z Z1 (Z = X and Z1 = 5 and not p(Z,Z1))",
             ),
             (
                 "not p(X,0-5)",
+                Dialect::GringoFive,
                 "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and J$i = 5) and not p(Z,Z1))",
             ),
             (
                 "p(X,-1..5)",
+                Dialect::GringoFive,
                 "exists Z Z1 (Z = X and exists I$i J$i K$i (I$i = -1 and J$i = 5 and Z1 = K$i and I$i <= K$i <= J$i) and p(Z,Z1))",
             ),
             (
                 "p(X,-(1..5))",
-                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5  and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))",
+                Dialect::GringoFive,
+                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5  and J$i = K1$i and I1$i <= K1$i <= J1$i)) and p(Z,Z1))",
+            ),
+            (
+                "p(1/0)",
+                Dialect::GringoFive,
+                "exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 0 and (K$i * |J$i| <= |I$i| < (K$i+1) * |J$i|) and ((I$i * J$i >= 0 and Z = K$i) or (I$i*J$i < 0 and Z = -K$i)) ) and p(Z))",
+            ),
+            (
+                "X / Y > 5",
+                Dialect::GringoSix,
+                "exists Z Z1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and I$i = X and J$i = Y and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z = Q$i) and Z1 = 5 and Z > Z1)",
+            ),
+            (
+                "X \\ Y > 5",
+                Dialect::GringoSix,
+                "exists Z Z1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and I$i = X and J$i = Y and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z = R$i) and Z1 = 5 and Z > Z1)",
             ),
         ] {
-            let left = tau_b(src.parse().unwrap());
+            let left = tau_b(src.parse().unwrap(), dialect);
             let right = target.parse().unwrap();
 
             assert!(
@@ -1117,7 +1201,7 @@ mod tests {
             ("a:- b. a :- c.", "b -> a. c -> a."),
             (
                 "p(a). p(b). q(X, Y) :- p(X), p(Y).",
-                "forall V1 (V1 = a and #true -> p(V1)). forall V1 (V1 = b and #true -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2)).",
+                "forall V1 (V1 = a -> p(V1)). forall V1 (V1 = b -> p(V1)). forall V1 V2 X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))) -> q(V1,V2)).",
             ),
             ("p.", "#true -> p."),
             ("q :- not p.", "not p -> q."),
@@ -1139,22 +1223,15 @@ mod tests {
             ),
             (":- p.", "p -> #false."),
             ("{p} :- q.", "q and not not p -> p."),
-            ("{p}.", "#true and not not p -> p."),
-            (
-                "{p(5)}.",
-                "forall V1 (V1 = 5 and #true and not not p(V1) -> p(V1)).",
-            ),
+            ("{p}.", "not not p -> p."),
+            ("{p(5)}.", "forall V1 (V1 = 5 and not not p(V1) -> p(V1))."),
             ("p. q.", "#true -> p. #true -> q."),
             (
                 "{ra(X,a)} :- ta(X). ra(5,a).",
-                "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a and #true -> ra(V1, V2)).",
-            ),
-            (
-                "p(X/2) :- X=4.",
-                "forall V1 X (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and (I$i = X and J$i = 2) and (J$i != 0 and R$i >= 0 and R$i < J$i) and V1 = Q$i) and exists Z Z1 (Z = X and Z1 = 4 and Z = Z1) -> p(V1)).",
+                "forall V1 V2 X (V1 = X and V2 = a and exists Z (Z = X and ta(Z)) and not not ra(V1, V2) -> ra(V1, V2)). forall V1 V2 (V1 = 5 and V2 = a -> ra(V1, V2)).",
             ),
         ] {
-            let left = tau_star(src.parse().unwrap());
+            let left = tau_star(src.parse().unwrap(), Dialect::GringoFive);
             let right = target.parse().unwrap();
 
             assert!(

@@ -1,6 +1,6 @@
 use {
     crate::{
-        command_line::arguments::{Decomposition, FormulaRepresentation},
+        command_line::arguments::{Decomposition, Dialect, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             compose::Compose as _,
@@ -27,6 +27,8 @@ pub enum StrongEquivalenceTaskError {}
 pub struct StrongEquivalenceTask {
     pub left: asp::Program,
     pub right: asp::Program,
+    pub program_dialect: Dialect,
+    pub spec_dialect: Dialect,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub formula_representation: FormulaRepresentation,
@@ -68,12 +70,13 @@ impl Task for StrongEquivalenceTask {
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
         let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
 
-        let mut left = match self.formula_representation {
-            FormulaRepresentation::TauStar => self.left.tau_star(),
+        let mut left = match self.spec_dialect {
+            Dialect::GringoFive => self.left.tau_star(Dialect::GringoFive),
+            Dialect::GringoSix => self.left.tau_star(Dialect::GringoSix),
         };
-
-        let mut right = match self.formula_representation {
-            FormulaRepresentation::TauStar => self.right.tau_star(),
+        let mut right = match self.program_dialect {
+            Dialect::GringoFive => self.right.tau_star(Dialect::GringoFive),
+            Dialect::GringoSix => self.right.tau_star(Dialect::GringoSix),
         };
 
         if self.simplify {

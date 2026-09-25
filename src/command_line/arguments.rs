@@ -56,6 +56,10 @@ pub enum Command {
         #[arg(long, value_enum)]
         with: Translation,
 
+        /// The dialect governs which tau-star variant is applied in translation
+        #[arg(long, value_enum, default_value_t)]
+        dialect: Dialect,
+
         /// The file to translate
         input: Option<PathBuf>,
     },
@@ -77,6 +81,14 @@ pub enum Command {
         /// The ASP-to-target-language translation to use
         #[arg(long, value_enum, default_value_t)]
         formula_representation: FormulaRepresentation,
+
+        /// The dialect of the program
+        #[arg(long, value_enum, default_value_t)]
+        program_dialect: Dialect,
+
+        /// The dialect of the specification (if it is a logic program)
+        #[arg(long, value_enum, default_value_t)]
+        spec_dialect: Dialect,
 
         /// Bypass the tightness checks during verification of external equivalence
         #[arg(long, action)]
