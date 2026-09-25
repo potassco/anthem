@@ -2,7 +2,7 @@ use crate::{
     parsing::PestParser,
     syntax_tree::fol::sigma_0::{
         AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator, Comparison,
-        Direction, Formula, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
+        Direction, Formula, Function, FunctionConstant, GeneralTerm, Guard, IntegerTerm,
         PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role, Sort,
         Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, UserGuide,
         UserGuideEntry, Variable,
@@ -89,6 +89,10 @@ impl PestParser for IntegerTermParser {
         internal::TERM_PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 internal::Rule::integer_term => IntegerTermParser::translate_pair(primary),
+                internal::Rule::absolute_valued_integer_term => IntegerTerm::UnaryOperation {
+                    op: UnaryOperator::AbsoluteValue,
+                    arg: IntegerTermParser::translate_pairs(primary.into_inner()).into(),
+                },
                 internal::Rule::numeral => IntegerTerm::Numeral(primary.as_str().parse().unwrap()),
                 internal::Rule::integer_function_constant => match primary.into_inner().next() {
                     Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
@@ -118,7 +122,6 @@ impl PestParser for IntegerTermParser {
             .parse(pair.into_inner())
     }
 }
-
 pub struct SymbolicTermParser;
 
 impl PestParser for SymbolicTermParser {
@@ -151,6 +154,41 @@ impl PestParser for SymbolicTermParser {
     }
 }
 
+pub struct FunctionParser;
+
+impl PestParser for FunctionParser {
+    type Node = Function;
+
+    type InternalParser = internal::Parser;
+    type Rule = internal::Rule;
+    const RULE: Self::Rule = internal::Rule::function_eoi;
+
+    fn translate_pair(pair: pest::iterators::Pair<'_, Self::Rule>) -> Self::Node {
+        if pair.as_rule() != internal::Rule::function {
+            Self::report_unexpected_pair(pair)
+        }
+
+        let mut pairs = pair.into_inner();
+
+        let function_symbol = pairs
+            .next()
+            .unwrap_or_else(|| Self::report_missing_pair())
+            .as_str()
+            .into();
+
+        let sort =
+            SortParser::translate_pair(pairs.next().unwrap_or_else(|| Self::report_missing_pair()));
+
+        let terms: Vec<_> = pairs.map(GeneralTermParser::translate_pair).collect();
+
+        Function {
+            function_symbol,
+            sort,
+            terms,
+        }
+    }
+}
+
 pub struct GeneralTermParser;
 
 impl PestParser for GeneralTermParser {
@@ -165,6 +203,7 @@ impl PestParser for GeneralTermParser {
             internal::Rule::general_term => Self::translate_pairs(pair.into_inner()),
             internal::Rule::infimum => GeneralTerm::Infimum,
             internal::Rule::supremum => GeneralTerm::Supremum,
+            internal::Rule::function => GeneralTerm::Function(FunctionParser::translate_pair(pair)),
             internal::Rule::general_function_constant => match pair.into_inner().next() {
                 Some(pair) if pair.as_rule() == internal::Rule::symbolic_constant => {
                     GeneralTerm::FunctionConstant(pair.as_str().into())
@@ -828,7 +867,7 @@ mod tests {
             parsing::TestedParser,
             syntax_tree::fol::sigma_0::{
                 AnnotatedFormula, Atom, AtomicFormula, BinaryConnective, BinaryOperator,
-                Comparison, Direction, Formula, GeneralTerm, Guard, IntegerTerm,
+                Comparison, Direction, Formula, Function, GeneralTerm, Guard, IntegerTerm,
                 PlaceholderDeclaration, Predicate, Quantification, Quantifier, Relation, Role,
                 Sort, Specification, SymbolicTerm, Theory, UnaryConnective, UnaryOperator,
                 UserGuide, UserGuideEntry, Variable,
@@ -860,6 +899,20 @@ mod tests {
                 ("-1", IntegerTerm::Numeral(-1)),
                 ("-48", IntegerTerm::Numeral(-48)),
                 ("(-48)", IntegerTerm::Numeral(-48)),
+                (
+                    "|0|",
+                    IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: IntegerTerm::Numeral(0).into(),
+                    },
+                ),
+                (
+                    "|-32|",
+                    IntegerTerm::UnaryOperation {
+                        op: UnaryOperator::AbsoluteValue,
+                        arg: IntegerTerm::Numeral(-32).into(),
+                    },
+                ),
                 ("a$i", IntegerTerm::FunctionConstant("a".into())),
                 ("X$i", IntegerTerm::Variable("X".into())),
                 ("Xvar$", IntegerTerm::Variable("Xvar".into())),
@@ -909,6 +962,22 @@ mod tests {
                 ("#inf", GeneralTerm::Infimum),
                 ("#sup", GeneralTerm::Supremum),
                 ("a$g", GeneralTerm::FunctionConstant("a".into())),
+                (
+                    "f$g(a)",
+                    GeneralTerm::Function(Function {
+                        function_symbol: "f".into(),
+                        sort: Sort::General,
+                        terms: vec![GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".into()))],
+                    }),
+                ),
+                (
+                    "f$s(a)",
+                    GeneralTerm::Function(Function {
+                        function_symbol: "f".into(),
+                        sort: Sort::Symbol,
+                        terms: vec![GeneralTerm::SymbolicTerm(SymbolicTerm::Symbol("a".into()))],
+                    }),
+                ),
                 ("1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
                 ("(1)", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(1))),
                 ("-1", GeneralTerm::IntegerTerm(IntegerTerm::Numeral(-1))),

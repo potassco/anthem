@@ -419,6 +419,10 @@ impl Rule {
         vars
     }
 
+    pub fn global_variables(&self) -> IndexSet<Variable> {
+        self.variables()
+    }
+
     pub fn function_constants(&self) -> IndexSet<String> {
         let mut functions = self.head.function_constants();
         functions.extend(self.body.function_constants());
@@ -434,6 +438,10 @@ impl Rule {
         }
         terms.extend(self.body.terms());
         terms
+    }
+
+    pub fn is_choice_rule(&self) -> bool {
+        matches!(self.head, Head::Choice(_))
     }
 }
 
@@ -478,6 +486,17 @@ impl Program {
             functions.extend(rule.function_constants());
         }
         functions
+    }
+
+    pub fn max_arity(&self) -> usize {
+        let mut max_arity = 0;
+        for rule in self.rules.iter() {
+            let head_arity = rule.head.arity();
+            if head_arity > max_arity {
+                max_arity = head_arity;
+            }
+        }
+        max_arity
     }
 }
 
