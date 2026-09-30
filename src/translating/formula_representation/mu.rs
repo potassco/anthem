@@ -43,7 +43,7 @@ mod tests {
             ),
             (
                 "p(X) :- q(1..5), a(X). q(1..3) :- p(X).",
-                "forall V1 X (V1 = X and (exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z = K$i and I$i <= K$i <= J$i) and q(Z)) and exists Z (Z = X and a(Z))) -> p(V1)).\nforall X (p(X) -> forall N0$i (1 <= N0$i <= 3 -> q(N0$i))).",
+                "forall V1 X (V1 = X and (exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 5 and Z = K$i and I$i <= K$i <= J$i) and q(Z)) and exists Z (Z = X and a(Z))) -> p(V1)).\nforall X (p(X) -> forall N$i (1 <= N$i <= 3 -> q(N$i))).",
             ),
         ] {
             let program = source.parse::<asp::Program>().unwrap();

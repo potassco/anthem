@@ -275,7 +275,7 @@ fn natural_head_atom(
 ) -> Option<fol::Formula> {
     // If head is not regular, returns None
     // If head is regular returns the atom with intervals replaced by fresh variables and regular terms translated:
-    // Example: p(a, 1..10, X, I+1) -> p(a, N1$i, X, I$i + 1)
+    // Example: p(a, 1..10, X, I+1) -> p(a, N$i, X, I$i + 1)
     let mut terms = Vec::<fol::GeneralTerm>::new();
     // create an iterator over fresh_vars
     let mut fresh_vars = fresh_vars.iter();
@@ -932,7 +932,7 @@ mod tests {
             ("{p(X)} :- X = 3.", "forall X (X = 3 -> p(X) or not p(X))"),
             (
                 "p(1..2, N0).",
-                "forall N0 (#true -> forall N1$i (1 <= N1$i <= 2-> p(N1$i, N0)))",
+                "forall N0 (#true -> forall N$i (1 <= N$i <= 2-> p(N$i, N0)))",
             ),
             ("q(X+1) :- p(X).", "forall X$i (p(X$i) -> q(X$i + 1))"), // example (1) from paper [1]
             (
@@ -941,11 +941,11 @@ mod tests {
             ), // example from paper [1]
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z).",
-                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))",
+                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N$i N1$i (1 <= N$i <= X$i and (1 <= N1$i <= Y$i) -> q(N$i, N1$i)))",
             ), //( example from paper [1]
             (
                 "{q(1..X, Y)} :- p(X,Y).",
-                "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))",
+                "forall X$i Y (p(X$i, Y) -> forall N$i (1 <= N$i <= X$i -> q(N$i, Y) or not q(N$i, Y)))",
             ), // example from paper [1]
             (
                 "p(X,Y) :- X = 1..2, Y = 1..2.",
@@ -957,7 +957,7 @@ mod tests {
             ), // example (7) from paper [2]
             (
                 "{h(1..10,1..10-2)}.",
-                "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))",
+                "#true -> forall N$ N1$ ( 1 <= N$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N$, N1$) or not h(N$, N1$)))",
             ), // Inspired by Tiling example
             (
                 "{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
@@ -1111,24 +1111,24 @@ mod tests {
             (
                 "p(1..4)",
                 vec![],
-                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i))"),
+                Some("forall N$i ( (1 <= N$i <= 4) -> p(N$i))"),
             ),
             ("p(1/5)", vec![], None),
             (
                 "p(1..Y, X)",
                 vec!["Y"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X))"),
             ),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X$i))"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) ->q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) ->q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1137,7 +1137,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) ->q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) ->q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
@@ -1181,24 +1181,24 @@ mod tests {
             (
                 "p(1..4)",
                 vec![],
-                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i) or not p(N0$i))"),
+                Some("forall N$i ( (1 <= N$i <= 4) -> p(N$i) or not p(N$i))"),
             ),
             ("p(1/5)", vec![], None),
             (
                 "p(1..Y, X)",
                 vec!["Y"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X) or  not p(N0$i, X))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X) or  not p(N$i, X))"),
             ),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i) or not p(N0$i, X$i))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X$i) or not p(N$i, X$i))"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) -> q(N0$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) -> q(N$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1207,7 +1207,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N1$i N2$i ( (1 <= N0$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) -> q(N0$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N0$i, X$i, N1$i, Y$i, Z, N2$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) -> q(N$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
