@@ -5,7 +5,10 @@
 // The other papers give examples of the translation which were used in the tests
 
 use {
-    crate::syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    crate::{
+        convenience::fresh_names::FreshVariables,
+        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+    },
     indexmap::IndexSet,
 };
 
@@ -253,33 +256,15 @@ fn natural_body(b: &asp::Body, int_vars: &IndexSet<std::string::String>) -> Opti
 }
 
 fn fresh_variables_for_head_atom(a: &asp::Atom) -> Vec<String> {
-    let mut fresh_vars = Vec::<String>::new();
-    let taken_vars = a.variables();
-    let terms = &a.terms;
-    for (i, term) in terms.iter().enumerate() {
+    let mut fresh_vars = Vec::new();
+    let mut taken_vars = a.variables();
+    for term in a.terms.iter() {
         if !is_term_regular_of_first_kind(term) {
-            // create a new variable with N_i if not of first kind
-            let var_name = format!("N{i}");
-            // check if var_name is already taken
-            if !taken_vars.contains(&asp::Variable(var_name.clone())) {
-                // add var_name to fresh_vars
-                fresh_vars.push(var_name);
-            } else {
-                // var is taken already
-                // add a new variable with name N_i_j to fresh_vars
-                let mut j = 0;
-                loop {
-                    let var_name = format!("N{i}_{j}");
-                    if !taken_vars.contains(&asp::Variable(var_name.clone())) {
-                        fresh_vars.push(var_name);
-                        break;
-                    }
-                    j += 1;
-                }
-            }
+            let fresh_var = taken_vars.choose_fresh_variable("N");
+            fresh_vars.push(fresh_var.clone());
+            taken_vars.insert(asp::Variable(fresh_var));
         }
     }
-
     fresh_vars
 }
 
@@ -290,7 +275,7 @@ fn natural_head_atom(
 ) -> Option<fol::Formula> {
     // If head is not regular, returns None
     // If head is regular returns the atom with intervals replaced by fresh variables and regular terms translated:
-    // Example: p(a, 1..10, X, I+1) -> p(a, N1$i, X, I$i + 1)
+    // Example: p(a, 1..10, X, I+1) -> p(a, N$i, X, I$i + 1)
     let mut terms = Vec::<fol::GeneralTerm>::new();
     // create an iterator over fresh_vars
     let mut fresh_vars = fresh_vars.iter();
@@ -947,7 +932,7 @@ mod tests {
             ("{p(X)} :- X = 3.", "forall X (X = 3 -> p(X) or not p(X))"),
             (
                 "p(1..2, N0).",
-                "forall N0 (#true -> forall N0_0$i (1 <= N0_0$i <= 2-> p(N0_0$i, N0)))",
+                "forall N0 (#true -> forall N$i (1 <= N$i <= 2-> p(N$i, N0)))",
             ),
             ("q(X+1) :- p(X).", "forall X$i (p(X$i) -> q(X$i + 1))"), // example (1) from paper [1]
             (
@@ -956,11 +941,11 @@ mod tests {
             ), // example from paper [1]
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z).",
-                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N0$i N1$i (1 <= N0$i <= X$i and (1 <= N1$i <= Y$i) -> q(N0$i, N1$i)))",
+                "forall X$i Y$i Z (p(X$i, Y$i, Z) -> forall N$i N1$i (1 <= N$i <= X$i and (1 <= N1$i <= Y$i) -> q(N$i, N1$i)))",
             ), //( example from paper [1]
             (
                 "{q(1..X, Y)} :- p(X,Y).",
-                "forall X$i Y (p(X$i, Y) -> forall N0$i (1 <= N0$i <= X$i -> q(N0$i, Y) or not q(N0$i, Y)))",
+                "forall X$i Y (p(X$i, Y) -> forall N$i (1 <= N$i <= X$i -> q(N$i, Y) or not q(N$i, Y)))",
             ), // example from paper [1]
             (
                 "p(X,Y) :- X = 1..2, Y = 1..2.",
@@ -972,7 +957,7 @@ mod tests {
             ), // example (7) from paper [2]
             (
                 "{h(1..10,1..10-2)}.",
-                "#true -> forall N0$ N1$ ( 1 <= N0$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N0$, N1$) or not h(N0$, N1$)))",
+                "#true -> forall N$ N1$ ( 1 <= N$ <= 10 and (1 <= N1$ <= 10-2) -> (h(N$, N1$) or not h(N$, N1$)))",
             ), // Inspired by Tiling example
             (
                 "{ place(X,Y, T) } :- X = 1..10, Y = 1..10, T = 1..3.",
@@ -1126,24 +1111,24 @@ mod tests {
             (
                 "p(1..4)",
                 vec![],
-                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i))"),
+                Some("forall N$i ( (1 <= N$i <= 4) -> p(N$i))"),
             ),
             ("p(1/5)", vec![], None),
             (
                 "p(1..Y, X)",
                 vec!["Y"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X))"),
             ),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X$i))"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) ->q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1152,7 +1137,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) ->q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) ->q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
@@ -1166,8 +1151,8 @@ mod tests {
                     assert_eq!(
                         natural_head.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_basic_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
-                        natural_head,
+                        "assertion `natural_basic_head({atom}) == target` failed:\n natural_head:\n{}\n target:\n{}",
+                        natural_head.clone().unwrap(),
                         &target_formula
                     );
                 }
@@ -1196,24 +1181,24 @@ mod tests {
             (
                 "p(1..4)",
                 vec![],
-                Some("forall N0$i ( (1 <= N0$i <= 4) -> p(N0$i) or not p(N0$i))"),
+                Some("forall N$i ( (1 <= N$i <= 4) -> p(N$i) or not p(N$i))"),
             ),
             ("p(1/5)", vec![], None),
             (
                 "p(1..Y, X)",
                 vec!["Y"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X) or  not p(N0$i, X))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X) or  not p(N$i, X))"),
             ),
             (
                 "p(1..Y, X)",
                 vec!["Y", "X"],
-                Some("forall N0$i ( (1 <= N0$i <= Y$i) -> p(N0$i, X$i) or not p(N0$i, X$i))"),
+                Some("forall N$i ( (1 <= N$i <= Y$i) -> p(N$i, X$i) or not p(N$i, X$i))"),
             ),
             (
                 "q(1..5, X, 1..X, Y, Z, X..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and X$i <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and X$i <= N2$i <= Y$i) -> q(N$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
             ("q(1..a)", vec![], None),
@@ -1222,7 +1207,7 @@ mod tests {
                 "q(1..5, X, 1..X, Y, Z, 2+7-X*3..Y)",
                 vec!["X", "Y"],
                 Some(
-                    "forall N0$i N2$i N5$i ( (1 <= N0$i <= 5 and 1 <= N2$i <= X$i and 2+7-X$i*3 <= N5$i <= Y$i) -> q(N0$i, X$i, N2$i, Y$i, Z, N5$i) or not q(N0$i, X$i, N2$i, Y$i, Z, N5$i))",
+                    "forall N$i N1$i N2$i ( (1 <= N$i <= 5 and 1 <= N1$i <= X$i and 2+7-X$i*3 <= N2$i <= Y$i) -> q(N$i, X$i, N1$i, Y$i, Z, N2$i) or not q(N$i, X$i, N1$i, Y$i, Z, N2$i))",
                 ),
             ),
         ] {
@@ -1236,9 +1221,9 @@ mod tests {
                     assert_eq!(
                         natural_head.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_choice_head({atom}) == target` failed:\n natural_head:\n{:?}\n target:\n{:?}",
-                        natural_head,
-                        &target_formula
+                        "assertion `natural_choice_head({atom}) == target` failed:\n natural_head:\n{}\n target:\n{}",
+                        natural_head.clone().unwrap(),
+                        target_formula
                     );
                 }
                 None => {
@@ -1279,8 +1264,8 @@ mod tests {
                     assert_eq!(
                         body.as_ref().unwrap(),
                         &target_formula,
-                        "assertion `natural_b_atom({atom}) == target` failed:\n body:\n{:?}\n target:\n{:?}",
-                        body,
+                        "assertion `natural_b_atom({atom}) == target` failed:\n body:\n{}\n target:\n{}",
+                        body.clone().unwrap(),
                         &target_formula
                     );
                 }
