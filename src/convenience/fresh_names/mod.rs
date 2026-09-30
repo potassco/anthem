@@ -1,7 +1,6 @@
 use {
     crate::syntax_tree::{asp::mini_gringo, fol::sigma_0 as fol},
     indexmap::IndexSet,
-    regex::Regex,
 };
 
 pub(crate) fn choose_fresh_names(
@@ -41,23 +40,18 @@ impl FreshVariables for IndexSet<mini_gringo::Variable> {
 }
 
 impl FreshVariables for mini_gringo::Program {
-    fn choose_fresh_variable(&self, variant: &str) -> String {
-        self.variables().choose_fresh_variable(variant)
-    }
-
-    // Choose the first available sequence of variants (alphabetically first)
-    // e.g. if the program contains V2, start selection from V3,...
+    // Choose sequence of variants numbered above the highest one taken in the program,
+    // e.g. if the program contains V2, start selection from V3,
+    //      even if the program does not contain V1
     fn choose_fresh_variables(&self, variant: &str, n: usize) -> Vec<String> {
-        let mut max_taken_var = 0;
-        let re = Regex::new(&format!(r"^{variant}(?<number>[0-9]*)$")).unwrap();
-        for var in self.variables() {
-            if let Some(caps) = re.captures(&var.0) {
-                let taken: usize = (caps["number"]).parse().unwrap_or(0);
-                if taken > max_taken_var {
-                    max_taken_var = taken;
-                }
-            }
-        }
+        let max_taken_var = self
+            .variables()
+            .iter()
+            .filter_map(|v| v.0.strip_prefix(variant))
+            .map(|suffix| suffix.parse::<usize>().unwrap_or(0))
+            .max()
+            .unwrap_or(0);
+
         ((max_taken_var + 1)..(max_taken_var + n + 1))
             .map(|i| format!("{variant}{i}"))
             .collect()
