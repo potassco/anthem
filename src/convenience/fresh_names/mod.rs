@@ -4,88 +4,43 @@ use {
     regex::Regex,
 };
 
-fn sequence(start: usize, prefix: &String) -> impl Iterator<Item = String> {
-    (start..).map(move |i| format!("{}{}", prefix, i))
+pub(crate) fn choose_fresh_names(
+    variant: &str,
+    n: usize,
+    is_taken: impl Fn(&str) -> bool,
+) -> Vec<String> {
+    std::iter::once(variant.to_string())
+        .chain((1..).map(|i| format!("{variant}{i}")))
+        .filter(|c| !is_taken(c))
+        .take(n)
+        .collect()
 }
 
-pub(crate) trait VariableSelection {
-    /// Select a variable name using `variant` disjoint from any variables in `self`
-    fn choose_fresh_variable(&self, variant: &str) -> String;
-
+pub(crate) trait FreshVariables {
     /// Select n variable names using `variant` disjoint from any variables in `self`
     fn choose_fresh_variables(&self, variant: &str, n: usize) -> Vec<String>;
-}
 
-impl VariableSelection for IndexSet<fol::Variable> {
+    /// Select a variable name using `variant` disjoint from any variables in `self`
     fn choose_fresh_variable(&self, variant: &str) -> String {
-        let mut taken_var_names = IndexSet::new();
-        for var in self.iter() {
-            taken_var_names.insert(var.name.clone());
-        }
-
-        if !taken_var_names.contains(variant) {
-            return variant.to_string();
-        }
-
-        let prefix = variant.to_string();
-        sequence(1, &prefix)
-            .find(|candidate| !taken_var_names.contains(candidate))
-            .unwrap()
-    }
-
-    fn choose_fresh_variables(&self, variant: &str, n: usize) -> Vec<String> {
-        let mut taken_var_names = IndexSet::new();
-        for var in self.iter() {
-            taken_var_names.insert(var.name.clone());
-        }
-
-        let mut selected_variables = Vec::new();
-
-        if n < 1 {
-            return selected_variables;
-        }
-
-        if !taken_var_names.contains(variant) {
-            selected_variables.push(variant.to_string());
-        }
-
-        let mut i = 1;
-        let prefix = variant.to_string();
-        while selected_variables.len() < n {
-            let fresh_var = sequence(i, &prefix)
-                .find(|candidate| {
-                    !taken_var_names.contains(candidate) && !selected_variables.contains(candidate)
-                })
-                .unwrap();
-            selected_variables.push(fresh_var);
-            i += 1;
-        }
-
-        selected_variables
+        self.choose_fresh_variables(variant, 1).pop().unwrap()
     }
 }
 
-impl VariableSelection for IndexSet<mini_gringo::Variable> {
-    fn choose_fresh_variable(&self, variant: &str) -> String {
-        let prefix = variant.to_string();
-        sequence(0, &prefix)
-            .find(|candidate| !self.contains(&mini_gringo::Variable(candidate.to_string())))
-            .unwrap()
-    }
-
+impl FreshVariables for IndexSet<fol::Variable> {
     fn choose_fresh_variables(&self, variant: &str, n: usize) -> Vec<String> {
-        let mut selected_variables = Vec::new();
-        let mut taken_variables = self.clone();
-        for _ in 0..n {
-            let fresh_var_name = taken_variables.choose_fresh_variable(variant);
-            taken_variables.insert(mini_gringo::Variable(fresh_var_name.clone()));
-            selected_variables.push(fresh_var_name);
-        }
-        selected_variables
+        let taken_var_names: IndexSet<&str> = self.iter().map(|v| v.name.as_str()).collect();
+        choose_fresh_names(variant, n, |c| taken_var_names.contains(c))
     }
 }
 
-impl VariableSelection for mini_gringo::Program {
+impl FreshVariables for IndexSet<mini_gringo::Variable> {
+    fn choose_fresh_variables(&self, variant: &str, n: usize) -> Vec<String> {
+        let taken_var_names: IndexSet<&str> = self.iter().map(|v| v.0.as_str()).collect();
+        choose_fresh_names(variant, n, |c| taken_var_names.contains(c))
+    }
+}
+
+impl FreshVariables for mini_gringo::Program {
     fn choose_fresh_variable(&self, variant: &str) -> String {
         self.variables().choose_fresh_variable(variant)
     }
@@ -114,7 +69,7 @@ mod tests {
     use indexmap::IndexSet;
 
     use crate::{
-        convenience::variable_selection::VariableSelection,
+        convenience::fresh_names::FreshVariables,
         syntax_tree::{asp, fol::sigma_0 as fol},
     };
 
