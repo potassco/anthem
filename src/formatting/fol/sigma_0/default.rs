@@ -407,7 +407,7 @@ impl Display for Format<'_, Specification> {
 
 impl Display for Format<'_, PlaceholderDeclaration> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} -> {}", &self.0.name, Format(&self.0.sort))
+        write!(f, "{} -> {}", self.0.name, Format(&self.0.sort))
     }
 }
 

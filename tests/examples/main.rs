@@ -43,7 +43,7 @@ impl Test {
     fn execute(&self) {
         match self.name.as_str() {
             "tptp_compliance" => {
-                let out = tempdir().unwrap().into_path();
+                let out = tempdir().unwrap().keep();
 
                 Command::cargo_bin(env!("CARGO_PKG_NAME"))
                     .unwrap()
