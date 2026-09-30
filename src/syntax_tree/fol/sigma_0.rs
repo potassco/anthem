@@ -1,6 +1,6 @@
 use {
     crate::{
-        convenience::{apply::Apply as _, variable_selection::VariableSelection},
+        convenience::{apply::Apply as _, fresh_names::FreshVariables},
         formatting::fol::sigma_0::default::Format,
         parsing::fol::sigma_0::pest::{
             AnnotatedFormulaParser, AtomParser, AtomicFormulaParser, BinaryConnectiveParser,

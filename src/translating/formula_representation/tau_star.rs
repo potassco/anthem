@@ -1,6 +1,6 @@
 use {
     crate::{
-        convenience::variable_selection::VariableSelection,
+        convenience::fresh_names::FreshVariables,
         syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
     },
     indexmap::IndexSet,
