@@ -69,15 +69,48 @@ mod tests {
 
     #[test]
     fn test_choose_variables_indexset_fol() {
-        let taken_vars: IndexSet<fol::Variable> =
-            IndexSet::from_iter(["I", "J", "J1", "V1"].iter().map(|name| fol::Variable {
+        let taken_vars: IndexSet<fol::Variable> = IndexSet::from_iter(
+            [
+                ("I", fol::Sort::General),
+                ("J", fol::Sort::General),
+                ("J1", fol::Sort::General),
+                ("V1", fol::Sort::General),
+                ("Z", fol::Sort::General),
+                ("Z2", fol::Sort::General),
+                ("N", fol::Sort::Integer),
+            ]
+            .into_iter()
+            .map(|(name, sort)| fol::Variable {
                 name: name.to_string(),
-                sort: fol::Sort::General,
-            }));
+                sort,
+            }),
+        );
 
         assert_eq!(taken_vars.choose_fresh_variable("I"), "I1".to_string());
         assert_eq!(taken_vars.choose_fresh_variable("J"), "J2".to_string());
         assert_eq!(taken_vars.choose_fresh_variable("V"), "V".to_string());
+        assert_eq!(taken_vars.choose_fresh_variable("N"), "N1".to_string());
+        assert_eq!(
+            taken_vars.choose_fresh_variables("Z", 3),
+            vec!["Z1", "Z3", "Z4"]
+        );
+        assert_eq!(
+            taken_vars.choose_fresh_variables("Z", 0),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn test_choose_variables_indexset_asp() {
+        let taken_vars: IndexSet<asp::mini_gringo::Variable> = IndexSet::from_iter(
+            ["N", "N2", "X"]
+                .iter()
+                .map(|name| asp::mini_gringo::Variable(name.to_string())),
+        );
+
+        assert_eq!(taken_vars.choose_fresh_variable("X"), "X1".to_string());
+        assert_eq!(taken_vars.choose_fresh_variable("Y"), "Y".to_string());
+        assert_eq!(taken_vars.choose_fresh_variables("N", 2), vec!["N1", "N3"]);
     }
 
     #[test]
@@ -85,6 +118,8 @@ mod tests {
         for (program, arity, variables) in [
             ("p(X) :- q(X,Y).", 1, Vec::from_iter(["V1"])),
             ("p(X,V1) :- q(X,V3).", 2, Vec::from_iter(["V4", "V5"])),
+            ("p(V) :- q(V).", 1, Vec::from_iter(["V1"])),
+            ("p(VA, V1A).", 2, Vec::from_iter(["V1", "V2"])),
         ] {
             let program: asp::mini_gringo::Program = program.parse().unwrap();
             let chosen = program.choose_fresh_variables("V", arity);
