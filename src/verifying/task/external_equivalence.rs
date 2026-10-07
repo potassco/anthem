@@ -491,15 +491,12 @@ impl ExternalEquivalenceTask {
     fn ensure_assumptions_only_contain_valid_predicates(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
+        sequence: &DefinitionSequence,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        let base_predicates = self.user_guide.input_predicates();
-        let sequence =
-            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
-
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
                 for p in formula.formula.predicates() {
-                    if !valid(&sequence.data, p.clone()) {
+                    if !valid(sequence, p.clone()) {
                         return Err(
                             ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(
                                 Box::new(InvalidPredicateErrorContent {
@@ -513,23 +510,19 @@ impl ExternalEquivalenceTask {
             }
         }
 
-        Ok(WithWarnings::flawless(()).preface_warnings(sequence.warnings))
+        Ok(WithWarnings::flawless(()))
     }
 
     fn ensure_specs_only_contain_valid_predicates(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
+        sequence: &DefinitionSequence,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         // TODO: should output predicates be allowed in the set of base predicates?
-        // let base_predicates = self.user_guide.public_predicates();
-        let base_predicates = self.user_guide.input_predicates();
-        let sequence =
-            Self::ensure_valid_definition_sequence(formulas, &self.user_guide, base_predicates)?;
-
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
                 for p in formula.formula.predicates() {
-                    if !valid(&sequence.data, p.clone()) {
+                    if !valid(sequence, p.clone()) {
                         return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
                             Box::new(InvalidPredicateErrorContent {
                                 formula: formula.clone(),
@@ -541,7 +534,7 @@ impl ExternalEquivalenceTask {
             }
         }
 
-        Ok(WithWarnings::flawless(()).preface_warnings(sequence.warnings))
+        Ok(WithWarnings::flawless(()))
     }
 
     fn ensure_user_guide_assumptions_only_contain_input_symbols(
@@ -701,12 +694,26 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
             }
             Either::Right(ref specification) => {
+                let sequence = Self::ensure_valid_definition_sequence(
+                    &specification.formulas,
+                    &self.user_guide,
+                    self.user_guide.input_predicates(),
+                )?;
+                warnings.extend(sequence.warnings);
+                let sequence = sequence.data;
+
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     specification,
                 )?;
-                self.ensure_assumptions_only_contain_valid_predicates(&specification.formulas)?;
+                self.ensure_assumptions_only_contain_valid_predicates(
+                    &specification.formulas,
+                    &sequence,
+                )?;
                 self.ensure_specification_roles_are_supported(&specification.formulas)?;
-                self.ensure_specs_only_contain_valid_predicates(&specification.formulas)?;
+                self.ensure_specs_only_contain_valid_predicates(
+                    &specification.formulas,
+                    &sequence,
+                )?;
             }
         }
 
