@@ -1,0 +1,56 @@
+$ anthem verify --equivalence external twin_primes.lp twin_primes.spec twin_primes.ug
+> Proving forward_problem_0...
+Axioms:
+    forall X (prime(X) <-> 2 <= X <= n$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= n$i and (2 <= J1$i and J1$i <= n$i))))
+    forall V1 (prime_p(V1) <-> exists K$i (2 <= K$i and K$i <= n$i and V1 = K$i and not composite(V1)))
+    forall X Y (twins(X, Y) <-> exists N$i (prime(X) and prime(Y) and X = N$i and N$i + 2 = Y))
+
+Conjectures:
+    forall V1 V2 (twins(V1, V2) -> exists I1$i (prime_p(V1) and prime_p(V2) and (I1$i = V1 and I1$i + 2 = V2)))
+
+> Proving forward_problem_0 ended with a SZS status
+Status: Theorem (3991 ms)
+
+> Proving forward_problem_1...
+Axioms:
+    forall X (prime(X) <-> 2 <= X <= n$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= n$i and (2 <= J1$i and J1$i <= n$i))))
+    forall V1 (prime_p(V1) <-> exists K$i (2 <= K$i and K$i <= n$i and V1 = K$i and not composite(V1)))
+    forall X Y (twins(X, Y) <-> exists N$i (prime(X) and prime(Y) and X = N$i and N$i + 2 = Y))
+    forall V1 V2 (twins(V1, V2) -> exists I1$i (prime_p(V1) and prime_p(V2) and (I1$i = V1 and I1$i + 2 = V2)))
+
+Conjectures:
+    forall V1 V2 (twins(V1, V2) <- exists I1$i (prime_p(V1) and prime_p(V2) and (I1$i = V1 and I1$i + 2 = V2)))
+
+> Proving forward_problem_1 ended with a SZS status
+Status: Theorem (3924 ms)
+
+> Proving backward_problem_0...
+Axioms:
+    forall X (prime(X) <-> 2 <= X <= n$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= n$i and (2 <= J1$i and J1$i <= n$i))))
+    forall V1 (prime_p(V1) <-> exists K$i (2 <= K$i and K$i <= n$i and V1 = K$i and not composite(V1)))
+    forall V1 V2 (twins(V1, V2) <-> exists I1$i (prime_p(V1) and prime_p(V2) and (I1$i = V1 and I1$i + 2 = V2)))
+
+Conjectures:
+    forall X Y (twins(X, Y) -> exists N$i (prime(X) and prime(Y) and X = N$i and N$i + 2 = Y))
+
+> Proving backward_problem_0 ended with a SZS status
+Status: Theorem (4622 ms)
+
+> Proving backward_problem_1...
+Axioms:
+    forall X (prime(X) <-> 2 <= X <= n$i and not exists D$i M$i (1 < D$i < X and M$i * D$i = X))
+    forall V1 (composite(V1) <-> exists I1$i J1$i (V1 = I1$i * J1$i and (2 <= I1$i and I1$i <= n$i and (2 <= J1$i and J1$i <= n$i))))
+    forall V1 (prime_p(V1) <-> exists K$i (2 <= K$i and K$i <= n$i and V1 = K$i and not composite(V1)))
+    forall V1 V2 (twins(V1, V2) <-> exists I1$i (prime_p(V1) and prime_p(V2) and (I1$i = V1 and I1$i + 2 = V2)))
+    forall X Y (twins(X, Y) -> exists N$i (prime(X) and prime(Y) and X = N$i and N$i + 2 = Y))
+
+Conjectures:
+    forall X Y (twins(X, Y) <- exists N$i (prime(X) and prime(Y) and X = N$i and N$i + 2 = Y))
+
+> Proving backward_problem_1 ended with a SZS status
+Status: Theorem (3765 ms)
+
+> Success! Anthem found a proof of the theorem. (16311 ms)
