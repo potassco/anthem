@@ -24,6 +24,7 @@ use {
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
+    itertools::Itertools as _,
     std::fmt::Display,
     thiserror::Error,
 };
@@ -114,7 +115,7 @@ impl Display for ExternalEquivalenceTaskWarning {
                 f,
                 "the following formula is ignored because user guides only permit assumptions: {formula}"
             ),
-            ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => writeln!(f, "{w}"),
+            ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => write!(f, "{w}"),
         }
     }
 }
@@ -160,28 +161,12 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following predicates are declared as input and output predicates: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::InputPredicateInRuleHead(predicates) => {
                 write!(f, "the following input predicates occur in rule heads: ")?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::OutputPredicateInUserGuideAssumption(predicates) => {
                 write!(
@@ -189,15 +174,7 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following output predicates occur in user guide assumptions: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(predicates) => {
                 write!(
@@ -205,15 +182,7 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following output predicates occur in specification assumptions: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
                 writeln!(
@@ -266,15 +235,7 @@ impl Display for ExternalEquivalenceTaskError {
                     "the specification defines the following output predicates: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
         }
     }
