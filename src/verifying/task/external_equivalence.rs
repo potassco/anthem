@@ -454,12 +454,11 @@ impl ExternalEquivalenceTask {
         formulas: &Vec<fol::AnnotatedFormula>,
         defined_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        // TODO: should output predicates be allowed in the set of base predicates?
-        let mut valid_predicates = self.user_guide.input_predicates();
+        let mut valid_predicates = self.user_guide.public_predicates();
         valid_predicates.extend(defined_predicates.iter().cloned());
 
         for formula in formulas {
-            if matches!(formula.role, fol::Role::Assumption) {
+            if matches!(formula.role, fol::Role::Spec) {
                 let predicates = formula.formula.predicates();
                 if let Some(p) = predicates.difference(&valid_predicates).next() {
                     return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
