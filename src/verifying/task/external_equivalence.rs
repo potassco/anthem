@@ -545,7 +545,7 @@ impl ExternalEquivalenceTask {
         for anf in specification {
             if matches!(anf.role, fol::Role::Definition) {
                 let predicate = anf.formula.definition(&taken_predicates)?;
-                warnings.extend(predicate.warnings);
+                warnings.extend(predicate.warnings.into_iter().map(Into::into));
 
                 taken_predicates.insert(predicate.data.clone());
                 defined_predicates.insert(predicate.data);
@@ -565,7 +565,7 @@ impl ExternalEquivalenceTask {
             );
         }
 
-        Ok(WithWarnings::flawless(defined_predicates))
+        Ok(WithWarnings::flawless(defined_predicates).preface_warnings(warnings))
     }
 }
 
@@ -1005,8 +1005,13 @@ impl Task for AssembledExternalEquivalenceTask {
 #[cfg(test)]
 mod tests {
     use {
-        super::{ExternalEquivalenceTask, ExternalEquivalenceTaskError},
-        crate::{syntax_tree::fol::sigma_0 as fol, verifying::outline::ProofOutlineError},
+        super::{
+            ExternalEquivalenceTask, ExternalEquivalenceTaskError, ExternalEquivalenceTaskWarning,
+        },
+        crate::{
+            syntax_tree::fol::sigma_0 as fol,
+            verifying::outline::{ProofOutlineError, ProofOutlineWarning},
+        },
         indexmap::IndexSet,
     };
 
@@ -1101,6 +1106,30 @@ mod tests {
                 "input: p/1. output: q/1."
             ),
             Err(ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(_))
+        ));
+    }
+
+    #[test]
+    fn definition_sequence_warnings() {
+        let specification: fol::Specification =
+            "definition: forall X Y (r(X, Y) <-> p(X)). definition: forall X (s(X) <-> p(X))."
+                .parse()
+                .unwrap();
+        let user_guide: fol::UserGuide = "input: p/1. output: q/1.".parse().unwrap();
+
+        let warnings = ExternalEquivalenceTask::ensure_valid_definition_sequence(
+            &specification.formulas,
+            &user_guide,
+        )
+        .unwrap()
+        .warnings;
+
+        assert_eq!(warnings.len(), 1);
+        assert!(matches!(
+            &warnings[0],
+            ExternalEquivalenceTaskWarning::DefinitionWithWarning(
+                ProofOutlineWarning::ExcessQuantifiedVariables(_)
+            )
         ));
     }
 }
