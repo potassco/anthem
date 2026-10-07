@@ -126,6 +126,12 @@ pub struct InvalidPredicateErrorContent {
     pub predicate: fol::Predicate,
 }
 
+#[derive(Debug)]
+pub struct OutputPredicatesErrorContent {
+    pub formula: fol::AnnotatedFormula,
+    pub predicates: Vec<fol::Predicate>,
+}
+
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
     UnsupportedFormulaRepresentation,
@@ -134,7 +140,7 @@ pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
-    OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
+    OutputPredicateInSpecificationAssumption(Box<OutputPredicatesErrorContent>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
     AssumptionContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
     SpecContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
@@ -176,13 +182,14 @@ impl Display for ExternalEquivalenceTaskError {
 
                 writeln!(f, "{}", predicates.iter().format(", "))
             }
-            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(predicates) => {
-                write!(
+            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(content) => {
+                let content = &**content;
+                let predicates = content.predicates.iter().format(", ");
+                let formula = &content.formula;
+                writeln!(
                     f,
-                    "the following output predicates occur in specification assumptions: "
-                )?;
-
-                writeln!(f, "{}", predicates.iter().format(", "))
+                    "the following assumption contains output predicates ({predicates}) that are not valid for use within assumptions: {formula}"
+                )
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
                 writeln!(
@@ -336,33 +343,6 @@ impl ExternalEquivalenceTask {
         }
     }
 
-    fn ensure_specification_assumptions_do_not_contain_output_predicates(
-        &self,
-        specification: &fol::Specification,
-    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        let output_predicates = self.user_guide.output_predicates();
-
-        for formula in &specification.formulas {
-            if matches!(formula.role, fol::Role::Assumption) {
-                let overlap: Vec<_> = formula
-                    .predicates()
-                    .into_iter()
-                    .filter(|p| output_predicates.contains(p))
-                    .collect();
-
-                if !overlap.is_empty() {
-                    return Err(
-                        ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
-                            overlap,
-                        ),
-                    );
-                }
-            }
-        }
-
-        Ok(WithWarnings::flawless(()))
-    }
-
     fn ensure_placeholder_name_uniqueness(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -388,12 +368,31 @@ impl ExternalEquivalenceTask {
         formulas: &Vec<fol::AnnotatedFormula>,
         defined_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let output_predicates = self.user_guide.output_predicates();
         let mut valid_predicates = self.user_guide.input_predicates();
         valid_predicates.extend(defined_predicates.iter().cloned());
 
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
                 let predicates = formula.formula.predicates();
+
+                // first check for output predicates for a more specific error
+                let overlap: Vec<_> = predicates
+                    .intersection(&output_predicates)
+                    .cloned()
+                    .collect();
+                if !overlap.is_empty() {
+                    return Err(
+                        ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
+                            Box::new(OutputPredicatesErrorContent {
+                                formula: formula.clone(),
+                                predicates: overlap,
+                            }),
+                        ),
+                    );
+                }
+
+                // then check that all predicates are valid (input or defined)
                 if let Some(p) = predicates.difference(&valid_predicates).next() {
                     return Err(
                         ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(Box::new(
@@ -594,9 +593,6 @@ impl Task for ExternalEquivalenceTask {
                 warnings.extend(defined_predicates.warnings);
                 let defined_predicates = defined_predicates.data;
 
-                self.ensure_specification_assumptions_do_not_contain_output_predicates(
-                    specification,
-                )?;
                 self.ensure_assumptions_only_contain_valid_predicates(
                     &specification.formulas,
                     &defined_predicates,
