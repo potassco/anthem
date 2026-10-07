@@ -83,46 +83,6 @@ impl RenamePredicates for fol::Atom {
     }
 }
 
-#[derive(Clone, Debug)]
-struct DefinitionSequenceNode {
-    lhs: fol::Predicate,
-    rhs: IndexSet<fol::Predicate>,
-}
-
-#[derive(Clone, Debug)]
-struct DefinitionSequence {
-    nodes: Vec<DefinitionSequenceNode>,
-    base_predicates: IndexSet<fol::Predicate>,
-}
-
-impl DefinitionSequence {
-    fn previously_defined_predicates(&self, index: usize) -> IndexSet<fol::Predicate> {
-        if index == 0 {
-            self.base_predicates.clone()
-        } else {
-            let parent = self.nodes[index - 1].clone();
-            let mut previous = self.previously_defined_predicates(index - 1);
-            previous.insert(parent.lhs);
-            previous
-        }
-    }
-
-    fn index(&self, p: &fol::Predicate) -> Option<i64> {
-        if self.base_predicates.contains(p) {
-            return Some(-1);
-        }
-
-        for (i, predicate) in self.nodes.iter().enumerate() {
-            if predicate.lhs == *p {
-                let index: i64 = i.try_into().unwrap();
-                return Some(index);
-            }
-        }
-
-        None
-    }
-}
-
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskWarning {
     NonTightProgram(asp::Program),
@@ -320,32 +280,6 @@ impl Display for ExternalEquivalenceTaskError {
     }
 }
 
-// A predicate is valid for use in a (spec or assumption) based on a valid sequence if
-// 1. it occurs in the set of base predicates or
-// 2. it is defined in the sequence and the RHS contains only previously defined predicates and each ancestor is valid.
-fn valid(sequence: &DefinitionSequence, p: fol::Predicate) -> bool {
-    match sequence.index(&p) {
-        Some(index) => {
-            if index == -1 {
-                true
-            } else {
-                let index: usize = index.try_into().unwrap();
-                let node = sequence.nodes[index].clone();
-                let pdp = sequence.previously_defined_predicates(index);
-                if node.rhs.difference(&pdp).next().is_some() {
-                    false
-                } else if index == 0 {
-                    true
-                } else {
-                    let parent = sequence.nodes[index - 1].clone();
-                    valid(sequence, parent.lhs)
-                }
-            }
-        }
-        None => false,
-    }
-}
-
 #[derive(Debug)]
 pub struct ExternalEquivalenceTask {
     pub specification: Either<asp::Program, fol::Specification>,
@@ -491,21 +425,23 @@ impl ExternalEquivalenceTask {
     fn ensure_assumptions_only_contain_valid_predicates(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
-        sequence: &DefinitionSequence,
+        defined_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let mut valid_predicates = self.user_guide.input_predicates();
+        valid_predicates.extend(defined_predicates.iter().cloned());
+
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
-                for p in formula.formula.predicates() {
-                    if !valid(sequence, p.clone()) {
-                        return Err(
-                            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(
-                                Box::new(InvalidPredicateErrorContent {
-                                    formula: formula.clone(),
-                                    predicate: p,
-                                }),
-                            ),
-                        );
-                    }
+                let predicates = formula.formula.predicates();
+                if let Some(p) = predicates.difference(&valid_predicates).next() {
+                    return Err(
+                        ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(Box::new(
+                            InvalidPredicateErrorContent {
+                                formula: formula.clone(),
+                                predicate: p.clone(),
+                            },
+                        )),
+                    );
                 }
             }
         }
@@ -516,20 +452,22 @@ impl ExternalEquivalenceTask {
     fn ensure_specs_only_contain_valid_predicates(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
-        sequence: &DefinitionSequence,
+        defined_predicates: &IndexSet<fol::Predicate>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         // TODO: should output predicates be allowed in the set of base predicates?
+        let mut valid_predicates = self.user_guide.input_predicates();
+        valid_predicates.extend(defined_predicates.iter().cloned());
+
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
-                for p in formula.formula.predicates() {
-                    if !valid(sequence, p.clone()) {
-                        return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
-                            Box::new(InvalidPredicateErrorContent {
-                                formula: formula.clone(),
-                                predicate: p,
-                            }),
-                        ));
-                    }
+                let predicates = formula.formula.predicates();
+                if let Some(p) = predicates.difference(&valid_predicates).next() {
+                    return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
+                        Box::new(InvalidPredicateErrorContent {
+                            formula: formula.clone(),
+                            predicate: p.clone(),
+                        }),
+                    ));
                 }
             }
         }
@@ -591,38 +529,36 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
+    // Returns the predicates defined by the definitions in the specification if they form a valid sequence, else returns an error
+    // A sequence is valid if each definition defines a fresh predicate and its RHS contains only input predicates and previously defined predicates
     fn ensure_valid_definition_sequence(
         specification: &Vec<fol::AnnotatedFormula>,
         user_guide: &fol::UserGuide,
-        base_predicates: IndexSet<fol::Predicate>,
-    ) -> Result<DefinitionSequence, ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError>
-    {
+    ) -> Result<
+        IndexSet<fol::Predicate>,
+        ExternalEquivalenceTaskWarning,
+        ExternalEquivalenceTaskError,
+    > {
         let mut warnings = Vec::new();
-        let mut nodes = Vec::new();
+        let mut defined_predicates = IndexSet::new();
 
-        let mut taken_predicates = base_predicates.clone();
+        let mut taken_predicates = user_guide.input_predicates();
         for anf in specification {
             if matches!(anf.role, fol::Role::Definition) {
                 let predicate = anf.formula.definition(&taken_predicates)?;
                 warnings.extend(predicate.warnings);
 
-                let p = predicate.data;
-                taken_predicates.insert(p.clone());
-
-                let rhs = anf.formula.definition_rhs()?;
-                warnings.extend(rhs.warnings);
-                nodes.push(DefinitionSequenceNode {
-                    lhs: p,
-                    rhs: rhs.data.predicates(),
-                });
+                taken_predicates.insert(predicate.data.clone());
+                defined_predicates.insert(predicate.data);
             }
         }
 
         // check for no overlap with output predicates
         let output_predicates = user_guide.output_predicates();
-        let overlap: Vec<_> = taken_predicates
-            .into_iter()
-            .filter(|p| output_predicates.contains(p))
+        let overlap: Vec<_> = defined_predicates
+            .iter()
+            .filter(|p| output_predicates.contains(*p))
+            .cloned()
             .collect();
         if !overlap.is_empty() {
             return Err(
@@ -630,10 +566,7 @@ impl ExternalEquivalenceTask {
             );
         }
 
-        Ok(WithWarnings::flawless(DefinitionSequence {
-            nodes,
-            base_predicates,
-        }))
+        Ok(WithWarnings::flawless(defined_predicates))
     }
 }
 
@@ -694,25 +627,24 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
             }
             Either::Right(ref specification) => {
-                let sequence = Self::ensure_valid_definition_sequence(
+                let defined_predicates = Self::ensure_valid_definition_sequence(
                     &specification.formulas,
                     &self.user_guide,
-                    self.user_guide.input_predicates(),
                 )?;
-                warnings.extend(sequence.warnings);
-                let sequence = sequence.data;
+                warnings.extend(defined_predicates.warnings);
+                let defined_predicates = defined_predicates.data;
 
                 self.ensure_specification_assumptions_do_not_contain_output_predicates(
                     specification,
                 )?;
                 self.ensure_assumptions_only_contain_valid_predicates(
                     &specification.formulas,
-                    &sequence,
+                    &defined_predicates,
                 )?;
                 self.ensure_specification_roles_are_supported(&specification.formulas)?;
                 self.ensure_specs_only_contain_valid_predicates(
                     &specification.formulas,
-                    &sequence,
+                    &defined_predicates,
                 )?;
             }
         }
@@ -1074,137 +1006,102 @@ impl Task for AssembledExternalEquivalenceTask {
 #[cfg(test)]
 mod tests {
     use {
-        super::{DefinitionSequence, DefinitionSequenceNode, valid},
-        crate::syntax_tree::fol::sigma_0,
+        super::{ExternalEquivalenceTask, ExternalEquivalenceTaskError},
+        crate::{syntax_tree::fol::sigma_0 as fol, verifying::outline::ProofOutlineError},
         indexmap::IndexSet,
     };
 
-    #[test]
-    fn test_valid_case_1() {
-        // input predicates: p
-        // defined predicates: q
-        let p = sigma_0::Predicate {
-            symbol: "p".to_string(),
-            arity: 1,
-        };
-        let q = sigma_0::Predicate {
-            symbol: "q".to_string(),
-            arity: 1,
-        };
+    fn defined_predicates(
+        specification: &str,
+        user_guide: &str,
+    ) -> Result<IndexSet<fol::Predicate>, ExternalEquivalenceTaskError> {
+        let specification: fol::Specification = specification.parse().unwrap();
+        let user_guide: fol::UserGuide = user_guide.parse().unwrap();
+        ExternalEquivalenceTask::ensure_valid_definition_sequence(
+            &specification.formulas,
+            &user_guide,
+        )
+        .map(|result| result.data)
+    }
 
-        // q(X) <-> p(X)
-        let n1 = DefinitionSequenceNode {
-            lhs: q.clone(),
-            rhs: IndexSet::from_iter([p.clone()]),
-        };
-
-        let sequence = DefinitionSequence {
-            nodes: vec![n1],
-            base_predicates: IndexSet::from_iter([p.clone()]),
-        };
-
-        assert!(valid(&sequence, p));
-        assert!(valid(&sequence, q));
+    fn predicates(predicates: &[&str]) -> IndexSet<fol::Predicate> {
+        predicates.iter().map(|p| p.parse().unwrap()).collect()
     }
 
     #[test]
-    fn test_valid_case_2() {
-        // input predicates: p
-        // defined predicates: q, r, t
-        let p = sigma_0::Predicate {
-            symbol: "p".to_string(),
-            arity: 1,
-        };
-        let q = sigma_0::Predicate {
-            symbol: "q".to_string(),
-            arity: 1,
-        };
-        let r = sigma_0::Predicate {
-            symbol: "r".to_string(),
-            arity: 1,
-        };
-        let t = sigma_0::Predicate {
-            symbol: "t".to_string(),
-            arity: 1,
-        };
-
-        // q(X) <-> p(X)
-        let n1 = DefinitionSequenceNode {
-            lhs: q.clone(),
-            rhs: IndexSet::from_iter([p.clone()]),
-        };
-
-        // r(X) <-> q(X)
-        let n2 = DefinitionSequenceNode {
-            lhs: r.clone(),
-            rhs: IndexSet::from_iter([q.clone()]),
-        };
-
-        // t(X) <-> p(X) & q(X)
-        let n3 = DefinitionSequenceNode {
-            lhs: t.clone(),
-            rhs: IndexSet::from_iter([p.clone(), q.clone()]),
-        };
-
-        let sequence = DefinitionSequence {
-            nodes: vec![n1, n2, n3],
-            base_predicates: IndexSet::from_iter([p.clone()]),
-        };
-
-        assert!(valid(&sequence, p));
-        assert!(valid(&sequence, q));
-        assert!(valid(&sequence, r));
-        assert!(valid(&sequence, t));
-
-        let x = sigma_0::Predicate {
-            symbol: "x".to_string(),
-            arity: 1,
-        };
-        assert!(!valid(&sequence, x));
+    fn valid_definition_sequence() {
+        for (specification, user_guide, expected) in [
+            (
+                "spec: forall X (q(X) <-> p(X)).",
+                "input: p/1. output: q/1.",
+                vec![],
+            ),
+            (
+                "definition: forall X (r(X) <-> p(X)).",
+                "input: p/1. output: q/1.",
+                vec!["r/1"],
+            ),
+            (
+                "definition: forall X (r(X) <-> p(X)). definition: forall X (s(X) <-> r(X)). definition: forall X (t(X) <-> p(X) and r(X)).",
+                "input: p/1. output: q/1.",
+                vec!["r/1", "s/1", "t/1"],
+            ),
+        ] {
+            assert_eq!(
+                defined_predicates(specification, user_guide).unwrap(),
+                predicates(&expected),
+                "{specification}"
+            );
+        }
     }
 
     #[test]
-    fn test_valid_case_3() {
-        // input predicates: p
-        // defined predicates: r, t
-        // missing definitions: q
-        let p = sigma_0::Predicate {
-            symbol: "p".to_string(),
-            arity: 1,
-        };
-        let q = sigma_0::Predicate {
-            symbol: "q".to_string(),
-            arity: 1,
-        };
-        let r = sigma_0::Predicate {
-            symbol: "r".to_string(),
-            arity: 1,
-        };
-        let t = sigma_0::Predicate {
-            symbol: "r".to_string(),
-            arity: 1,
-        };
+    fn invalid_definition_sequence() {
+        for specification in [
+            // the RHS uses a predicate that is defined later
+            "definition: forall X (r(X) <-> s(X)). definition: forall X (s(X) <-> p(X)).",
+            // the RHS uses an output predicate
+            "definition: forall X (r(X) <-> q(X)).",
+            // the RHS uses a predicate that is neither public nor defined
+            "definition: forall X (r(X) <-> x(X)).",
+            // the RHS uses the predicate it defines
+            "definition: forall X (r(X) <-> p(X) or r(X)).",
+        ] {
+            assert!(
+                matches!(
+                    defined_predicates(specification, "input: p/1. output: q/1."),
+                    Err(ExternalEquivalenceTaskError::ProofOutlineError(
+                        ProofOutlineError::UndefinedRhsPredicate { .. }
+                    ))
+                ),
+                "{specification}"
+            );
+        }
 
-        // r(X) <-> q(X) & p(X)
-        let n1 = DefinitionSequenceNode {
-            lhs: r.clone(),
-            rhs: IndexSet::from_iter([q.clone()]),
-        };
+        for specification in [
+            // the LHS redefines an input predicate
+            "definition: forall X (p(X) <-> X = 1).",
+            // the LHS redefines a previously defined predicate
+            "definition: forall X (r(X) <-> p(X)). definition: forall X (r(X) <-> X = 1).",
+        ] {
+            assert!(
+                matches!(
+                    defined_predicates(specification, "input: p/1. output: q/1."),
+                    Err(ExternalEquivalenceTaskError::ProofOutlineError(
+                        ProofOutlineError::TakenPredicate(_)
+                    ))
+                ),
+                "{specification}"
+            );
+        }
 
-        // t(X) <-> r(X)
-        let n2 = DefinitionSequenceNode {
-            lhs: r.clone(),
-            rhs: IndexSet::from_iter([q.clone()]),
-        };
-
-        let sequence = DefinitionSequence {
-            nodes: vec![n1, n2],
-            base_predicates: IndexSet::from_iter([p.clone()]),
-        };
-
-        assert!(valid(&sequence, p));
-        assert!(!valid(&sequence, q));
-        assert!(!valid(&sequence, r));
-        assert!(!valid(&sequence, t));
+        // the LHS defines an output predicate
+        assert!(matches!(
+            defined_predicates(
+                "definition: forall X (q(X) <-> p(X)).",
+                "input: p/1. output: q/1."
+            ),
+            Err(ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(_))
+        ));
     }
 }
