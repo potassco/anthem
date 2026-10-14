@@ -1,22 +1,30 @@
 use {
     crate::{
-        command_line::arguments::{Decomposition, FormulaRepresentation},
+        command_line::arguments::{Decomposition, Dialect, FormulaRepresentation},
         convenience::{
             apply::Apply as _,
             compose::Compose as _,
             with_warnings::{Result, WithWarnings},
         },
+        normalizing::asp::numeric_normal::numeric_normal_form,
         simplifying::fol::sigma_0::{classic::CLASSIC, ht::HT, intuitionistic::INTUITIONISTIC},
-        syntax_tree::{asp::mini_gringo as asp, fol::sigma_0 as fol},
+        syntax_tree::{
+            asp::mini_gringo as asp,
+            fol::sigma_0::{self as fol, Theory},
+        },
         translating::{
             classical_reduction::gamma::{Gamma as _, Here as _, There as _},
-            formula_representation::{mu::Mu as _, tau_star::TauStar as _},
+            formula_representation::{
+                numeric_natural::{AxiomatizedTheory, numeric_natural},
+                tau_star::TauStar as _,
+            },
         },
         verifying::{
             problem::{AnnotatedFormula, Problem, Role},
             task::Task,
         },
     },
+    indexmap::IndexSet,
     std::convert::Infallible,
     thiserror::Error,
 };
@@ -27,6 +35,8 @@ pub enum StrongEquivalenceTaskError {}
 pub struct StrongEquivalenceTask {
     pub left: asp::Program,
     pub right: asp::Program,
+    pub program_dialect: Dialect,
+    pub spec_dialect: Dialect,
     pub decomposition: Decomposition,
     pub direction: fol::Direction,
     pub formula_representation: FormulaRepresentation,
@@ -66,17 +76,38 @@ impl Task for StrongEquivalenceTask {
     type Warning = Infallible;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
-        let transition_axioms = self.transition_axioms(); // These are the "forall X (hp(X) -> tp(X))" axioms.
+        // These are axioms to which gamma should not be applied
+        let mut general_axioms = IndexSet::new();
 
-        let mut left = match self.formula_representation {
-            FormulaRepresentation::Mu => self.left.mu(),
-            FormulaRepresentation::TauStar => self.left.tau_star(),
-        };
+        // These are the "forall X (hp(X) -> tp(X))" axioms.
+        let transition_axioms = self.transition_axioms();
 
-        let mut right = match self.formula_representation {
-            FormulaRepresentation::Mu => self.right.mu(),
-            FormulaRepresentation::TauStar => self.right.tau_star(),
+        let axiomatized_left = match self.formula_representation {
+            FormulaRepresentation::TauStar => {
+                AxiomatizedTheory::from(self.left.tau_star(self.spec_dialect))
+            }
+            FormulaRepresentation::NumericNatural => {
+                numeric_natural(numeric_normal_form(self.left), self.spec_dialect)
+            }
         };
+        for f in axiomatized_left.axioms.formulas {
+            general_axioms.insert(f);
+        }
+
+        let axiomatized_right = match self.formula_representation {
+            FormulaRepresentation::TauStar => {
+                AxiomatizedTheory::from(self.right.tau_star(self.program_dialect))
+            }
+            FormulaRepresentation::NumericNatural => {
+                numeric_natural(numeric_normal_form(self.right), self.program_dialect)
+            }
+        };
+        for f in axiomatized_right.axioms.formulas {
+            general_axioms.insert(f);
+        }
+
+        let mut left = axiomatized_left.theory;
+        let mut right = axiomatized_right.theory;
 
         if self.simplify {
             let mut portfolio = [INTUITIONISTIC, HT].concat().into_iter().compose();
@@ -110,6 +141,8 @@ impl Task for StrongEquivalenceTask {
             right = crate::breaking::fol::sigma_0::ht::break_equivalences_theory(right);
         }
 
+        let general_axioms = Theory::from_iter(general_axioms);
+
         let mut problems = Vec::new();
         if matches!(
             self.direction,
@@ -119,6 +152,11 @@ impl Task for StrongEquivalenceTask {
                 Problem::with_name("forward")
                     .add_theory(transition_axioms.clone(), |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
+                    .add_theory(general_axioms.clone(), |i, formula| AnnotatedFormula {
+                        name: format!("general_axiom_{i}"),
                         role: Role::Axiom,
                         formula,
                     })
@@ -144,6 +182,11 @@ impl Task for StrongEquivalenceTask {
                 Problem::with_name("backward")
                     .add_theory(transition_axioms, |i, formula| AnnotatedFormula {
                         name: format!("transition_axiom_{i}"),
+                        role: Role::Axiom,
+                        formula,
+                    })
+                    .add_theory(general_axioms, |i, formula| AnnotatedFormula {
+                        name: format!("general_axiom_{i}"),
                         role: Role::Axiom,
                         formula,
                     })

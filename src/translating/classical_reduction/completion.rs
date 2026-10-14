@@ -284,7 +284,7 @@ mod tests {
             ),
             (
                 "p(a). p(b). q(X,Y) :- p(X), p(Y).",
-                "forall V1 (p(V1) <-> V1 = a and #true or V1 = b and #true). forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))))).",
+                "forall V1 (p(V1) <-> V1 = a or V1 = b). forall V1 V2 (q(V1, V2) <-> exists X Y (V1 = X and V2 = Y and (exists Z (Z = X and p(Z)) and exists Z (Z = Y and p(Z))))).",
                 IndexSet::new(),
             ),
             (
@@ -294,12 +294,12 @@ mod tests {
             ),
             (
                 "r(X) :- q(X). r(G,Y) :- G < Y. r(a).",
-                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) ). forall V1 (q(V1) <-> #false).",
+                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a). forall V1 V2 (r(V1,V2) <-> exists G Y (V1 = G and V2 = Y and exists Z Z1 (Z = G and Z1 = Y and Z < Z1) ) ). forall V1 (q(V1) <-> #false).",
                 IndexSet::new(),
             ),
             (
                 "r(X) :- q(X). r(G,Y) :- G < Y. r(a).",
-                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a and #true).",
+                "forall V1 (r(V1) <-> exists X (V1 = X and exists Z (Z = X and q(Z))) or V1 = a).",
                 IndexSet::from_iter(vec![
                     fol::Predicate {
                         symbol: "q".to_string(),
@@ -313,7 +313,7 @@ mod tests {
             ),
             (
                 "composite(I*J) :- I>1, J>1. prime(I) :- I = 2..n, not composite(I).",
-                "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I$i J$i K$i (I$i = 2 and J$i = n and Z1 = K$i and I$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z))))).",
+                "forall V1 (composite(V1) <-> exists I J (exists I1$i J1$i (V1 = I1$i * J1$i and I1$i = I and J1$i = J) and (exists Z Z1 (Z = I and Z1 = 1 and Z > Z1) and exists Z Z1 (Z = J and Z1 = 1 and Z > Z1)))). forall V1 (prime(V1) <-> exists I (V1 = I and (exists Z Z1 (Z = I and exists I1$i J$i K$i (I1$i = 2 and J$i = n and Z1 = K$i and I1$i <= K$i <= J$i) and Z = Z1) and exists Z (Z = I and not composite(Z))))).",
                 IndexSet::new(),
             ),
             (
@@ -323,7 +323,7 @@ mod tests {
             ),
             (
                 "p. p(a). :- q.",
-                "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a and #true). q <-> #false.",
+                "q -> #false. p <-> #true. forall V1 (p(V1) <-> V1 = a). q <-> #false.",
                 IndexSet::new(),
             ),
             (
@@ -333,14 +333,14 @@ mod tests {
             ),
             (
                 ":- s(X, I), not covered(X).",
-                "forall X I (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false). forall V1 V2 (s(V1,V2) <-> #false). forall V1 (covered(V1) <-> #false).",
+                "forall I X (exists Z Z1 (Z = X and Z1 = I and s(Z, Z1)) and exists Z (Z = X and not covered(Z)) -> #false). forall V1 V2 (s(V1,V2) <-> #false). forall V1 (covered(V1) <-> #false).",
                 IndexSet::new(),
             ),
         ] {
             let left = src
                 .parse::<asp::Program>()
                 .unwrap()
-                .tau_star()
+                .tau_star(crate::command_line::arguments::Dialect::GringoFive)
                 .completion(inputs)
                 .unwrap();
             let right = target.parse().unwrap();
