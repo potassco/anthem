@@ -293,7 +293,7 @@ mod tests {
         super::{move_values_to_antecedent, restructure_disjunctive_head},
         crate::{
             command_line::arguments::Dialect,
-            convenience::variable_selection::VariableSelection as _,
+            convenience::fresh_names::FreshVariables as _,
             normalizing::{
                 asp::numeric_normal::numeric_normal_form, fol::completable::make_completable,
             },

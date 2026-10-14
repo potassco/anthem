@@ -1,7 +1,7 @@
 use {
     crate::{
         command_line::arguments::Dialect,
-        convenience::{apply::Apply, compose::Compose, variable_selection::VariableSelection},
+        convenience::{apply::Apply, compose::Compose, fresh_names::FreshVariables},
         simplifying::fol::sigma_0::intuitionistic::{
             remove_conjunctive_identities, remove_empty_quantifications, remove_orphaned_variables,
         },
@@ -14,7 +14,7 @@ use {
             },
         },
     },
-    indexmap::{IndexMap, IndexSet},
+    indexmap::IndexSet,
 };
 
 pub const PREPROCESS: &[fn(Formula) -> Formula] = &[
@@ -628,23 +628,18 @@ fn val(
             sort: Sort::General,
         });
     }
-    taken_vars.insert(z.clone());
-
-    let fresh_ivar = taken_vars.choose_fresh_variable("I");
-    let fresh_jvar = taken_vars.choose_fresh_variable("J");
-    let fresh_kvar = taken_vars.choose_fresh_variable("K");
 
     // Fresh integer variables
-    let var1 = fol::Variable {
-        name: fresh_ivar,
+    let ivar = fol::Variable {
+        name: taken_variables.choose_fresh_variable("I"),
         sort: fol::Sort::Integer,
     };
-    let var2 = fol::Variable {
-        name: fresh_jvar,
+    let jvar = fol::Variable {
+        name: taken_variables.choose_fresh_variable("J"),
         sort: fol::Sort::Integer,
     };
-    let var3 = fol::Variable {
-        name: fresh_kvar,
+    let kvar = fol::Variable {
+        name: taken_variables.choose_fresh_variable("K"),
         sort: fol::Sort::Integer,
     };
     match t {
@@ -655,40 +650,25 @@ fn val(
         asp::Term::UnaryOperation { op, arg } => match op {
             asp::UnaryOperator::Negative => {
                 let lhs = asp::Term::BasicSymbol(asp::BasicSymbol::Numeral(0)); // Shorthand for 0 - t
-                let valti = val(
-                    lhs,
-                    fresh_int_vars["I"].clone(),
-                    taken_variables.clone(),
-                    dialect,
-                ); // val_t1(I)
-                let valtj = val(*arg, fresh_int_vars["J"].clone(), taken_variables, dialect); // val_t2(J)
+                let valti = val(lhs, ivar.clone(), taken_variables.clone(), dialect); // val_t1(I)
+                let valtj = val(*arg, jvar.clone(), taken_variables, dialect); // val_t2(J)
                 construct_total_function_formula(
                     valti,
                     valtj,
                     asp::BinaryOperator::Subtract,
-                    fresh_int_vars["I"].clone(),
-                    fresh_int_vars["J"].clone(),
+                    ivar.clone(),
+                    jvar.clone(),
                     z,
                 )
             }
             asp::UnaryOperator::AbsoluteValue => {
-                let valti = val(
-                    *arg,
-                    fresh_int_vars["I"].clone(),
-                    taken_variables.clone(),
-                    dialect,
-                ); // val_t1(I)
-                construct_absolute_value_formula(valti, fresh_int_vars["I"].clone(), z)
+                let valti = val(*arg, ivar.clone(), taken_variables.clone(), dialect); // val_t1(I)
+                construct_absolute_value_formula(valti, ivar.clone(), z)
             }
         },
         asp::Term::BinaryOperation { op, lhs, rhs } => {
-            let valti = val(
-                *lhs,
-                fresh_int_vars["I"].clone(),
-                taken_variables.clone(),
-                dialect,
-            ); // val_t1(I)
-            let valtj = val(*rhs, fresh_int_vars["J"].clone(), taken_variables, dialect); // val_t2(J)
+            let valti = val(*lhs, ivar.clone(), taken_variables.clone(), dialect); // val_t1(I)
+            let valtj = val(*rhs, jvar.clone(), taken_variables, dialect); // val_t2(J)
             match op {
                 asp::BinaryOperator::Add
                 | asp::BinaryOperator::Subtract
@@ -696,8 +676,8 @@ fn val(
                     valti,
                     valtj,
                     op,
-                    fresh_int_vars["I"].clone(),
-                    fresh_int_vars["J"].clone(),
+                    ivar.clone(),
+                    jvar.clone(),
                     z,
                 ),
                 asp::BinaryOperator::Divide | asp::BinaryOperator::Modulo => match dialect {
@@ -705,26 +685,26 @@ fn val(
                         valti,
                         valtj,
                         op,
-                        fresh_int_vars["I"].clone(),
-                        fresh_int_vars["J"].clone(),
-                        fresh_int_vars["K"].clone(),
+                        ivar.clone(),
+                        jvar.clone(),
+                        kvar.clone(),
                         z,
                     ),
                     Dialect::GringoSix => construct_gsix_partial_function_formula(
                         valti,
                         valtj,
                         op,
-                        fresh_int_vars["I"].clone(),
-                        fresh_int_vars["J"].clone(),
+                        ivar.clone(),
+                        jvar.clone(),
                         z,
                     ),
                 },
                 asp::BinaryOperator::Interval => construct_interval_formula(
                     valti,
                     valtj,
-                    fresh_int_vars["I"].clone(),
-                    fresh_int_vars["J"].clone(),
-                    fresh_int_vars["K"].clone(),
+                    ivar.clone(),
+                    jvar.clone(),
+                    kvar.clone(),
                     z,
                 ),
             }

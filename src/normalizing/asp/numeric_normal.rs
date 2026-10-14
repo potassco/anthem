@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 
 use crate::{
-    convenience::variable_selection::VariableSelection,
+    convenience::fresh_names::FreshVariables,
     syntax_tree::asp::mini_gringo::{
         Atom, AtomicFormula, BasicSymbol, Body, Comparison, Head, Literal, Program, Relation, Rule,
         Sign, Term, Variable,
