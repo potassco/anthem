@@ -1,8 +1,8 @@
 use {
     crate::{
         convenience::{
+            fresh_names::FreshVariables,
             unbox::{Unbox, fol::sigma_0::UnboxedFormula},
-            variable_selection::VariableSelection,
         },
         syntax_tree::fol::sigma_0 as fol,
     },

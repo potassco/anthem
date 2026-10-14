@@ -18,7 +18,7 @@ Strong equivalence verification also allows users to select the transformation u
 The default option is `tau*`, but `mu` may also be selected:
 ```
     anthem verify --equivalence strong --formula-representation mu p1.lp p2.lp
-
+```
 
 
 ## External Equivalence

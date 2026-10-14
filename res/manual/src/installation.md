@@ -1,8 +1,12 @@
 # Installing From Crates.io
-The `anthem` crate and installation instructions can be found [here](https://crates.io/crates/anthem).
+The `anthem` crate can be found [here](https://crates.io/crates/anthem).
+Install it by running
+```
+    cargo install anthem
+```
 
 # Installing From Source
-Linux users can build `anthem` directly from source, as follows.
+Alternatively, you can build `anthem` directly from source, as follows.
 
 ```
     git clone https://github.com/potassco/anthem.git && cd anthem
@@ -10,12 +14,14 @@ Linux users can build `anthem` directly from source, as follows.
     cp target/release/anthem ~/.local/bin
 ```
 
-Note that you will also need a working installation of `vampire.`
-Installation instructions can be found [here](https://vprover.github.io/).
+# Installing Vampire
+Note that you will also need a working installation of [`vampire`](https://vprover.github.io/).
+Either use one of the pre-built binaries available [here](https://github.com/vprover/vampire/releases)
+or install vampire from source using the instructions provided [here](https://github.com/vprover/vampire/wiki/Source-Build-for-Users).
+We recommend building `vampire` with `z3` linked for better performance.
 
 # Installing with Docker
-In our experience, building `vampire` on MacOS is tricky.
-Non-Linux users may prefer to install and run `anthem` with [Docker](https://www.docker.com/).
+If you experience issues building `vampire`, you may prefer to install and run `anthem` with [Docker](https://www.docker.com/).
 Make sure Docker is running then run the following commands.
 
 ```

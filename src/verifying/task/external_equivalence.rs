@@ -21,13 +21,16 @@ use {
             },
         },
         verifying::{
-            outline::{GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning},
+            outline::{
+                CheckInternal, GeneralLemma, ProofOutline, ProofOutlineError, ProofOutlineWarning,
+            },
             problem::{self, Problem},
             task::Task,
         },
     },
     either::Either,
     indexmap::{IndexMap, IndexSet},
+    itertools::Itertools as _,
     std::fmt::Display,
     thiserror::Error,
 };
@@ -118,9 +121,21 @@ impl Display for ExternalEquivalenceTaskWarning {
                 f,
                 "the following formula is ignored because user guides only permit assumptions: {formula}"
             ),
-            ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => writeln!(f, "{w}"),
+            ExternalEquivalenceTaskWarning::DefinitionWithWarning(w) => write!(f, "{w}"),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct InvalidPredicateErrorContent {
+    pub formula: fol::AnnotatedFormula,
+    pub predicate: fol::Predicate,
+}
+
+#[derive(Debug)]
+pub struct OutputPredicatesErrorContent {
+    pub formula: fol::AnnotatedFormula,
+    pub predicates: Vec<fol::Predicate>,
 }
 
 #[derive(Error, Debug)]
@@ -131,10 +146,13 @@ pub enum ExternalEquivalenceTaskError {
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
     InputPredicateInRuleHead(Vec<fol::Predicate>),
     OutputPredicateInUserGuideAssumption(Vec<fol::Predicate>),
-    OutputPredicateInSpecificationAssumption(Vec<fol::Predicate>),
+    OutputPredicateInSpecificationAssumption(Box<OutputPredicatesErrorContent>),
     PlaceholdersWithIdenticalNamesDifferentSorts(String),
+    AssumptionContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
+    SpecContainsInvalidPredicate(Box<InvalidPredicateErrorContent>),
     AssumptionContainsNonInputSymbols(fol::AnnotatedFormula),
     SpecificationContainsUnsupportedRoles(fol::AnnotatedFormula),
+    SpecificationDefinesOutputPredicates(Vec<fol::Predicate>),
     ProofOutlineError(#[from] ProofOutlineError),
 }
 
@@ -155,28 +173,12 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following predicates are declared as input and output predicates: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::InputPredicateInRuleHead(predicates) => {
                 write!(f, "the following input predicates occur in rule heads: ")?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
             ExternalEquivalenceTaskError::OutputPredicateInUserGuideAssumption(predicates) => {
                 write!(
@@ -184,31 +186,16 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following output predicates occur in user guide assumptions: "
                 )?;
 
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
-            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(predicates) => {
-                write!(
+            ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(content) => {
+                let content = &**content;
+                let predicates = content.predicates.iter().format(", ");
+                let formula = &content.formula;
+                writeln!(
                     f,
-                    "the following output predicates occur in specification assumptions: "
-                )?;
-
-                let mut iter = predicates.iter().peekable();
-                for predicate in predicates {
-                    write!(f, "{predicate}")?;
-                    if iter.peek().is_some() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                writeln!(f)
+                    "the following assumption contains output predicates ({predicates}) that are not valid for use within assumptions: {formula}"
+                )
             }
             ExternalEquivalenceTaskError::PlaceholdersWithIdenticalNamesDifferentSorts(s) => {
                 writeln!(
@@ -222,8 +209,26 @@ impl Display for ExternalEquivalenceTaskError {
                     "the following assumption contains a predicate that is not an input symbol: {formula}"
                 )
             }
+            ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
+                writeln!(
+                    f,
+                    "the following assumption contains a predicate ({predicate}) that is not valid for use within assumptions: {formula}"
+                )
+            }
+            ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(content) => {
+                let content = &**content;
+                let predicate = &content.predicate;
+                let formula = &content.formula;
+                writeln!(
+                    f,
+                    "the following spec contains a predicate ({predicate}) that is not valid for use within specs: {formula}"
+                )
+            }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
-                writeln!(f, "the given proof outline contains errors")
+                writeln!(f, "a definition or lemma contains errors")
             }
             ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
                 writeln!(
@@ -236,6 +241,14 @@ impl Display for ExternalEquivalenceTaskError {
                     f,
                     "the role of the following formula is not supported in specifications: {formula}"
                 )
+            }
+            ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(predicates) => {
+                write!(
+                    f,
+                    "the specification defines the following output predicates: "
+                )?;
+
+                writeln!(f, "{}", predicates.iter().format(", "))
             }
         }
     }
@@ -342,35 +355,6 @@ impl ExternalEquivalenceTask {
         }
     }
 
-    #[allow(clippy::result_large_err)]
-    fn ensure_specification_assumptions_do_not_contain_output_predicates(
-        &self,
-        specification: &fol::Specification,
-    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        let output_predicates = self.user_guide.output_predicates();
-
-        for formula in &specification.formulas {
-            if matches!(formula.role, fol::Role::Assumption) {
-                let overlap: Vec<_> = formula
-                    .predicates()
-                    .into_iter()
-                    .filter(|p| output_predicates.contains(p))
-                    .collect();
-
-                if !overlap.is_empty() {
-                    return Err(
-                        ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
-                            overlap,
-                        ),
-                    );
-                }
-            }
-        }
-
-        Ok(WithWarnings::flawless(()))
-    }
-
-    #[allow(clippy::result_large_err)]
     fn ensure_placeholder_name_uniqueness(
         &self,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
@@ -391,19 +375,89 @@ impl ExternalEquivalenceTask {
         Ok(WithWarnings::flawless(()))
     }
 
-    #[allow(clippy::result_large_err)]
-    fn ensure_assumptions_only_contain_input_symbols(
+    fn ensure_assumptions_only_contain_valid_predicates(
         &self,
-        program_input_symbols: &IndexSet<fol::Predicate>,
+        formulas: &Vec<fol::AnnotatedFormula>,
+        defined_predicates: &IndexSet<fol::Predicate>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let output_predicates = self.user_guide.output_predicates();
+        let mut valid_predicates = self.user_guide.input_predicates();
+        valid_predicates.extend(defined_predicates.iter().cloned());
+
+        for formula in formulas {
+            if matches!(formula.role, fol::Role::Assumption) {
+                let predicates = formula.formula.predicates();
+
+                // first check for output predicates for a more specific error
+                let overlap: Vec<_> = predicates
+                    .intersection(&output_predicates)
+                    .cloned()
+                    .collect();
+                if !overlap.is_empty() {
+                    return Err(
+                        ExternalEquivalenceTaskError::OutputPredicateInSpecificationAssumption(
+                            Box::new(OutputPredicatesErrorContent {
+                                formula: formula.clone(),
+                                predicates: overlap,
+                            }),
+                        ),
+                    );
+                }
+
+                // then check that all predicates are valid (input or defined)
+                if let Some(p) = predicates.difference(&valid_predicates).next() {
+                    return Err(
+                        ExternalEquivalenceTaskError::AssumptionContainsInvalidPredicate(Box::new(
+                            InvalidPredicateErrorContent {
+                                formula: formula.clone(),
+                                predicate: p.clone(),
+                            },
+                        )),
+                    );
+                }
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
+
+    fn ensure_specs_only_contain_valid_predicates(
+        &self,
+        formulas: &Vec<fol::AnnotatedFormula>,
+        defined_predicates: &IndexSet<fol::Predicate>,
+    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
+        let mut valid_predicates = self.user_guide.public_predicates();
+        valid_predicates.extend(defined_predicates.iter().cloned());
+
+        for formula in formulas {
+            if matches!(formula.role, fol::Role::Spec) {
+                let predicates = formula.formula.predicates();
+                if let Some(p) = predicates.difference(&valid_predicates).next() {
+                    return Err(ExternalEquivalenceTaskError::SpecContainsInvalidPredicate(
+                        Box::new(InvalidPredicateErrorContent {
+                            formula: formula.clone(),
+                            predicate: p.clone(),
+                        }),
+                    ));
+                }
+            }
+        }
+
+        Ok(WithWarnings::flawless(()))
+    }
+
+    fn ensure_user_guide_assumptions_only_contain_input_symbols(
+        &self,
         formulas: &Vec<fol::AnnotatedFormula>,
     ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
         for formula in formulas {
             if matches!(formula.role, fol::Role::Assumption) {
-                let mut input_symbols = program_input_symbols.clone();
-                input_symbols.append(&mut self.user_guide.input_predicates());
-
                 let predicates = formula.formula.predicates();
-                if predicates.difference(&input_symbols).next().is_some() {
+                if predicates
+                    .difference(&self.user_guide.input_predicates())
+                    .next()
+                    .is_some()
+                {
                     return Err(
                         ExternalEquivalenceTaskError::AssumptionContainsNonInputSymbols(
                             formula.clone(),
@@ -446,6 +500,46 @@ impl ExternalEquivalenceTask {
         }
 
         Ok(WithWarnings::flawless(()))
+    }
+
+    // Returns the predicates defined by the definitions in the specification if they form a valid sequence, else returns an error
+    // A sequence is valid if each definition defines a fresh predicate and its RHS contains only input predicates and previously defined predicates
+    fn ensure_valid_definition_sequence(
+        specification: &Vec<fol::AnnotatedFormula>,
+        user_guide: &fol::UserGuide,
+    ) -> Result<
+        IndexSet<fol::Predicate>,
+        ExternalEquivalenceTaskWarning,
+        ExternalEquivalenceTaskError,
+    > {
+        let mut warnings = Vec::new();
+        let mut defined_predicates = IndexSet::new();
+
+        let mut taken_predicates = user_guide.input_predicates();
+        for anf in specification {
+            if matches!(anf.role, fol::Role::Definition) {
+                let predicate = anf.formula.definition(&taken_predicates)?;
+                warnings.extend(predicate.warnings.into_iter().map(Into::into));
+
+                taken_predicates.insert(predicate.data.clone());
+                defined_predicates.insert(predicate.data);
+            }
+        }
+
+        // check for no overlap with output predicates
+        let output_predicates = user_guide.output_predicates();
+        let overlap: Vec<_> = defined_predicates
+            .iter()
+            .filter(|p| output_predicates.contains(*p))
+            .cloned()
+            .collect();
+        if !overlap.is_empty() {
+            return Err(
+                ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(overlap),
+            );
+        }
+
+        Ok(WithWarnings::flawless(defined_predicates).preface_warnings(warnings))
     }
 }
 
@@ -494,10 +588,7 @@ impl Task for ExternalEquivalenceTask {
         self.ensure_absence_of_private_recursion(&self.program, &program_private_predicates)?;
         self.ensure_rule_heads_do_not_contain_input_predicates(&self.program)?;
         self.ensure_placeholder_name_uniqueness()?;
-        self.ensure_assumptions_only_contain_input_symbols(
-            &IndexSet::new(),
-            &self.user_guide.formulas(),
-        )?;
+        self.ensure_user_guide_assumptions_only_contain_input_symbols(&self.user_guide.formulas())?;
 
         match self.specification {
             Either::Left(ref program) => {
@@ -509,14 +600,22 @@ impl Task for ExternalEquivalenceTask {
                 self.ensure_rule_heads_do_not_contain_input_predicates(program)?;
             }
             Either::Right(ref specification) => {
-                self.ensure_specification_assumptions_do_not_contain_output_predicates(
-                    specification,
-                )?;
-                self.ensure_assumptions_only_contain_input_symbols(
-                    &program_private_predicates,
+                let defined_predicates = Self::ensure_valid_definition_sequence(
                     &specification.formulas,
+                    &self.user_guide,
+                )?;
+                warnings.extend(defined_predicates.warnings);
+                let defined_predicates = defined_predicates.data;
+
+                self.ensure_assumptions_only_contain_valid_predicates(
+                    &specification.formulas,
+                    &defined_predicates,
                 )?;
                 self.ensure_specification_roles_are_supported(&specification.formulas)?;
+                self.ensure_specs_only_contain_valid_predicates(
+                    &specification.formulas,
+                    &defined_predicates,
+                )?;
             }
         }
 
@@ -769,7 +868,7 @@ impl Task for ValidatedExternalEquivalenceTask {
 
         for formula in self.left {
             match formula.role {
-                Assumption => match formula.direction {
+                Assumption | Definition => match formula.direction {
                     Universal => stable_premises.push(formula.into_problem_formula(Axiom)),
                     Forward => forward_premises.push(formula.into_problem_formula(Axiom)),
                     Backward => warnings.push(
@@ -790,7 +889,7 @@ impl Task for ValidatedExternalEquivalenceTask {
                         }
                     }
                 }
-                Lemma | Definition | InductiveLemma => unreachable!(),
+                Lemma | InductiveLemma => unreachable!(),
             }
         }
 
@@ -941,5 +1040,137 @@ impl Task for AssembledExternalEquivalenceTask {
         }
 
         Ok(WithWarnings::flawless(problems))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use {
+        super::{
+            ExternalEquivalenceTask, ExternalEquivalenceTaskError, ExternalEquivalenceTaskWarning,
+        },
+        crate::{
+            syntax_tree::fol::sigma_0 as fol,
+            verifying::outline::{ProofOutlineError, ProofOutlineWarning},
+        },
+        indexmap::IndexSet,
+    };
+
+    fn defined_predicates(
+        specification: &str,
+        user_guide: &str,
+    ) -> Result<IndexSet<fol::Predicate>, ExternalEquivalenceTaskError> {
+        let specification: fol::Specification = specification.parse().unwrap();
+        let user_guide: fol::UserGuide = user_guide.parse().unwrap();
+        ExternalEquivalenceTask::ensure_valid_definition_sequence(
+            &specification.formulas,
+            &user_guide,
+        )
+        .map(|result| result.data)
+    }
+
+    fn predicates(predicates: &[&str]) -> IndexSet<fol::Predicate> {
+        predicates.iter().map(|p| p.parse().unwrap()).collect()
+    }
+
+    #[test]
+    fn valid_definition_sequence() {
+        for (specification, user_guide, expected) in [
+            (
+                "spec: forall X (q(X) <-> p(X)).",
+                "input: p/1. output: q/1.",
+                vec![],
+            ),
+            (
+                "definition: forall X (r(X) <-> p(X)).",
+                "input: p/1. output: q/1.",
+                vec!["r/1"],
+            ),
+            (
+                "definition: forall X (r(X) <-> p(X)). definition: forall X (s(X) <-> r(X)). definition: forall X (t(X) <-> p(X) and r(X)).",
+                "input: p/1. output: q/1.",
+                vec!["r/1", "s/1", "t/1"],
+            ),
+        ] {
+            assert_eq!(
+                defined_predicates(specification, user_guide).unwrap(),
+                predicates(&expected),
+                "{specification}"
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_definition_sequence() {
+        for specification in [
+            // the RHS uses a predicate that is defined later
+            "definition: forall X (r(X) <-> s(X)). definition: forall X (s(X) <-> p(X)).",
+            // the RHS uses an output predicate
+            "definition: forall X (r(X) <-> q(X)).",
+            // the RHS uses a predicate that is neither public nor defined
+            "definition: forall X (r(X) <-> x(X)).",
+            // the RHS uses the predicate it defines
+            "definition: forall X (r(X) <-> p(X) or r(X)).",
+        ] {
+            assert!(
+                matches!(
+                    defined_predicates(specification, "input: p/1. output: q/1."),
+                    Err(ExternalEquivalenceTaskError::ProofOutlineError(
+                        ProofOutlineError::UndefinedRhsPredicate { .. }
+                    ))
+                ),
+                "{specification}"
+            );
+        }
+
+        for specification in [
+            // the LHS redefines an input predicate
+            "definition: forall X (p(X) <-> X = 1).",
+            // the LHS redefines a previously defined predicate
+            "definition: forall X (r(X) <-> p(X)). definition: forall X (r(X) <-> X = 1).",
+        ] {
+            assert!(
+                matches!(
+                    defined_predicates(specification, "input: p/1. output: q/1."),
+                    Err(ExternalEquivalenceTaskError::ProofOutlineError(
+                        ProofOutlineError::TakenPredicate(_)
+                    ))
+                ),
+                "{specification}"
+            );
+        }
+
+        // the LHS defines an output predicate
+        assert!(matches!(
+            defined_predicates(
+                "definition: forall X (q(X) <-> p(X)).",
+                "input: p/1. output: q/1."
+            ),
+            Err(ExternalEquivalenceTaskError::SpecificationDefinesOutputPredicates(_))
+        ));
+    }
+
+    #[test]
+    fn definition_sequence_warnings() {
+        let specification: fol::Specification =
+            "definition: forall X Y (r(X, Y) <-> p(X)). definition: forall X (s(X) <-> p(X))."
+                .parse()
+                .unwrap();
+        let user_guide: fol::UserGuide = "input: p/1. output: q/1.".parse().unwrap();
+
+        let warnings = ExternalEquivalenceTask::ensure_valid_definition_sequence(
+            &specification.formulas,
+            &user_guide,
+        )
+        .unwrap()
+        .warnings;
+
+        assert_eq!(warnings.len(), 1);
+        assert!(matches!(
+            &warnings[0],
+            ExternalEquivalenceTaskWarning::DefinitionWithWarning(
+                ProofOutlineWarning::ExcessQuantifiedVariables(_)
+            )
+        ));
     }
 }

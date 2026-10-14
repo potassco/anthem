@@ -24,37 +24,15 @@ pub const PREPROCESS: &[fn(Formula) -> Formula] = &[
 ];
 
 /// Choose fresh variants of `Vn` by incrementing `n`
-pub(crate) fn choose_fresh_global_variables(program: &Program) -> Vec<String> {
-    let max_arity = program.max_arity();
+pub(crate) fn choose_fresh_global_variables(program: &asp::Program) -> Vec<String> {
+    let mut max_arity = 0;
+    for rule in program.rules.iter() {
+        let head_arity = rule.head.arity();
+        if head_arity > max_arity {
+            max_arity = head_arity;
+        }
+    }
     program.choose_fresh_variables("V", max_arity)
-}
-
-fn choose_fresh_ijk(taken_variables: IndexSet<Variable>) -> IndexMap<String, Variable> {
-    let mut fresh_int_vars = IndexMap::new();
-
-    fresh_int_vars.insert(
-        "I".to_string(),
-        Variable {
-            name: taken_variables.choose_fresh_variable("I"),
-            sort: Sort::Integer,
-        },
-    );
-    fresh_int_vars.insert(
-        "J".to_string(),
-        Variable {
-            name: taken_variables.choose_fresh_variable("J"),
-            sort: Sort::Integer,
-        },
-    );
-    fresh_int_vars.insert(
-        "K".to_string(),
-        Variable {
-            name: taken_variables.choose_fresh_variable("K"),
-            sort: Sort::Integer,
-        },
-    );
-
-    fresh_int_vars
 }
 
 // Z = t
@@ -650,13 +628,25 @@ fn val(
             sort: Sort::General,
         });
     }
+    taken_vars.insert(z.clone());
 
-    let fresh_int_vars = choose_fresh_ijk(taken_variables.clone());
+    let fresh_ivar = taken_vars.choose_fresh_variable("I");
+    let fresh_jvar = taken_vars.choose_fresh_variable("J");
+    let fresh_kvar = taken_vars.choose_fresh_variable("K");
 
-    for (_, value) in fresh_int_vars.iter() {
-        taken_variables.insert(value.clone());
-    }
-
+    // Fresh integer variables
+    let var1 = fol::Variable {
+        name: fresh_ivar,
+        sort: fol::Sort::Integer,
+    };
+    let var2 = fol::Variable {
+        name: fresh_jvar,
+        sort: fol::Sort::Integer,
+    };
+    let var3 = fol::Variable {
+        name: fresh_kvar,
+        sort: fol::Sort::Integer,
+    };
     match t {
         asp::Term::BasicSymbol(_) | asp::Term::Variable(_) => construct_equality_formula(t, z),
         asp::Term::HerbrandFunction { symbol, terms } => {
