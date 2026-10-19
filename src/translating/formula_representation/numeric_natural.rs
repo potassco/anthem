@@ -436,12 +436,12 @@ mod tests {
             ("q(X,Y+1) :- p(X,Y).", "forall X Y$ (p(X,Y$) -> q(X,Y$+1))."),
             (
                 "q(X/Y+1) :- p(X,Y).",
-                "forall V1$ X$ Y$ ( p(X$, Y$) and divisionGraphG5(X$,Y$,V1$) -> q(V1$+1) ).",
+                "forall V$ X$ Y$ ( p(X$, Y$) and divisionGraphG5(X$,Y$,V$) -> q(V$+1) ).",
             ),
-            ("p(1..8).", "forall V1$ (intervalGraph(1,8,V1$) -> p(V1$))."),
+            ("p(1..8).", "forall V$ (intervalGraph(1,8,V$) -> p(V$))."),
             (
                 "p(a..b).",
-                "forall V1$ V2$ V3$ (V1$ = a and V2$ = b and intervalGraph(V1$, V2$, V3$) -> p(V3$)).",
+                "forall V$ V1$ V2$ (V$ = a and V1$ = b and intervalGraph(V$, V1$, V2$) -> p(V2$)).",
             ),
         ] {
             let normalized_program = Program {

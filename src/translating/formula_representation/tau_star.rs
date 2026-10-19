@@ -1051,7 +1051,7 @@ mod tests {
                 "X+1..Y",
                 Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i K$i ((exists I1$i J1$i (I$i = I1$i + J1$i and I1$i = X and J1$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
+                "exists I$i J$i K$i ((exists I1$i J$i (I$i = I1$i + J$i and I1$i = X and J$i = 1)) and J$i = Y and Z1 = K$i and I$i <= K$i <= J$i)",
             ),
         ] {
             let left = val(
@@ -1082,7 +1082,7 @@ mod tests {
                 "3 - (1..5)",
                 Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5 and J$i = K1$i and I1$i <= K1$i <= J1$i))",
+                "exists I$i J$i (Z1$g = I$i - J$i and I$i = 3 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5 and J$i = K$i and I$i <= K$i <= J1$i))",
             ),
         ] {
             let left = valtz(
@@ -1137,7 +1137,7 @@ mod tests {
             (
                 "p(X,-(1..5))",
                 Dialect::GringoFive,
-                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I1$i J1$i K1$i (I1$i = 1 and J1$i = 5  and J$i = K1$i and I1$i <= K1$i <= J1$i)) and p(Z,Z1))",
+                "exists Z Z1 (Z = X and exists I$i J$i (Z1 = I$i - J$i and I$i = 0 and exists I$i J1$i K$i (I$i = 1 and J1$i = 5 and J$i = K$i and I$i <= K$i <= J1$i)) and p(Z,Z1))",
             ),
             (
                 "p(1/0)",

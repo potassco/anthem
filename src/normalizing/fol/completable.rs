@@ -434,7 +434,7 @@ mod tests {
             ),
             (
                 "p(X) :- X = 3. {p(X)} :- X = 3. p(1..2, N0).",
-                "forall V X (X = 3 and X = V -> p(V)). forall V X (X = 3 and not not p(X) and X = V -> p(V)). forall N0 V V1$i V2 (intervalGraph(1, 2, V1$i) and V1$i = V and N0 = V2 -> p(V, V2))."
+                "forall V1 X (X = 3 and X = V1 -> p(V1)). forall V1 X (X = 3 and not not p(X) and X = V1 -> p(V1)). forall N0 V$i V1 V2 (intervalGraph(1, 2, V$i) and V$i = V1 and N0 = V2 -> p(V1, V2))."
             ),
             (
                 "q(X+1) :- p(X). :- p(X,Y,Z), X < Y, Y=1..Z.",
@@ -442,8 +442,8 @@ mod tests {
             ),
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z). p(V,Y) :- V = Y, Y = 1..2.",
-                "forall V1$i V2$i V3 V4 X$i Y$i Z (p(X$i, Y$i, Z) and intervalGraph(1, X$i, V1$i) and intervalGraph(1, Y$i, V2$i) and V1$i = V3 and V2$i = V4 -> q(V3, V4)).
-                forall V V3 V4 Y$i (V = Y$i and intervalGraph(1, 2, Y$i) and V = V3 and Y$i = V4 -> p(V3, V4))."
+                "forall V$i V1$i V2 V3 X$i Y$i Z (p(X$i, Y$i, Z) and intervalGraph(1, X$i, V$i) and intervalGraph(1, Y$i, V1$i) and V$i = V2 and V1$i = V3 -> q(V2, V3)).
+                forall V V2 V3 Y$i (V = Y$i and intervalGraph(1, 2, Y$i) and V = V2 and Y$i = V3 -> p(V2, V3))."
             ),
         ] {
             let source_program: mini_gringo::Program = source.parse().unwrap();

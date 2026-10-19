@@ -330,44 +330,44 @@ mod tests {
             // base cases
             ("X+1", false, false, "X+1"),
             ("4-1", false, false, "4-1"),
-            ("1*inf", false, false, "1*V1"),
-            ("10+sup", false, false, "10+V1"),
-            ("a+1", false, false, "V1+1"),
+            ("1*inf", false, false, "1*V"),
+            ("10+sup", false, false, "10+V"),
+            ("a+1", false, false, "V+1"),
             ("X", false, false, "X"),
             ("X", true, false, "X"),
             ("a", false, false, "a"),
-            ("a", true, false, "V1"),
+            ("a", true, false, "V"),
             ("1", false, false, "1"),
             ("1", true, false, "1"),
-            ("1/0", false, false, "V1"),
+            ("1/0", false, false, "V"),
             ("1/0", false, true, "1/0"),
             // constructors
             ("f(a)", false, false, "f(a)"),
-            ("f(a)", true, false, "V1"),
+            ("f(a)", true, false, "V"),
             ("f(X,Y+1)", false, false, "f(X,Y+1)"),
-            ("f(X,a+1)", false, false, "f(X,V1+1)"),
+            ("f(X,a+1)", false, false, "f(X,V+1)"),
             // unary op
             ("-(X+1)", false, false, "-(X+1)"),
             ("-(4-1)", false, false, "-(4-1)"),
-            ("-(1*inf)", false, false, "-(1*V1)"),
-            ("-(10+sup)", false, false, "-(10+V1)"),
-            ("-(a+1)", false, false, "-(V1+1)"),
+            ("-(1*inf)", false, false, "-(1*V)"),
+            ("-(10+sup)", false, false, "-(10+V)"),
+            ("-(a+1)", false, false, "-(V+1)"),
             ("-X", false, false, "-X"),
             ("-X", true, false, "-X"),
-            ("-a", false, false, "-V1"),
-            ("-a", true, false, "-V1"),
+            ("-a", false, false, "-V"),
+            ("-a", true, false, "-V"),
             ("-1", false, false, "-1"),
             ("-1", true, false, "-1"),
-            ("-(1/0)", false, false, "-V1"),
-            ("-(1/0)", false, true, "-V1"),
+            ("-(1/0)", false, false, "-V"),
+            ("-(1/0)", false, true, "-V"),
             // binop
             ("4-(X+1)", false, false, "4-(X+1)"),
-            ("4-(a+1)", false, false, "4-(V1+1)"),
+            ("4-(a+1)", false, false, "4-(V+1)"),
             ("4-(X+1)", true, false, "4-(X+1)"),
-            ("4-(a+1)", true, false, "4-(V1+1)"),
-            ("4+f(a)", false, false, "4+V1"),
-            ("(4*a)-(a+1)", false, false, "(4*V1)-(a+1)"),
-            ("((4*(1-a))+b)-(a+1)", false, false, "((4*(1-V1))+b)-(a+1)"),
+            ("4-(a+1)", true, false, "4-(V+1)"),
+            ("4+f(a)", false, false, "4+V"),
+            ("(4*a)-(a+1)", false, false, "(4*V)-(a+1)"),
+            ("((4*(1-a))+b)-(a+1)", false, false, "((4*(1-V))+b)-(a+1)"),
         ] {
             let (src, _) = term_replacement(term.parse().unwrap(), IndexSet::new(), scope, rhs);
             let target = target.parse().unwrap();
@@ -378,9 +378,9 @@ mod tests {
     #[test]
     fn test_term_replacement_atomic_formula() {
         for (src, target, vt) in [
-            ("p(1..8)", "p(V1)", "V1 = 1..8"),
-            ("X < a+1", "X < V1 + 1", "V1 = a"),
-            ("X+1 < 3/5", "X+1 < V1", "V1 = 3/5"),
+            ("p(1..8)", "p(V)", "V = 1..8"),
+            ("X < a+1", "X < V + 1", "V = a"),
+            ("X+1 < 3/5", "X+1 < V", "V = 3/5"),
         ] {
             let (src, v_equals_t) =
                 term_replacement_atomic_formula(src.parse().unwrap(), IndexSet::new());
@@ -402,25 +402,22 @@ mod tests {
     #[test]
     fn test_numeric_normal_form_rule() {
         for (src, target) in [
-            ("p(1..8).", "p(V1) :- V1 = 1..8."),
-            ("{p(1..8)}.", "p(V1) :- V1 = 1..8, not not p(V1)."),
+            ("p(1..8).", "p(V) :- V = 1..8."),
+            ("{p(1..8)}.", "p(V) :- V = 1..8, not not p(V)."),
             ("{r} :- t.", "r :- t, not not r."),
-            ("p(X/Y+1) :- q(X,Y).", "p(V1+1) :- q(X,Y), V1 = X/Y."),
-            (
-                "q(1..(X/2)) :- p(X).",
-                "q(V2) :- p(X), V1 = X/2, V2 = 1..V1.",
-            ),
+            ("p(X/Y+1) :- q(X,Y).", "p(V+1) :- q(X,Y), V = X/Y."),
+            ("q(1..(X/2)) :- p(X).", "q(V1) :- p(X), V = X/2, V1 = 1..V."),
             (
                 "{q(1..8)} :- 4 = 1/X, p((1+a)..5).",
-                "q(V1) :- 4 = 1/X, p(V3), V1 = 1..8, V2 = a, V3 = 1+V2..5, not not q(V1).",
+                "q(V) :- 4 = 1/X, p(V2), V = 1..8, V1 = a, V2 = 1+V1..5, not not q(V).",
             ),
             (
                 ":- 1/Y = 4, p(Y), q(Y/5).",
-                ":- V1 = 4, p(Y), q(V2), V1 = 1/Y, V2 = Y/5.",
+                ":- V = 4, p(Y), q(V1), V = 1/Y, V1 = Y/5.",
             ),
             (
                 ":- not p(0, f(a, X+1, b-3)).",
-                ":- not p(0, f(a, X+1, V1-3)), V1 = b.",
+                ":- not p(0, f(a, X+1, V-3)), V = b.",
             ),
         ] {
             let src = numeric_normal_form_rule(src.parse().unwrap());
