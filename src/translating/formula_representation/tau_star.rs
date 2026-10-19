@@ -635,13 +635,13 @@ mod tests {
                 "Xanadu/Yak",
                 Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i K$i (I$i = Xanadu and J$i = Yak and K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i| and ((I$i * J$i >= 0 and Z1 = K$i) or (I$i * J$i < 0 and Z1 = -K$i)))",
+                "exists I$i J$i K$i (I$i = Xanadu and J$i = Yak and Z1 = K$i and ((I$i >= 0 and 0 <= I$i - J$i * K$i < J$i) or (I$i >= 0 and 0 >= J$i * K$i - I$i > J$i) or (I$i < 0 and 0 <= J$i * K$i - I$i < J$i) or (I$i < 0 and 0 >= I$i - J$i * K$i > J$i)))",
             ),
             (
                 "X \\ 3",
                 Dialect::GringoFive,
                 "Z1",
-                "exists I$i J$i K$i (I$i = X and J$i = 3 and K$i * |J$i| <= |I$i| < (K$i + 1) * |J$i| and ((I$i * J$i >= 0 and Z1 = I$i - K$i * J$i) or (I$i * J$i < 0 and Z1 = I$i + K$i * J$i)))",
+                "exists I$i J$i K$i (I$i = X and J$i = 3 and Z1 = K$i and exists K1$i (K1$i * |J$i| <= |I$i| < (K1$i + 1) * |J$i| and ((I$i * J$i >= 0 and K$i = I$i - K1$i * J$i) or (I$i * J$i < 0 and K$i = I$i + K1$i * J$i))))",
             ),
             (
                 "X..Y",
@@ -744,17 +744,17 @@ mod tests {
             (
                 "p(1/0)",
                 Dialect::GringoFive,
-                "exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 0 and (K$i * |J$i| <= |I$i| < (K$i+1) * |J$i|) and ((I$i * J$i >= 0 and Z = K$i) or (I$i*J$i < 0 and Z = -K$i)) ) and p(Z))",
+                "exists Z (exists I$i J$i K$i (I$i = 1 and J$i = 0 and Z = K$i and ((I$i >= 0 and 0 <= I$i - J$i * K$i < J$i) or (I$i >= 0 and 0 >= J$i * K$i - I$i > J$i) or (I$i < 0 and 0 <= J$i * K$i - I$i < J$i) or (I$i < 0 and 0 >= I$i - J$i * K$i > J$i))) and p(Z))",
             ),
             (
                 "X / Y > 5",
                 Dialect::GringoSix,
-                "exists Z Z1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and I$i = X and J$i = Y and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z = Q$i) and Z1 = 5 and Z > Z1)",
+                "exists Z Z1 (exists I$i J$i K$i (I$i = X and J$i = Y and Z = K$i and ((0 <= I$i - J$i * K$i < J$i) or (0 >= I$i - J$i * K$i > J$i))) and Z1 = 5 and Z > Z1)",
             ),
             (
                 "X \\ Y > 5",
                 Dialect::GringoSix,
-                "exists Z Z1 (exists I$i J$i Q$i R$i (I$i = J$i * Q$i + R$i and I$i = X and J$i = Y and (J$i != 0 and R$i >= 0 and R$i < J$i) and Z = R$i) and Z1 = 5 and Z > Z1)",
+                "exists Z Z1 (exists I$i J$i K$i (I$i = X and J$i = Y and Z = K$i and exists Q$i (I$i = J$i * Q$i + K$i and (0 <= K$i < J$i or J$i < K$i <= 0))) and Z1 = 5 and Z > Z1)",
             ),
         ] {
             let left = tau_b(src.parse().unwrap(), dialect);
