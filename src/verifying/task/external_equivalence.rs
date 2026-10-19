@@ -16,7 +16,7 @@ use {
         translating::{
             classical_reduction::completion::Completion as _,
             formula_representation::{
-                numeric_natural::{AxiomatizedTheory, numeric_natural},
+                numeric_natural::numeric_natural,
                 tau_star::{TauStar as _, choose_fresh_global_variables},
             },
         },
@@ -643,93 +643,38 @@ impl Task for ExternalEquivalenceTask {
             }
         }
 
-        #[allow(clippy::result_large_err)]
         let theory_translate = |program: asp::Program, dialect: Dialect| {
-            let mut translation = match self.formula_representation {
+            let mut theory = match self.formula_representation {
                 FormulaRepresentation::NumericNatural => {
                     let var_names = choose_fresh_global_variables(&program);
-                    let nnf = numeric_natural(numeric_normal_form(program), dialect);
-
-                    // Predicates for which a completion formula should not be generated
-                    let mut no_completion_predicates = self.user_guide.input_predicates();
-                    let mut arithmetic_predicates: IndexSet<fol::Predicate> =
-                        IndexSet::from_iter(vec![
-                            fol::Predicate {
-                                symbol: "intervalGraph".into(),
-                                arity: 3,
-                            },
-                            fol::Predicate {
-                                symbol: "divisionGraphG5".into(),
-                                arity: 3,
-                            },
-                            fol::Predicate {
-                                symbol: "divisionGraphG6".into(),
-                                arity: 3,
-                            },
-                            fol::Predicate {
-                                symbol: "moduloGraphG5".into(),
-                                arity: 3,
-                            },
-                            fol::Predicate {
-                                symbol: "moduloGraphG6".into(),
-                                arity: 3,
-                            },
-                        ]);
-                    no_completion_predicates.append(&mut arithmetic_predicates);
-
-                    AxiomatizedTheory {
-                        axioms: nnf.axioms.replace_placeholders(&placeholders),
-                        theory: nnf
-                            .theory
-                            .replace_placeholders(&placeholders)
-                            .make_completable(&var_names)
-                            .expect("numeric-natural did not create a completable theory")
-                            .completion(no_completion_predicates)
-                            .expect("make-completable did not create a completable theory"),
-                    }
-                }
-                FormulaRepresentation::TauStar => AxiomatizedTheory {
-                    axioms: fol::Theory {
-                        formulas: Vec::new(),
-                    },
-                    theory: program
-                        .tau_star(dialect)
+                    numeric_natural(numeric_normal_form(program), dialect)
                         .replace_placeholders(&placeholders)
+                        .make_completable(&var_names)
+                        .expect("numeric-natural did not create a completable theory")
                         .completion(self.user_guide.input_predicates())
-                        .expect("tau_star did not create a completable theory"),
-                },
+                        .expect("make-completable did not create a completable theory")
+                }
+                FormulaRepresentation::TauStar => program
+                    .tau_star(dialect)
+                    .replace_placeholders(&placeholders)
+                    .completion(self.user_guide.input_predicates())
+                    .expect("tau_star did not create a completable theory"),
             };
 
             if self.simplify {
                 let mut portfolio = [INTUITIONISTIC, HT, CLASSIC].concat().into_iter().compose();
-                translation.theory = translation
-                    .theory
+                theory = theory
                     .into_iter()
                     .map(|f| f.apply_fixpoint(&mut portfolio))
                     .collect();
             }
 
-            translation
+            theory
         };
 
-        let control_translate = |ax_theory: AxiomatizedTheory| {
-            let mut axiom_counter = 0..;
+        let control_translate = |theory: fol::Theory| {
             let mut constraint_counter = 0..;
-
-            let mut formulas: Vec<fol::AnnotatedFormula> = ax_theory
-                .axioms
-                .formulas
-                .into_iter()
-                .map(|formula| fol::AnnotatedFormula {
-                    role: fol::Role::Assumption,
-                    direction: fol::Direction::Universal,
-                    name: format!("general_axiom_{}", axiom_counter.next().unwrap()),
-                    formula,
-                })
-                .collect();
-
-            let mut theory_formulas: Vec<fol::AnnotatedFormula> = ax_theory
-                .theory
+            let formulas = theory
                 .formulas
                 .into_iter()
                 .map(|formula| match head_predicate(&formula) {
@@ -753,9 +698,6 @@ impl Task for ExternalEquivalenceTask {
                     },
                 })
                 .collect();
-
-            formulas.append(&mut theory_formulas);
-
             fol::Specification { formulas }
         };
 

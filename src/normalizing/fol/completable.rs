@@ -434,21 +434,21 @@ mod tests {
             ),
             (
                 "p(X) :- X = 3. {p(X)} :- X = 3. p(1..2, N0).",
-                "forall V1 X (X = 3 and X = V1 -> p(V1)). forall V1 X (X = 3 and not not p(X) and X = V1 -> p(V1)). forall N0 V$i V1 V2 (intervalGraph(1, 2, V$i) and V$i = V1 and N0 = V2 -> p(V1, V2))."
+                "forall V1 X (X = 3 and X = V1 -> p(V1)). forall V1 X (X = 3 and not not p(X) and X = V1 -> p(V1)). forall N0 V$i V1 V2 (1 <= V$i <= 2 and V$i = V1 and N0 = V2 -> p(V1, V2))."
             ),
             (
                 "q(X+1) :- p(X). :- p(X,Y,Z), X < Y, Y=1..Z.",
-                "forall V X$i (p(X$i) and X$i + 1 = V -> q(V)). forall X Y$i Z$i (p(X, Y$i, Z$i) and X < Y$i and intervalGraph(1, Z$i, Y$i) -> #false)."
+                "forall V X$i (p(X$i) and X$i + 1 = V -> q(V)). forall X Y$i Z$i (p(X, Y$i, Z$i) and X < Y$i and 1 <= Y$i <= Z$i -> #false)."
             ),
             (
                 "q(1..X, 1..Y) :- p(X,Y,Z). p(V,Y) :- V = Y, Y = 1..2.",
-                "forall V$i V1$i V2 V3 X$i Y$i Z (p(X$i, Y$i, Z) and intervalGraph(1, X$i, V$i) and intervalGraph(1, Y$i, V1$i) and V$i = V2 and V1$i = V3 -> q(V2, V3)).
-                forall V V2 V3 Y$i (V = Y$i and intervalGraph(1, 2, Y$i) and V = V2 and Y$i = V3 -> p(V2, V3))."
+                "forall V$i V1$i V2 V3 X$i Y$i Z (p(X$i, Y$i, Z) and 1 <= V$i <= X$i and 1 <= V1$i <= Y$i and V$i = V2 and V1$i = V3 -> q(V2, V3)).
+                forall V V2 V3 Y$i (V = Y$i and 1 <= Y$i <= 2 and V = V2 and Y$i = V3 -> p(V2, V3))."
             ),
         ] {
             let source_program: mini_gringo::Program = source.parse().unwrap();
             let max_arity = source_program.max_arity();
-            let natural_theory = numeric_natural(numeric_normal_form(source_program), Dialect::GringoFive).theory;
+            let natural_theory = numeric_natural(numeric_normal_form(source_program), Dialect::GringoFive);
 
             let fresh_var_names = natural_theory
                 .variables()

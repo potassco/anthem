@@ -1,88 +1,78 @@
-use std::fmt;
-
 use indexmap::IndexSet;
 
 use crate::{
     command_line::arguments::Dialect,
+    convenience::fresh_names::FreshVariables as _,
     syntax_tree::{
         asp::mini_gringo as asp,
         fol::sigma_0::{
             self as fol, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Sort,
-            SymbolicTerm, Theory,
+            SymbolicTerm, Theory, Variable,
         },
     },
 };
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct AxiomatizedTheory {
-    pub axioms: Theory,
-    pub theory: Theory,
-}
-
-impl From<fol::Theory> for AxiomatizedTheory {
-    fn from(value: fol::Theory) -> Self {
-        AxiomatizedTheory {
-            axioms: fol::Theory {
-                formulas: Vec::new(),
-            },
-            theory: value,
-        }
-    }
-}
-
-impl fmt::Display for AxiomatizedTheory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.axioms.formulas.is_empty() {
-            let theory = &self.theory;
-            writeln!(f, "{theory}")?;
-        } else {
-            writeln!(f, "Axioms:")?;
-            for axiom in &self.axioms {
-                writeln!(f, "\t{axiom}")?;
-            }
-            writeln!(f, "Theory:")?;
-            for formula in &self.theory {
-                writeln!(f, "\t{formula}")?;
-            }
-        }
-        Ok(())
-    }
-}
-
-enum IndefiniteFunction {
-    Division,
-    Modulo,
-    Interval,
-}
-
+// A formula F(N1, N2, N3) defining the indefinite function f, i.e.,
+// N3 is a value of f(N1, N2) iff F(N1, N2, N3) holds
 // Gringo 5 (dialect D1) rounds the quotient towards 0
 // Gringo 6 (dialect D0) rounds the quotient towards negative infinity
-fn construct_graphf_axiom(f: IndefiniteFunction, d: Dialect) -> fol::Formula {
-    match (f, d) {
-        (IndefiniteFunction::Division, Dialect::GringoFive) => {
-            "forall N1$ N2$ N3$ ( divisionGraphG5(N1$,N2$,N3$) <-> (
-                (N1$ >= 0 and 0 <= N1$ - N2$ * N3$ < N2$) or
-                (N1$ >= 0 and 0 >= N2$ * N3$ - N1$ > N2$) or
-                (N1$ < 0 and 0 <= N2$ * N3$ - N1$ < N2$) or
-                (N1$ < 0 and 0 >= N1$ - N2$ * N3$ > N2$)
-            ))".parse().unwrap()
+fn defining_formula_template(op: asp::BinaryOperator, d: Dialect) -> Formula {
+    match (op, d) {
+        (asp::BinaryOperator::Divide, Dialect::GringoFive) => {
+            "(N1$ >= 0 and 0 <= N1$ - N2$ * N3$ < N2$) or
+             (N1$ >= 0 and 0 >= N2$ * N3$ - N1$ > N2$) or
+             (N1$ < 0 and 0 <= N2$ * N3$ - N1$ < N2$) or
+             (N1$ < 0 and 0 >= N1$ - N2$ * N3$ > N2$)".parse().unwrap()
         },
-        (IndefiniteFunction::Modulo, Dialect::GringoFive) => {
-            "forall I$ J$ Z$ ( moduloGraphG5(I$,J$,Z$) <->
-                exists K$ (
-                    K$ * |J$| <= |I$| < (K$+1) * |J$| and
-                    ((I$ * J$ >= 0 and Z$ = I$ - K$ * J$) or (I$ * J$ < 0 and Z$ = I$ + K$ * J$))))".parse().unwrap()
+        (asp::BinaryOperator::Modulo, Dialect::GringoFive) => {
+            "exists K$ (
+                K$ * |N2$| <= |N1$| < (K$+1) * |N2$| and
+                ((N1$ * N2$ >= 0 and N3$ = N1$ - K$ * N2$) or (N1$ * N2$ < 0 and N3$ = N1$ + K$ * N2$)))".parse().unwrap()
         },
-        (IndefiniteFunction::Division, Dialect::GringoSix) => {
-            "forall N1$ N2$ N3$ ( divisionGraphG6(N1$,N2$,N3$) <-> ( (0 <= N1$ - N2$ * N3$ < N2$) or (0 >= N1$ - N2$ * N3$ > N2$) ))".parse().unwrap()
+        (asp::BinaryOperator::Divide, Dialect::GringoSix) => {
+            "(0 <= N1$ - N2$ * N3$ < N2$) or (0 >= N1$ - N2$ * N3$ > N2$)".parse().unwrap()
         },
-        (IndefiniteFunction::Modulo, Dialect::GringoSix) => {
-            "forall I$ J$ R$ ( moduloGraphG6(I$,J$,R$) <-> exists Q$ (I$ = J$ * Q$ + R$ and J$ != 0 and 0 <= R$ < J$) )".parse().unwrap()
+        (asp::BinaryOperator::Modulo, Dialect::GringoSix) => {
+            "exists Q$ (N1$ = N2$ * Q$ + N3$ and N2$ != 0 and 0 <= N3$ < N2$)".parse().unwrap()
         },
-        (IndefiniteFunction::Interval, _) => {
-            "forall I$ J$ K$ ( intervalGraph(I$,J$,K$) <-> I$ <= K$ <= J$ )".parse().unwrap()
-        },
+        (asp::BinaryOperator::Interval, _) => "N1$ <= N3$ <= N2$".parse().unwrap(),
+        _ => unreachable!("only division, modulo, and interval are indefinite functions"),
     }
+}
+
+// F(t1, t2, t3) for the formula F defining the indefinite function f
+fn defining_formula(op: asp::BinaryOperator, d: Dialect, args: [IntegerTerm; 3]) -> Formula {
+    let template = defining_formula_template(op, d);
+
+    let parameters = ["N1", "N2", "N3"].map(|name| Variable {
+        name: name.into(),
+        sort: Sort::Integer,
+    });
+
+    // Rename the parameters apart from the variables of the arguments first,
+    // so substituting the arguments one after another cannot capture any of them
+    let mut taken_vars = template.variables();
+    for arg in &args {
+        taken_vars.extend(arg.variables());
+    }
+
+    let mut formula = template;
+    let mut fresh_parameters = Vec::new();
+    for parameter in parameters {
+        let fresh = Variable {
+            name: taken_vars.choose_fresh_variable(&parameter.name),
+            sort: Sort::Integer,
+        };
+        taken_vars.insert(fresh.clone());
+        formula = formula.substitute(parameter, fresh.clone().into());
+        fresh_parameters.push(fresh);
+    }
+
+    for (parameter, arg) in fresh_parameters.into_iter().zip(args) {
+        formula = formula.substitute(parameter, GeneralTerm::IntegerTerm(arg));
+    }
+
+    formula
 }
 
 // Convert top-level general variables in the term to
@@ -209,28 +199,12 @@ fn nu_literal(f: asp::AtomicFormula, d: Dialect, vars: &mut IndexSet<String>) ->
         asp::AtomicFormula::Comparison(c) => {
             if c.clone().indefinite_equality() {
                 let (binop, t1, t2) = c.rhs.destructure_binary_operation().unwrap();
-                let predicate_symbol = match binop {
-                    asp::BinaryOperator::Divide => match d {
-                        Dialect::GringoFive => String::from("divisionGraphG5"),
-                        Dialect::GringoSix => String::from("divisionGraphG6"),
-                    },
-                    asp::BinaryOperator::Modulo => match d {
-                        Dialect::GringoFive => String::from("moduloGraphG5"),
-                        Dialect::GringoSix => String::from("moduloGraphG6"),
-                    },
-                    asp::BinaryOperator::Interval => String::from("intervalGraph"),
-                    _ => unreachable!("an indefinite equality cannot contain definite functions"),
-                };
                 // c.lhs is "within arithmetic scope" since it falls in case 2
-                let terms = vec![
-                    p2f(t1, true, vars),
-                    p2f(t2, true, vars),
-                    p2f(c.lhs, true, vars),
-                ];
-                Formula::AtomicFormula(fol::AtomicFormula::Atom(fol::Atom::new(
-                    predicate_symbol,
-                    terms,
-                )))
+                let args = [t1, t2, c.lhs].map(|t| match p2f(t, true, vars) {
+                    GeneralTerm::IntegerTerm(integer_term) => integer_term,
+                    t => unreachable!("the expression {t} is not in numeric normal form"),
+                });
+                defining_formula(binop, d, args)
             } else {
                 Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                     term: p2f(c.lhs, false, vars),
@@ -398,27 +372,8 @@ fn unify_variable_sorts(f: Formula, vars: &IndexSet<String>) -> Formula {
 }
 
 // Requires a numeric normal form program as input
-// Returns an (Axioms, Representation) pair
-pub(crate) fn numeric_natural(p: asp::Program, d: Dialect) -> AxiomatizedTheory {
-    let mut axioms = Vec::new();
-
-    let indefinites = p.indefinite_functions();
-    if indefinites.contains(&asp::BinaryOperator::Divide) {
-        axioms.push(construct_graphf_axiom(IndefiniteFunction::Division, d));
-    }
-    if indefinites.contains(&asp::BinaryOperator::Modulo) {
-        axioms.push(construct_graphf_axiom(IndefiniteFunction::Modulo, d));
-    }
-    if indefinites.contains(&asp::BinaryOperator::Interval) {
-        axioms.push(construct_graphf_axiom(IndefiniteFunction::Interval, d));
-    }
-
-    let theory = p.rules.into_iter().map(|r| nu_rule(r, d)).collect();
-
-    AxiomatizedTheory {
-        axioms: axioms.into_iter().collect(),
-        theory,
-    }
+pub(crate) fn numeric_natural(p: asp::Program, d: Dialect) -> Theory {
+    p.rules.into_iter().map(|r| nu_rule(r, d)).collect()
 }
 
 #[cfg(test)]
@@ -436,18 +391,22 @@ mod tests {
             ("q(X,Y+1) :- p(X,Y).", "forall X Y$ (p(X,Y$) -> q(X,Y$+1))."),
             (
                 "q(X/Y+1) :- p(X,Y).",
-                "forall V$ X$ Y$ ( p(X$, Y$) and divisionGraphG5(X$,Y$,V$) -> q(V$+1) ).",
+                "forall V$ X$ Y$ ( p(X$, Y$) and (X$ >= 0 and 0 <= X$ - Y$ * V$ < Y$ or X$ >= 0 and 0 >= Y$ * V$ - X$ > Y$ or X$ < 0 and 0 <= Y$ * V$ - X$ < Y$ or X$ < 0 and 0 >= X$ - Y$ * V$ > Y$) -> q(V$+1) ).",
             ),
-            ("p(1..8).", "forall V$ (intervalGraph(1,8,V$) -> p(V$))."),
+            ("p(1..8).", "forall V$ (1 <= V$ <= 8 -> p(V$))."),
             (
                 "p(a..b).",
-                "forall V$ V1$ V2$ (V$ = a and V1$ = b and intervalGraph(V$, V1$, V2$) -> p(V2$)).",
+                "forall V$ V1$ V2$ (V$ = a and V1$ = b and V$ <= V2$ <= V1$ -> p(V2$)).",
+            ),
+            (
+                "r(K) :- s(N1,N2), K = N1 \\ N2.",
+                "forall K$ N1$ N2$ (s(N1$, N2$) and exists K1$ (K1$ * |N2$| <= |N1$| < (K1$ + 1) * |N2$| and (N1$ * N2$ >= 0 and K$ = N1$ - K1$ * N2$ or N1$ * N2$ < 0 and K$ = N1$ + K1$ * N2$)) -> r(K$)).",
             ),
         ] {
             let normalized_program = Program {
                 rules: vec![numeric_normal_form_rule(src.parse().unwrap())],
             };
-            let src = numeric_natural(normalized_program, Dialect::GringoFive).theory;
+            let src = numeric_natural(normalized_program, Dialect::GringoFive);
             let target = target.parse().unwrap();
             assert_eq!(src, target, "\n{src} \n!= \n{target}")
         }
