@@ -140,7 +140,6 @@ pub struct OutputPredicatesErrorContent {
 
 #[derive(Error, Debug)]
 pub enum ExternalEquivalenceTaskError {
-    UnsupportedFormulaRepresentation,
     NonTightProgram(asp::Program),
     ProgramContainsPrivateRecursion(asp::Program),
     InputOutputPredicatesOverlap(Vec<fol::Predicate>),
@@ -229,12 +228,6 @@ impl Display for ExternalEquivalenceTaskError {
             }
             ExternalEquivalenceTaskError::ProofOutlineError(_) => {
                 writeln!(f, "a definition or lemma contains errors")
-            }
-            ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation => {
-                writeln!(
-                    f,
-                    "tau-star is the only formula-representation currently supported for external equivalence"
-                )
             }
             ExternalEquivalenceTaskError::SpecificationContainsUnsupportedRoles(formula) => {
                 writeln!(
@@ -471,17 +464,6 @@ impl ExternalEquivalenceTask {
     }
 
     #[allow(clippy::result_large_err)]
-    fn ensure_valid_formula_representation(
-        &self,
-    ) -> Result<(), ExternalEquivalenceTaskWarning, ExternalEquivalenceTaskError> {
-        if !matches!(self.formula_representation, FormulaRepresentation::TauStar) {
-            return Err(ExternalEquivalenceTaskError::UnsupportedFormulaRepresentation);
-        }
-
-        Ok(WithWarnings::flawless(()))
-    }
-
-    #[allow(clippy::result_large_err)]
     fn ensure_specification_roles_are_supported(
         &self,
         formulas: &Vec<fol::AnnotatedFormula>,
@@ -548,8 +530,6 @@ impl Task for ExternalEquivalenceTask {
     type Warning = ExternalEquivalenceTaskWarning;
 
     fn decompose(self) -> Result<Vec<Problem>, Self::Warning, Self::Error> {
-        self.ensure_valid_formula_representation()?;
-
         let placeholders = self
             .user_guide
             .placeholders()
