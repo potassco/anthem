@@ -2,78 +2,15 @@ use indexmap::IndexSet;
 
 use crate::{
     command_line::arguments::Dialect,
-    convenience::fresh_names::FreshVariables as _,
     syntax_tree::{
         asp::mini_gringo as asp,
         fol::sigma_0::{
             self as fol, Formula, GeneralTerm, Guard, IntegerTerm, Quantification, Sort,
-            SymbolicTerm, Theory, Variable,
+            SymbolicTerm, Theory,
         },
     },
+    translating::formula_representation::arithmetic::{IndefiniteFunction, defining_formula},
 };
-
-// A formula F(N1, N2, N3) defining the indefinite function f, i.e.,
-// N3 is a value of f(N1, N2) iff F(N1, N2, N3) holds
-// Gringo 5 (dialect D1) rounds the quotient towards 0
-// Gringo 6 (dialect D0) rounds the quotient towards negative infinity
-fn defining_formula_template(op: asp::BinaryOperator, d: Dialect) -> Formula {
-    match (op, d) {
-        (asp::BinaryOperator::Divide, Dialect::GringoFive) => {
-            "(N1$ >= 0 and 0 <= N1$ - N2$ * N3$ < N2$) or
-             (N1$ >= 0 and 0 >= N2$ * N3$ - N1$ > N2$) or
-             (N1$ < 0 and 0 <= N2$ * N3$ - N1$ < N2$) or
-             (N1$ < 0 and 0 >= N1$ - N2$ * N3$ > N2$)".parse().unwrap()
-        },
-        (asp::BinaryOperator::Modulo, Dialect::GringoFive) => {
-            "exists K$ (
-                K$ * |N2$| <= |N1$| < (K$+1) * |N2$| and
-                ((N1$ * N2$ >= 0 and N3$ = N1$ - K$ * N2$) or (N1$ * N2$ < 0 and N3$ = N1$ + K$ * N2$)))".parse().unwrap()
-        },
-        (asp::BinaryOperator::Divide, Dialect::GringoSix) => {
-            "(0 <= N1$ - N2$ * N3$ < N2$) or (0 >= N1$ - N2$ * N3$ > N2$)".parse().unwrap()
-        },
-        (asp::BinaryOperator::Modulo, Dialect::GringoSix) => {
-            "exists Q$ (N1$ = N2$ * Q$ + N3$ and N2$ != 0 and 0 <= N3$ < N2$)".parse().unwrap()
-        },
-        (asp::BinaryOperator::Interval, _) => "N1$ <= N3$ <= N2$".parse().unwrap(),
-        _ => unreachable!("only division, modulo, and interval are indefinite functions"),
-    }
-}
-
-// F(t1, t2, t3) for the formula F defining the indefinite function f
-fn defining_formula(op: asp::BinaryOperator, d: Dialect, args: [IntegerTerm; 3]) -> Formula {
-    let template = defining_formula_template(op, d);
-
-    let parameters = ["N1", "N2", "N3"].map(|name| Variable {
-        name: name.into(),
-        sort: Sort::Integer,
-    });
-
-    // Rename the parameters apart from the variables of the arguments first,
-    // so substituting the arguments one after another cannot capture any of them
-    let mut taken_vars = template.variables();
-    for arg in &args {
-        taken_vars.extend(arg.variables());
-    }
-
-    let mut formula = template;
-    let mut fresh_parameters = Vec::new();
-    for parameter in parameters {
-        let fresh = Variable {
-            name: taken_vars.choose_fresh_variable(&parameter.name),
-            sort: Sort::Integer,
-        };
-        taken_vars.insert(fresh.clone());
-        formula = formula.substitute(parameter, fresh.clone().into());
-        fresh_parameters.push(fresh);
-    }
-
-    for (parameter, arg) in fresh_parameters.into_iter().zip(args) {
-        formula = formula.substitute(parameter, GeneralTerm::IntegerTerm(arg));
-    }
-
-    formula
-}
 
 // Convert top-level general variables in the term to
 // an integer variable of the same name if within the scope
@@ -204,7 +141,9 @@ fn nu_literal(f: asp::AtomicFormula, d: Dialect, vars: &mut IndexSet<String>) ->
                     GeneralTerm::IntegerTerm(integer_term) => integer_term,
                     t => unreachable!("the expression {t} is not in numeric normal form"),
                 });
-                defining_formula(binop, d, args)
+                let f = IndefiniteFunction::try_from(binop)
+                    .expect("an indefinite equality contains an indefinite function");
+                defining_formula(f, d, args)
             } else {
                 Formula::AtomicFormula(fol::AtomicFormula::Comparison(fol::Comparison {
                     term: p2f(c.lhs, false, vars),

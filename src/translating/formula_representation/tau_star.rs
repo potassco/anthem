@@ -13,6 +13,7 @@ use {
                 Relation, Sort, SymbolicTerm, Theory, UnaryConnective, UnaryOperator, Variable,
             },
         },
+        translating::formula_representation::arithmetic::{IndefiniteFunction, defining_formula},
     },
     indexmap::IndexSet,
 };
@@ -107,61 +108,40 @@ fn construct_total_function_formula(
     }
 }
 
-// t1..t2
-// exists I J K (val_t1(I) & val_t2(J) & I <= K <= J & Z = K)
-fn construct_interval_formula(
+// t1 op t2, where op is an indefinite function with defining formula F
+// exists I J K (val_t1(I) & val_t2(J) & Z = K & F(I, J, K))
+fn construct_indefinite_function_formula(
     valti: Formula,
     valtj: Formula,
-    i_var: Variable,
-    j_var: Variable,
-    k_var: Variable,
+    f: IndefiniteFunction,
+    dialect: Dialect,
+    ijk_vars: [Variable; 3],
     z: Variable,
 ) -> Formula {
-    // I <= K <= J
-    let range = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(i_var.name.clone())),
-        guards: vec![
-            Guard {
-                relation: Relation::LessEqual,
-                term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(k_var.name.clone())),
-            },
-            Guard {
-                relation: Relation::LessEqual,
-                term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(j_var.name.clone())),
-            },
-        ],
+    let [i_var, j_var, k_var] = ijk_vars;
+
+    // Z = K
+    let z_equals_k = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
+        term: z.into(),
+        guards: vec![Guard {
+            relation: Relation::Equal,
+            term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(k_var.name.clone())),
+        }],
     }));
 
-    // val_t1(I) & val_t2(J) & Z = k
-    let subformula = Formula::BinaryFormula {
-        connective: BinaryConnective::Conjunction,
-        lhs: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: valti.into(),
-            rhs: valtj.into(),
-        }
-        .into(),
-        rhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-            term: z.into(),
-            guards: vec![Guard {
-                relation: Relation::Equal,
-                term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(k_var.name.clone())),
-            }],
-        }))
-        .into(),
-    };
+    // F(I, J, K)
+    let defining = defining_formula(
+        f,
+        dialect,
+        [&i_var, &j_var, &k_var].map(|v| IntegerTerm::Variable(v.name.clone())),
+    );
 
     Formula::QuantifiedFormula {
         quantification: Quantification {
             quantifier: Quantifier::Exists,
             variables: vec![i_var, j_var, k_var],
         },
-        formula: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: subformula.into(),
-            rhs: range.into(),
-        }
-        .into(),
+        formula: Formula::conjoin([valti, valtj, z_equals_k, defining]).into(),
     }
 }
 
@@ -191,367 +171,6 @@ fn construct_absolute_value_formula(valti: Formula, i_var: Variable, z: Variable
             rhs: valti.into(),
         }
         .into(),
-    }
-}
-
-// I,J,K must be integer variables
-// f1: K * |J| <= |I| < (K+1) * |J|
-fn division_helper_f1(i: Variable, j: Variable, k: Variable) -> Formula {
-    // K * |J|
-    let term1 = GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-        op: BinaryOperator::Multiply,
-        lhs: IntegerTerm::Variable(k.name.clone()).into(),
-        rhs: IntegerTerm::UnaryOperation {
-            op: UnaryOperator::AbsoluteValue,
-            arg: IntegerTerm::Variable(j.name.clone()).into(),
-        }
-        .into(),
-    });
-
-    // |I|
-    let term2 = GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
-        op: UnaryOperator::AbsoluteValue,
-        arg: IntegerTerm::Variable(i.name.clone()).into(),
-    });
-
-    // (K+1) * |J|
-    let term3 = GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-        op: BinaryOperator::Multiply,
-        lhs: IntegerTerm::BinaryOperation {
-            op: BinaryOperator::Add,
-            lhs: IntegerTerm::Variable(k.name.clone()).into(),
-            rhs: IntegerTerm::Numeral(1).into(),
-        }
-        .into(),
-        rhs: IntegerTerm::UnaryOperation {
-            op: UnaryOperator::AbsoluteValue,
-            arg: IntegerTerm::Variable(j.name.clone()).into(),
-        }
-        .into(),
-    });
-
-    Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: term1,
-        guards: vec![
-            Guard {
-                relation: Relation::LessEqual,
-                term: term2,
-            },
-            Guard {
-                relation: Relation::Less,
-                term: term3,
-            },
-        ],
-    }))
-}
-
-// f2: (I * J >= 0 & Z = K) v (I * J < 0 & Z = -K)
-fn division_helper_f2(
-    i: Variable, // Must be an integer variable
-    j: Variable, // Must be an integer variable
-    k: Variable, // Must be an integer variable
-    z: Variable, // Must be a general variable
-) -> Formula {
-    // I * J
-    let i_times_j = GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-        op: BinaryOperator::Multiply,
-        lhs: IntegerTerm::Variable(i.name.clone()).into(),
-        rhs: IntegerTerm::Variable(j.name.clone()).into(),
-    });
-
-    // I * J >= 0
-    let ij_geq_zero = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: i_times_j.clone(),
-        guards: vec![Guard {
-            relation: Relation::GreaterEqual,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-        }],
-    }));
-
-    // Z = K
-    let z_equals_k = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: z.clone().into(),
-        guards: vec![Guard {
-            relation: Relation::Equal,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Variable(k.name.clone())),
-        }],
-    }));
-
-    // I * J < 0
-    let ij_less_zero = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: i_times_j,
-        guards: vec![Guard {
-            relation: Relation::Less,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-        }],
-    }));
-
-    // Z = -K
-    let z_equals_neg_k = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: z.into(),
-        guards: vec![Guard {
-            relation: Relation::Equal,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::UnaryOperation {
-                op: UnaryOperator::Negative,
-                arg: IntegerTerm::Variable(k.name).into(),
-            }),
-        }],
-    }));
-
-    Formula::BinaryFormula {
-        connective: BinaryConnective::Disjunction,
-        lhs: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: ij_geq_zero.into(),
-            rhs: z_equals_k.into(),
-        }
-        .into(),
-        rhs: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: ij_less_zero.into(),
-            rhs: z_equals_neg_k.into(),
-        }
-        .into(),
-    }
-}
-
-// Arguments must be integer variables
-// f3: (I * J >= 0 & Z = I - K * J) v (I * J < 0 & Z = I + K * J)
-fn division_helper_f3(i: Variable, j: Variable, k: Variable, z: Variable) -> Formula {
-    // I * J
-    let i_times_j = GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-        op: BinaryOperator::Multiply,
-        lhs: IntegerTerm::Variable(i.name.clone()).into(),
-        rhs: IntegerTerm::Variable(j.name.clone()).into(),
-    });
-
-    // I * J >= 0
-    let ij_geq_zero = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: i_times_j.clone(),
-        guards: vec![Guard {
-            relation: Relation::GreaterEqual,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-        }],
-    }));
-
-    // I * J < 0
-    let ij_less_zero = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: i_times_j,
-        guards: vec![Guard {
-            relation: Relation::Less,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-        }],
-    }));
-
-    // K * J
-    let k_times_j = IntegerTerm::BinaryOperation {
-        op: BinaryOperator::Multiply,
-        lhs: IntegerTerm::Variable(k.name.clone()).into(),
-        rhs: IntegerTerm::Variable(j.name.clone()).into(),
-    };
-
-    // Z = I - K * J
-    let z_equals_i_minus = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: z.clone().into(),
-        guards: vec![Guard {
-            relation: Relation::Equal,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-                op: BinaryOperator::Subtract,
-                lhs: IntegerTerm::Variable(i.name.clone()).into(),
-                rhs: k_times_j.clone().into(),
-            }),
-        }],
-    }));
-
-    // Z = I + K * J
-    let z_equals_i_plus = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: z.into(),
-        guards: vec![Guard {
-            relation: Relation::Equal,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-                op: BinaryOperator::Add,
-                lhs: IntegerTerm::Variable(i.name.clone()).into(),
-                rhs: k_times_j.into(),
-            }),
-        }],
-    }));
-
-    Formula::BinaryFormula {
-        connective: BinaryConnective::Disjunction,
-        lhs: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: ij_geq_zero.into(),
-            rhs: z_equals_i_minus.into(),
-        }
-        .into(),
-        rhs: Formula::BinaryFormula {
-            connective: BinaryConnective::Conjunction,
-            lhs: ij_less_zero.into(),
-            rhs: z_equals_i_plus.into(),
-        }
-        .into(),
-    }
-}
-
-// Abstract Gringo compliant integer division and modulo.
-// Follows Locally Tight Programs (2023), Conditional literals & Arithmetic (2025)
-// Division: exists I J K (val_t1(I) & val_t2(J) & F1(IJK) & F2(IJKZ))
-// Modulo:   exists I J K (val_t1(I) & val_t2(J) & F1(IJK) & F3(IJKZ))
-fn construct_gfive_partial_function_formula(
-    valti: Formula,
-    valtj: Formula,
-    binop: asp::BinaryOperator,
-    i: Variable,
-    j: Variable,
-    k: Variable,
-    z: Variable,
-) -> Formula {
-    assert_eq!(i.sort, Sort::Integer);
-    assert_eq!(j.sort, Sort::Integer);
-    assert_eq!(k.sort, Sort::Integer);
-    //assert_eq!(z.sort, Sort::General);
-
-    let f1 = division_helper_f1(i.clone(), j.clone(), k.clone());
-
-    let f = match binop {
-        asp::BinaryOperator::Divide => division_helper_f2(i.clone(), j.clone(), k.clone(), z),
-        asp::BinaryOperator::Modulo => division_helper_f3(i.clone(), j.clone(), k.clone(), z),
-        _ => unreachable!("division and modulo are the only supported partial functions"),
-    };
-
-    Formula::QuantifiedFormula {
-        quantification: Quantification {
-            quantifier: Quantifier::Exists,
-            variables: vec![i, j, k],
-        },
-        formula: Formula::conjoin([valti, valtj, f1, f]).into(),
-    }
-}
-
-// I = J * Q + R & val_t1(I) & val_t2(J) & J != 0 & R >= 0 & R < J
-fn division_helper_f4(
-    valti: Formula,
-    valtj: Formula,
-    i: Variable,
-    j: Variable,
-    q: Variable,
-    r: Variable,
-) -> Formula {
-    // I = J * Q + R
-    let comp1 = Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-        term: i.into(),
-        guards: vec![Guard {
-            relation: Relation::Equal,
-            term: GeneralTerm::IntegerTerm(IntegerTerm::BinaryOperation {
-                op: BinaryOperator::Add,
-                lhs: IntegerTerm::BinaryOperation {
-                    op: BinaryOperator::Multiply,
-                    lhs: IntegerTerm::Variable(j.name.clone()).into(),
-                    rhs: IntegerTerm::Variable(q.name).into(),
-                }
-                .into(),
-                rhs: IntegerTerm::Variable(r.name.clone()).into(),
-            }),
-        }],
-    }));
-
-    // J != 0 & R >= 0 & R < J
-    let comp2 = Formula::conjoin(vec![
-        Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-            term: j.clone().into(),
-            guards: vec![Guard {
-                relation: Relation::NotEqual,
-                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-            }],
-        })),
-        Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-            term: r.clone().into(),
-            guards: vec![Guard {
-                relation: Relation::GreaterEqual,
-                term: GeneralTerm::IntegerTerm(IntegerTerm::Numeral(0)),
-            }],
-        })),
-        Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-            term: r.into(),
-            guards: vec![Guard {
-                relation: Relation::Less,
-                term: j.into(),
-            }],
-        })),
-    ]);
-
-    Formula::conjoin(vec![comp1, valti, valtj, comp2])
-}
-
-// Gringo 6 compliant integer division and modulo.
-// Follows Verifying Tight Logic Programs with Anthem and Vampire
-// Division: exists I J Q R (F4(IJQR) & Z = Q)
-// Modulo:   exists I J Q R (F4(IJQR) & Z = R)
-fn construct_gsix_partial_function_formula(
-    valti: Formula,
-    valtj: Formula,
-    binop: asp::BinaryOperator,
-    i: Variable,
-    j: Variable,
-    z: Variable,
-) -> Formula {
-    assert_eq!(i.sort, Sort::Integer);
-    assert_eq!(j.sort, Sort::Integer);
-
-    let mut taken_vars = IndexSet::new();
-    taken_vars.insert(z.clone());
-    let qvar = Variable {
-        name: taken_vars.choose_fresh_variable("Q"),
-        sort: Sort::Integer,
-    };
-    let rvar = Variable {
-        name: taken_vars.choose_fresh_variable("R"),
-        sort: Sort::Integer,
-    };
-
-    let quantification = Quantification {
-        quantifier: Quantifier::Exists,
-        variables: vec![i.clone(), j.clone(), qvar.clone(), rvar.clone()],
-    };
-
-    match binop {
-        // exists I J Q R (F4(IJQR) & Z = Q)
-        asp::BinaryOperator::Divide => Formula::QuantifiedFormula {
-            quantification,
-            formula: Formula::BinaryFormula {
-                connective: BinaryConnective::Conjunction,
-                lhs: division_helper_f4(valti, valtj, i, j, qvar.clone(), rvar).into(),
-                rhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-                    term: z.into(),
-                    guards: vec![Guard {
-                        relation: Relation::Equal,
-                        term: qvar.into(),
-                    }],
-                }))
-                .into(),
-            }
-            .into(),
-        },
-
-        // exists I J Q R (F4(IJQR) & Z = R)
-        asp::BinaryOperator::Modulo => Formula::QuantifiedFormula {
-            quantification,
-            formula: Formula::BinaryFormula {
-                connective: BinaryConnective::Conjunction,
-                lhs: division_helper_f4(valti, valtj, i, j, qvar, rvar.clone()).into(),
-                rhs: Formula::AtomicFormula(AtomicFormula::Comparison(Comparison {
-                    term: z.into(),
-                    guards: vec![Guard {
-                        relation: Relation::Equal,
-                        term: rvar.into(),
-                    }],
-                }))
-                .into(),
-            }
-            .into(),
-        },
-
-        _ => unreachable!("division and modulo are the only supported partial functions"),
     }
 }
 
@@ -680,31 +299,14 @@ fn val(
                     jvar.clone(),
                     z,
                 ),
-                asp::BinaryOperator::Divide | asp::BinaryOperator::Modulo => match dialect {
-                    Dialect::GringoFive => construct_gfive_partial_function_formula(
-                        valti,
-                        valtj,
-                        op,
-                        ivar.clone(),
-                        jvar.clone(),
-                        kvar.clone(),
-                        z,
-                    ),
-                    Dialect::GringoSix => construct_gsix_partial_function_formula(
-                        valti,
-                        valtj,
-                        op,
-                        ivar.clone(),
-                        jvar.clone(),
-                        z,
-                    ),
-                },
-                asp::BinaryOperator::Interval => construct_interval_formula(
+                asp::BinaryOperator::Divide
+                | asp::BinaryOperator::Modulo
+                | asp::BinaryOperator::Interval => construct_indefinite_function_formula(
                     valti,
                     valtj,
-                    ivar.clone(),
-                    jvar.clone(),
-                    kvar.clone(),
+                    IndefiniteFunction::try_from(op).unwrap(),
+                    dialect,
+                    [ivar.clone(), jvar.clone(), kvar.clone()],
                     z,
                 ),
             }
